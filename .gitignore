@@ -1,0 +1,12 @@
+# Database config — JANGAN di-upload!
+koneksi.php
+
+# File upload user
+uploads/foto_menu/*
+uploads/foto_profil/*
+
+# File sistem
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
