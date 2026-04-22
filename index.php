@@ -18,9 +18,7 @@
                         "primary": "#295d12",
                         "second-primary": "#ffffff",
                         "input": "#f0f5fa",
-
                     }
-
                 }
             }
         }
