@@ -7,7 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <script>
         tailwind.config = {
@@ -15,51 +15,100 @@
             theme: {
                 extend: {
                     "colors": {
-                        "primary": "#295d12",
-                        "second-primary": "#ffffff",
-                        "input": "#f0f5fa",
+                        "background": "#f7f8f9",
+                        "primary": "#004900",
+                        "second-primary": "#f9f9fb",
+                        "input": "#f3f3f5",
+                        "text-1": "#191c1c",
+                        "text-2": "#4e5a48",
+                        "text-3": "#5e6659",
+                        "submit": "#005300"
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="flex bg-primary min-h-screen mt-[70px] justify-center">
-    
-    <div class="w-[475px] bg-second-primary rounded-[53px] flex flex-col h-screen items-center py-[30px] px-[30px] border-box">
-        
-        <div class="self-center w-[200px] bg-input h-[7px] rounded-[53px]"></div>
+<body class="bg-[url('assets/img/fotoBackground3.jpg')] bg-cover bg-center  min-h-screen 
+            flex items-center justify-center">
 
-        <div class="flex flex-col items-center w-full mt-[8px]">
-            <img src="assets/img/logoBaru1.png" class="w-[300px] h-auto">
-            <img src="assets/img/welcome.png" class="w-[100px] h-auto">
-        </div>
+  <div class="flex flex-col h-screen w-screen bg-background gap-[10px] 
+              md:w-[500px] md:h-auto md:rounded-[30px] md:p-[20px]
+              lg:w-[900px] lg:h-[600px] lg:flex-row lg:p-0"> 
 
-        <form method="POST" class="w-full m-0 p-0">
-            <div class="flex flex-col gap-[10px] mt-[40px] w-full border-box">
-                <div class="w-full h-[50px] bg-input rounded-[15px] flex items-center gap-[8px] border-box py-0 px-[15px]">
-                    <img src="assets/img/Person.png" class="w-[20px] h-auto opacity-60">
-                    <input type="text" name="username" class="border-none bg-transparent outline-none text-[20px] text-zinc-950 w-full
-                        focus:ring-0 focus:outline-none focus:border-transparent">
-                </div>
+    <div class="hidden lg:flex flex-col justify-between w-[45%] h-full bg-primary p-10">
+            <img src="assets/img/logoBaru1.png" 
+                 class="w-[180px] h-auto brightness-0 invert"/>
 
-                <div class="w-full h-[50px] bg-input rounded-[15px] flex items-center gap-[8px] border-box py-0 px-[15px]">
-                    <img src="assets/img/Key.png" class="w-[20px] h-auto opacity-60">
-                    <input type="password" name="username" class="border-none bg-transparent outline-none text-[20px] text-zinc-950 w-full
-                        focus:ring-0 focus:outline-none focus:border-transparent">
-                </div>
+            <div>
+                <h2 class="text-white font-bold text-3xl leading-tight mb-3">
+                    Selamat Datang di e-Kantin
+                </h2>
+                <p class="text-white/70 text-sm leading-relaxed">
+                    Pesan makanan favoritmu dengan mudah dan cepat.
+                </p>
             </div>
-
-            <div class="w-full h-[50px] bg-primary rounded-[15px] flex items-center border-box py-0 px-[15px] mt-[20px]">
-                <input type="submit" name="Submit"
-                class="w-full no-underline bg-transparent outline-none border-none text-[15px] font-bold tracking-[2px] text-zinc-950 text-center
-                cursor-pointer uppercase">
-            </div>
-        </form>
-
-        <div class="flex justify-center items-center mt-[10px]">
-            <a href="#" class="outline-none text-zinc-950">Lupa Sandi?</a>
-        </div>
     </div>
+
+    <div class="flex flex-col flex-1 h-full overflow-y-auto no-scrollbar px-[20px] py-[30px] md:px-[40px] md:py-[40px]">
+
+    <div class="flex justify-center items-center">
+      <img src="assets/img/logoBaru1.png" class="w-[256px] h-auto">
+    </div>
+
+    <div class="flex flex-col mt-[10px] justify-center text-center gap-[10px]">
+      <h2 class="font-headline text-3xl font-bold text-text-1">Welcome Back</h2>
+      <p class="font-medium text-text-2">Tolong masukkan informasi penting anda untuk mengakses akun</p>
+    </div>
+
+    <div class="flex flex-col gap-[13px] w-full p-[20px]">
+
+      <div class="flex flex-col gap-[2px] w-full h-1/2">
+        <p class="font-label text-xs font-semibold uppercase tracking-widest text-on-surface-variant ml-1">Username</p>
+        <div class="w-full h-[60px] bg-input rounded-[15px] flex items-center gap-[10px] border-box py-0 px-[15px]">
+                  <input type="text" name="username" class="border-none bg-input outline-none text-[18px] text-zinc-950 w-full
+                        focus:ring-0 focus:outline-none focus:border-transparent" placeholder="Tambahkan Username Anda">
+                  <img src="assets/img/Person.png" class="w-[20px] h-auto opacity-60 flex-shrink-0">
+          </div>
+      </div>
+
+      <div class="flex flex-col gap-[2px] w-full h-1/2">
+        <p class="font-label text-xs font-semibold uppercase tracking-widest text-on-surface-variant ml-1">Password</p>
+        <div class="w-full h-[60px] bg-input rounded-[15px] flex items-center gap-[10px] border-box py-0 px-[15px]">
+                  <input type="password" name="password" class="border-none bg-input outline-none text-[18px] text-zinc-950 w-full
+                        focus:ring-0 focus:outline-none focus:border-transparent" placeholder="Tambahkan Password Anda">
+                  <img src="assets/img/Key.png" class="w-[20px] h-auto opacity-60 flex-shrink-0">
+          </div>
+      </div>
+    </div>
+
+    <div class="flex w-full px-[20px]">
+     <button
+        type="submit" name="submit"
+        class="w-full h-[60px] bg-submit rounded-[15px]
+               text-[20px] font-bold tracking-[2px] text-white
+               uppercase cursor-pointer mt-[20px]
+               hover:opacity-90 active:scale-[0.98] transition-all
+               focus:outline-none focus:ring-0 border-none outline-none">SUBMIT
+     </button>
+    </div>
+
+    <footer class="mt-12 text-center">
+      <p class="text-text-1 font-medium text-sm">
+          New to e-Kantin? 
+          <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="#">Register Now</a>
+      </p>
+
+      <p class="text-text-3 font-semibold text-base tracking-widest mt-[8px] mb-[8px]">OR</p>
+
+      <p class="text-text-1 font-medium text-sm">
+          Lupa Sandi? 
+          <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="#">Request</a>
+      </p>
+    </footer>
+    </div>
+  </div>
+    
+    
 </body>
 </html>
