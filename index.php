@@ -7,7 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 
     <script>
         tailwind.config = {
@@ -34,11 +34,12 @@
 
   <div class="flex flex-col h-screen w-screen bg-background gap-[10px] 
               md:w-[500px] md:h-auto md:rounded-[30px] md:p-[20px]
-              lg:w-[900px] lg:h-[600px] lg:flex-row lg:p-0"> 
+              lg:w-[900px] lg:h-[600px] lg:flex-row lg:p-0
+              lg:rounded-[30px] lg:overflow-hidden"> 
 
-    <div class="hidden lg:flex flex-col justify-between w-[45%] h-full bg-primary p-10">
+    <div class="hidden lg:flex flex-col justify-between w-[45%] h-full bg-primary p-10 lg:rounded-l-[30px]">
             <img src="assets/img/logoBaru1.png" 
-                 class="w-[180px] h-auto brightness-0 invert"/>
+                 class="w-[180px] h-auto"/>
 
             <div>
                 <h2 class="text-white font-bold text-3xl leading-tight mb-3">
@@ -53,7 +54,7 @@
     <div class="flex flex-col flex-1 h-full overflow-y-auto no-scrollbar px-[20px] py-[30px] md:px-[40px] md:py-[40px]">
 
     <div class="flex justify-center items-center">
-      <img src="assets/img/logoBaru1.png" class="w-[256px] h-auto">
+      <img src="assets/img/logoBaru1.png" class="w-[256px] h-auto lg:hidden">
     </div>
 
     <div class="flex flex-col mt-[10px] justify-center text-center gap-[10px]">
