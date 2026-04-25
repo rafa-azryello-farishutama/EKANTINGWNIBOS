@@ -1,3 +1,78 @@
+<?php
+session_start();
+include 'config/koneksi.php';
+$show_popup = false;
+$pesan_error1 = "";
+$popup_type = "success";
+
+if($_SERVER["REQUEST_METHOD"] == "POST"){
+
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $sql = "SELECT * FROM users WHERE username='$username'";
+    $cek = $db_ekantin->query($sql);
+
+    if($cek->num_rows>0){
+        $data = $cek->fetch_assoc();
+
+        if($password == $data['password']){
+
+        $status = $data['status'];
+            if($status == "aktif"){
+
+                $_SESSION['id_users'] = $data['id_users'];
+                $_SESSION['username'] = $data['username'];
+                $_SESSION['role']     = $data['role'];
+                $_SESSION['tipe']     = $data['tipe'];
+
+                if($data['role'] == 'admin'){
+                    $_SESSION['username'] = $data['username'];
+                    header("Location: admin/dashboard.php");
+                    exit;
+
+                } else if($data['role'] == 'penjual'){
+                    $cekPenjual = $db_ekantin->query("SELECT * FROM penjual WHERE id_users='{$data['id_users']}'");
+                    $penjual    = $cekPenjual->fetch_assoc();
+                    $_SESSION['kode_penjual'] = $penjual['kode_penjual'];
+                    $_SESSION['nama_toko']    = $penjual['nama_toko'];
+                    $_SESSION['nama_pemilik'] = $penjual['nama_pemilik'];
+
+                    header("Location: penjual/dashboard.php");
+                    exit;
+
+                } else if($data['role'] == 'pembeli'){
+                    $cekPembeli = $db_ekantin->query("SELECT * FROM pembeli WHERE id_users='{$data['id_users']}'");
+                    $pembeli    = $cekPembeli->fetch_assoc();
+                    $_SESSION['nama_pembeli'] = $pembeli['nama_pembeli'];
+
+                    header("Location: pembeli/dashboard.php");
+                    exit;
+                }
+            } else {
+                $show_popup = true;
+                $pesan_error1 = "Akun anda Tidak Aktif. Hubungi Admin.";
+                $popup_type = "error";
+            }
+        } else {
+            $show_popup = true;
+            $pesan_error1 = "Password yang Anda masukkan Salah";
+            $popup_type = "error";
+        }
+    } else {
+        $show_popup = true;
+        $pesan_error1 = "Username tidak ditemukan.";
+        $popup_type = "error";
+    }
+}
+?>
+
+<?php 
+if($show_popup){
+    include 'includes/popupGagal.php';
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +81,8 @@
     <title>e-Kantin | Login</title>
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
+    
+    <link rel="stylesheet" href="assets/css/style.css">
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -28,7 +104,7 @@
     </script>
 </head>
 
-<body class="bg-background min-h-screen relative flex-col items-center justify-center relative overflow-hidden">
+<body class="bg-background min-h-screen relative flex-col items-center justify-center relative overflow-y-scroll">
 
     <div class="absolute top-4 left-1/2 mb-[20px] -translate-x-1/2 md:top-8 md:left-10 md:translate-x-0 lg:left-12 z-20">
         <img src="assets/img/logoBaru1.png" alt="Logo e-Kantin" class="w-[140px] md:w-[160px] lg:w-[180px] h-auto">
@@ -48,7 +124,8 @@
                 <div class="text-center">
                     <p class="font-medium text-text-3 text-sm">Tolong masukkan informasi penting Anda untuk mengakses akun</p>
                 </div>
-
+                
+                <form method="POST" action="index.php" class="flex flex-col gap-6">
                 <div class="flex flex-col gap-[15px] w-full mt-2">
                     <div class="flex flex-col gap-[4px] w-full">
                         <p class="font-label text-xs font-semibold uppercase tracking-widest text-text-2 ml-1">Username</p>
@@ -72,6 +149,7 @@
                         MASUK
                     </button>
                 </div>
+                </form>
 
             </div>
 
@@ -80,7 +158,7 @@
                     Tidak punya Akun? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="apps/register.php">Daftar Sekarang</a>
                 </p>
                 <p class="text-text-1 font-medium text-sm">
-                    Lupa Sandi? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="#">Request</a>
+                    Lupa Sandi? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="apps/lupaSandi.php">Ikuti Langkah berikut</a>
                 </p>
             </div>
 

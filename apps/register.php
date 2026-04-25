@@ -151,7 +151,7 @@ if($show_popup) {
                 <div class="mt-8 text-center pb-4">
                     <p class="text-text-1 text-sm font-medium">
                         Sudah punya akun?
-                        <a class="text-primary font-bold ml-1 hover:underline underline-offset-4" href="index.php">Masuk</a>
+                        <a class="text-primary font-bold ml-1 hover:underline underline-offset-4" href="../index.php">Masuk</a>
                     </p>
                 </div>
             </div>
