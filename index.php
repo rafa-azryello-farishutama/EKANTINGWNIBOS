@@ -1,12 +1,11 @@
 <?php
 session_start();
-include 'config/koneksi.php';
+include "config/koneksi.php";
 $show_popup = false;
 $pesan_error1 = "";
 $popup_type = "success";
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
-
     $username = $_POST['username'];
     $password = $_POST['password'];
 
@@ -16,7 +15,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     if($cek->num_rows>0){
         $data = $cek->fetch_assoc();
 
-        if($password == $data['password']){
+        if(password_verify($password, $data['password'])){
 
         $status = $data['status'];
             if($status == "aktif"){
@@ -125,7 +124,7 @@ if($show_popup){
                     <p class="font-medium text-text-3 text-sm">Tolong masukkan informasi penting Anda untuk mengakses akun</p>
                 </div>
                 
-                <form method="POST" action="index.php" class="flex flex-col gap-6">
+                <form method="POST" class="flex flex-col gap-6">
                 <div class="flex flex-col gap-[15px] w-full mt-2">
                     <div class="flex flex-col gap-[4px] w-full">
                         <p class="font-label text-xs font-semibold uppercase tracking-widest text-text-2 ml-1">Username</p>
