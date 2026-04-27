@@ -34,6 +34,7 @@ $halaman = basename($_SERVER['PHP_SELF']);
 </head>
 <body class="bg-background text-text-1 selection:bg-primary selection:text-text-2">
     <div class="flex min-h-screen relative">
+
         <?php include 'navbar.php'; ?>
     </div>
 </body>

@@ -11,7 +11,7 @@ $halaman = basename($_SERVER['PHP_SELF']);
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -34,7 +34,17 @@ $halaman = basename($_SERVER['PHP_SELF']);
 </head>
 <body class="bg-background text-text-1 selection:bg-primary selection:text-text-2">
     <div class="flex min-h-screen relative">
+
         <?php include 'navbar.php'; ?>
     </div>
+
+    <main class="lg:ml-80 flex-grow p-4 md:p-8 bg-surface pt-24 lg:pt-8">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 gap-4">
+            <div>
+                <h2 class="font-headline font-extrabold text-3xl md:text-4xl tracking-tight text-primary">Good Morning, Julian</h2>
+                <p class="text-on-surface-variant font-body mt-2">Here's what's happening at e-Kantin today.</p>
+            </div>
+        </header>
+    </main>
 </body>
 </html>
