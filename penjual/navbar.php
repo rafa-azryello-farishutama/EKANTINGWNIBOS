@@ -30,7 +30,7 @@
                 rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
                 <img src="<?= $halaman == 'produk.php' ? '../assets/img/kotakGarpu_white.png' : '../assets/img/kotakGarpu_black.png' ?>" 
                     class="w-[25px] h-auto mr-3 <?= $halaman != 'pesan.php' ? 'opacity-40' : '' ?>">
-                <span class="font-medium text-sm">Anggota</span>
+                <span class="font-medium text-sm">Produk</span>
                 </a>
 
                 <a href="pesanan.php" class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
