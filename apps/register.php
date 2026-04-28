@@ -6,21 +6,25 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
     $role = "pembeli";
     $username = $_POST['username'];
+
+    if(strpos($username, ' ') !== false){
+        $error_register = "Username tidak boleh mengandung spasi.";
+    }
+
     $password = $_POST['password'];
     $telepon = $_POST['phone'];
     $email = $_POST['email'];
-    $alamat = $_POST['address'];
 
     $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
-    $cek = "INSERT INTO users(username, password, role, no_telepon, email, alamat) 
-                VALUES('$username','$hash_password','$role','$telepon','$email','$alamat')";
+    $cek = "INSERT INTO users(username, password, role, no_telepon, email) 
+            VALUES('$username','$hash_password','$role','$telepon','$email')";
 
     if($db_ekantin->query($cek)){
             $id_user = $db_ekantin->insert_id;
 
-            $db_ekantin->query("INSERT INTO pembeli(id_users, nama, no_telepon, email, alamat)
-                                    VALUES('$id_user','$username','$telepon','$email','$alamat')");
+            $db_ekantin->query("INSERT INTO pembeli(id_users)
+                        VALUES('$id_user')");
             $show_popup = true;
         }
 }
@@ -104,7 +108,7 @@ if($show_popup) {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Username</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="text" name="username" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="Username Anda">
+                            <input type="text" name="username" oninput="this.value = this.value.replace(/\s/g, '')" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="Username Anda">
                             <img src="../assets/img/Person.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
@@ -130,14 +134,6 @@ if($show_popup) {
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
                             <input type="email" name="email" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="email@contoh.com">
                             <img src="../assets/img/email1.png" class="w-5 h-5 opacity-40">
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Alamat</p>
-                        <div class="w-full bg-input rounded-[15px] flex items-start gap-3 p-4">
-                            <textarea name="address" rows="2" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0 resize-none" placeholder="Masukkan alamat lengkap"></textarea>
-                            <img src="../assets/img/address1.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
 

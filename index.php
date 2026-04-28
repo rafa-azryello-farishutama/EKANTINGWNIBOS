@@ -35,15 +35,12 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                     $penjual    = $cekPenjual->fetch_assoc();
                     $_SESSION['kode_penjual'] = $penjual['kode_penjual'];
                     $_SESSION['nama_toko']    = $penjual['nama_toko'];
-                    $_SESSION['nama_pemilik'] = $penjual['nama_pemilik'];
 
                     header("Location: penjual/dashboard.php");
                     exit;
 
                 } else if($data['role'] == 'pembeli'){
-                    $cekPembeli = $db_ekantin->query("SELECT * FROM pembeli WHERE id_users='{$data['id_users']}'");
-                    $pembeli    = $cekPembeli->fetch_assoc();
-                    $_SESSION['nama_pembeli'] = $pembeli['nama_pembeli'];
+                    $_SESSION['nama_pembeli'] = $data['username'];
 
                     header("Location: pembeli/dashboard.php");
                     exit;

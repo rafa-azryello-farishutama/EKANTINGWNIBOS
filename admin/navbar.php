@@ -49,7 +49,7 @@
 
                 <a href="pengaturan.php" class="<?= $halaman == 'pengaturan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
                 rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
-                <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>" 
+                <img src="<?= $halaman == 'pengaturan.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>" 
                     class="w-[25px] h-auto mr-3 <?= $halaman != 'pengaturan.php' ? 'opacity-40' : '' ?>">
                 <span class="font-medium text-sm">Pengaturan</span>
                 </a>

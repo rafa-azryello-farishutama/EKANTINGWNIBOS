@@ -1,5 +1,11 @@
 <?php 
 $halaman = basename($_SERVER['PHP_SELF']);
+session_start();
+
+if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
+    header("Location: ../index.php");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>

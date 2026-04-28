@@ -4,6 +4,12 @@ $halaman = basename($_SERVER['PHP_SELF']);
 
 <?php
 include '../config/koneksi.php';
+session_start();
+
+if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
+    header("Location: ../index.php");
+    exit();
+}
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
     $username = $_POST['nama'];
@@ -21,12 +27,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     if($db_ekantin->query($cek)){
         $id_user = $db_ekantin->insert_id;
 
-        $db_ekantin->query("INSERT INTO penjual(id_users, nama_pemilik, nama_toko, no_telepon, email)
-                                VALUES('$id_user','$username','$namaToko','$telepon','$email')");
+        $db_ekantin->query("INSERT INTO penjual(id_users, nama_toko)
+                        VALUES('$id_user','$namaToko')");
     }
 }
 
-// Hitung total toko aktif berdasarkan status di tabel users
 $sql = "SELECT COUNT(*) as total FROM penjual p 
         JOIN users u ON p.id_users = u.id_users 
         WHERE u.status = 'aktif'";
@@ -124,8 +129,8 @@ $total_aktif = $row['total'];
                         while($data = $result->fetch_assoc()){
                             $kode_penjual = $data['kode_penjual'];
                             $id           = $data['id_users'];
-                            $username     = htmlspecialchars($data['username'], ENT_QUOTES);    // dari tabel users
-                            $toko         = htmlspecialchars($data['nama_toko'], ENT_QUOTES);   // dari tabel penjual
+                            $username     = htmlspecialchars($data['username'], ENT_QUOTES);    
+                            $toko         = htmlspecialchars($data['nama_toko'], ENT_QUOTES);   
                             $email        = htmlspecialchars($data['email'], ENT_QUOTES);       // dari tabel users
                             $telepon      = htmlspecialchars($data['no_telepon'], ENT_QUOTES);  // dari tabel users
                             $status       = $data['status'];                                    // dari tabel users
@@ -169,8 +174,8 @@ $total_aktif = $row['total'];
             
             <form method="POST" class="p-8 flex flex-col gap-5">
                 <div class="flex flex-col gap-1">
-                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Lengkap</label>
-                    <input type="text" name="nama" placeholder="Masukkan nama pemilik" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>
+                    <input type="text" name="nama" oninput="this.value = this.value.replace(/\s/g, '')" placeholder="Masukkan username pemilik" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
                 </div>
 
                 <div class="flex flex-col gap-1">

@@ -4,17 +4,41 @@ $halaman = basename($_SERVER['PHP_SELF']);
 
 <?php 
 include '../config/koneksi.php';
+session_start();
+
+if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
+    header("Location: ../index.php");
+    exit();
+}
 
 // TAMBAHAN: Proses Edit Informasi User
 if(isset($_POST['edit_user'])){
-    $id_edit = $_POST['edit_id'];
-    $nama_edit = $db_ekantin->real_escape_string($_POST['edit_nama']);
-    $email_edit = $db_ekantin->real_escape_string($_POST['edit_email']);
+    $id_edit      = $_POST['edit_id'];
+    $nama_edit    = $db_ekantin->real_escape_string($_POST['edit_nama']);
+    $email_edit   = $db_ekantin->real_escape_string($_POST['edit_email']);
     $telepon_edit = $db_ekantin->real_escape_string($_POST['edit_telepon']);
-    
-    $db_ekantin->query("UPDATE users SET username='$nama_edit', email='$email_edit', no_telepon='$telepon_edit' WHERE id_users='$id_edit'");
-    header("Location: kelola.php");
-    exit;
+
+    if(strpos($nama_edit, ' ') !== false){
+        $error_edit = "Username tidak boleh mengandung spasi.";
+    }
+
+    // TAMBAHAN: cek konflik username
+    $cekUsername = $db_ekantin->query("SELECT id_users FROM users WHERE username='$nama_edit' AND id_users != '$id_edit'");
+    if($cekUsername->num_rows > 0){
+        $error_edit = "Username sudah digunakan oleh pengguna lain.";
+    }
+
+    // TAMBAHAN: cek konflik email
+    $cekEmail = $db_ekantin->query("SELECT id_users FROM users WHERE email='$email_edit' AND id_users != '$id_edit'");
+    if($cekEmail->num_rows > 0){
+        $error_edit = "Email sudah digunakan oleh pengguna lain.";
+    }
+
+    if(!isset($error_edit)){
+        $db_ekantin->query("UPDATE users SET username='$nama_edit', email='$email_edit', no_telepon='$telepon_edit' WHERE id_users='$id_edit'");
+        header("Location: kelola.php");
+        exit;
+    }
 }
 
 // TAMBAHAN: handle aktifkan/nonaktifkan
@@ -206,6 +230,12 @@ $total_toko = $hasilCari->num_rows;
             </button>
         </div>
 
+        <?php if(isset($error_edit)): ?>
+            <div class="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium">
+            <?= $error_edit ?>
+            </div>
+        <?php endif; ?>
+
         <form method="POST" class="flex flex-col gap-4">
             <input type="hidden" name="edit_id" id="edit_id">
 
@@ -320,6 +350,18 @@ $total_toko = $hasilCari->num_rows;
         document.getElementById('modal-edit').classList.add('hidden');
     }
 </script>
+
+<?php if(isset($error_edit)): ?>
+<script>
+    window.onload = function() {
+        document.getElementById('modal-edit').classList.remove('hidden');
+        document.getElementById('edit_id').value = '<?= $_POST['edit_id'] ?>';
+        document.getElementById('edit_nama').value = '<?= htmlspecialchars($_POST['edit_nama']) ?>';
+        document.getElementById('edit_email').value = '<?= htmlspecialchars($_POST['edit_email']) ?>';
+        document.getElementById('edit_telepon').value = '<?= htmlspecialchars($_POST['edit_telepon']) ?>';
+    }
+</script>
+<?php endif; ?>
 
 </body>
 </html>
