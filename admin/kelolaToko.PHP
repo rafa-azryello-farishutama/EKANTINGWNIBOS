@@ -27,13 +27,15 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     if($db_ekantin->query($cek)){
         $id_user = $db_ekantin->insert_id;
 
-        $db_ekantin->query("INSERT INTO penjual(id_users, nama_toko)
+        // Ganti penjual -> toko
+        $db_ekantin->query("INSERT INTO toko(id_users, nama_toko)
                         VALUES('$id_user','$namaToko')");
     }
 }
 
-$sql = "SELECT COUNT(*) as total FROM penjual p 
-        JOIN users u ON p.id_users = u.id_users 
+// Ganti penjual -> toko
+$sql = "SELECT COUNT(*) as total FROM toko t 
+        JOIN users u ON t.id_users = u.id_users 
         WHERE u.status = 'aktif'";
 $hasil = $db_ekantin->query($sql);
 $row = $hasil->fetch_assoc();
@@ -106,58 +108,59 @@ $total_aktif = $row['total'];
             </div>
 
             <div class="w-full bg-white rounded-[20px] mt-[20px] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px] bg-primary px-6 py-4 gap-4">
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">User</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Nama</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Toko</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Email</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Telepon</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Status</p>
-                </div>
+    <div class="grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] bg-primary px-6 py-4 gap-4">
+        <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">User</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">Nama</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">Toko</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">Email</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">Telepon</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">Status</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-white">Aksi</p>
+    </div>
 
-                <div class="overflow-y-auto max-h-[400px]">
-                    <?php 
-                    // JOIN tabel penjual dan users agar data sinkron
-                    $query = "SELECT p.kode_penjual, p.id_users, u.username, p.nama_toko, 
-                                     u.email, u.no_telepon, u.status 
-                              FROM penjual p
-                              JOIN users u ON p.id_users = u.id_users";
-                    $result = $db_ekantin->query($query);
+    <div class="overflow-y-auto max-h-[400px]">
+        <?php 
+        // Update query untuk mengambil data detail
+        $query = "SELECT t.*, u.username, u.email, u.no_telepon, u.status 
+                  FROM toko t
+                  JOIN users u ON t.id_users = u.id_users";
+        $result = $db_ekantin->query($query);
 
-                    if($result && $result->num_rows > 0){
-                        while($data = $result->fetch_assoc()){
-                            $kode_penjual = $data['kode_penjual'];
-                            $id           = $data['id_users'];
-                            $username     = htmlspecialchars($data['username'], ENT_QUOTES);    
-                            $toko         = htmlspecialchars($data['nama_toko'], ENT_QUOTES);   
-                            $email        = htmlspecialchars($data['email'], ENT_QUOTES);       // dari tabel users
-                            $telepon      = htmlspecialchars($data['no_telepon'], ENT_QUOTES);  // dari tabel users
-                            $status       = $data['status'];                                    // dari tabel users
+        if($result && $result->num_rows > 0){
+            while($data = $result->fetch_assoc()){
+                $id_toko = $data['id_toko'];
+                $id_user = $data['id_users'];
+                $username = htmlspecialchars($data['username'], ENT_QUOTES);    
+                $toko = htmlspecialchars($data['nama_toko'], ENT_QUOTES);   
+                $status = $data['status'];
 
-                            if($status == 'aktif'){
-                                $tulisanStatus = "<span class='text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full w-fit'>Aktif</span>";
-                            } else {
-                                $tulisanStatus = "<span class='text-xs font-semibold text-red-500 bg-red-100 px-3 py-1 rounded-full w-fit'>Nonaktif</span>";
-                            }
+                // Data untuk Modal Detail
+                $lokasi = htmlspecialchars($data['lokasi'] ?? 'Belum diatur', ENT_QUOTES);
+                $deskripsi = htmlspecialchars($data['deskripsi'] ?? 'Tidak ada deskripsi', ENT_QUOTES);
+                $jam_buka = $data['jam_buka'] ?? '--:--';
+                $jam_tutup = $data['jam_tutup'] ?? '--:--';
 
-                            echo "
-                            <div class='grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'>
-                                <p class='text-sm text-text-2'>$kode_penjual</p>
-                                <p class='text-sm text-text-2'>$id</p>
-                                <p class='text-sm font-medium text-text-1 truncate'>$username</p>
-                                <p class='text-sm font-medium text-text-1 truncate'>$toko</p>
-                                <p class='text-sm text-text-2 truncate'>$email</p>
-                                <p class='text-sm text-text-2 truncate'>$telepon</p>
-                                $tulisanStatus
-                            </div>";
-                        }
-                    } else {
-                        echo "<div class='px-6 py-8 text-center text-text-3 text-sm'>Belum ada data toko.</div>";
-                    }
-                    ?>
-                </div>
-            </div>
+                $tulisanStatus = ($status == 'aktif') 
+                    ? "<span class='text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full w-fit'>Aktif</span>"
+                    : "<span class='text-xs font-semibold text-red-500 bg-red-100 px-3 py-1 rounded-full w-fit'>Nonaktif</span>";
+
+                echo "
+                <div class='grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'>
+                    <p class='text-sm text-text-2'>$id_toko</p>
+                    <p class='text-sm text-text-2'>$id_user</p>
+                    <p class='text-sm font-medium text-text-1 truncate'>$username</p>
+                    <p class='text-sm font-medium text-text-1 truncate'>$toko</p>
+                    <p class='text-sm text-text-2 truncate'>".htmlspecialchars($data['email'])."</p>
+                    <p class='text-sm text-text-2 truncate'>".htmlspecialchars($data['no_telepon'])."</p>
+                    $tulisanStatus
+                    <button onclick=\"showDetail('$toko', '$lokasi', '$deskripsi', '$jam_buka', '$jam_tutup')\" class='text-primary hover:text-submit font-bold text-xs uppercase tracking-wider'>Detail</button>
+                </div>";
+            }
+        }
+        ?>
+    </div>
+</div>
         </main>
     </div>
 
@@ -205,6 +208,37 @@ $total_aktif = $row['total'];
         </div>
     </div>
 
+    <div id="modalDetail" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden popup-enter">
+        <div class="bg-primary p-6 flex justify-between items-center text-white">
+            <h3 id="detailNamaToko" class="font-bold text-xl">Detail Toko</h3>
+            <button onclick="closeDetail()" class="hover:bg-white/20 p-1 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="p-8 space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Jam Operasional</p>
+                    <p id="detailJam" class="text-sm font-semibold text-text-1 mt-1"></p>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Lokasi</p>
+                    <p id="detailLokasi" class="text-sm text-text-1 mt-1"></p>
+                </div>
+            </div>
+            <hr class="border-gray-100">
+            <div>
+                <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Deskripsi Toko</p>
+                <p id="detailDeskripsi" class="text-sm text-text-2 mt-2 leading-relaxed italic"></p>
+            </div>
+            <button onclick="closeDetail()" class="w-full bg-input text-text-1 font-bold py-3 rounded-[15px] hover:bg-gray-200 transition-all">Tutup</button>
+        </div>
+    </div>
+</div>
+
     <script>
         function toggleModal(show) {
             const modal = document.getElementById('modalTambah');
@@ -220,6 +254,27 @@ $total_aktif = $row['total'];
                 toggleModal(false);
             }
         }
+
+        function showDetail(nama, lokasi, deskripsi, buka, tutup) {
+    document.getElementById('detailNamaToko').innerText = nama;
+    document.getElementById('detailLokasi').innerText = lokasi;
+    document.getElementById('detailDeskripsi').innerText = deskripsi;
+    document.getElementById('detailJam').innerText = buka + " - " + tutup;
+    
+    document.getElementById('modalDetail').classList.remove('hidden');
+}
+
+function closeDetail() {
+    document.getElementById('modalDetail').classList.add('hidden');
+}
+
+// Tambahkan agar klik di luar modal juga menutup detail
+window.onclick = function(event) {
+    const modalTambah = document.getElementById('modalTambah');
+    const modalDetail = document.getElementById('modalDetail');
+    if (event.target == modalTambah) toggleModal(false);
+    if (event.target == modalDetail) closeDetail();
+}
     </script>
 </body>
 </html>

@@ -31,20 +31,16 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                     exit;
 
                 } else if($data['role'] == 'penjual'){
-                    $cekPenjual = $db_ekantin->query("SELECT * FROM penjual WHERE id_users='{$data['id_users']}'");
-                    $penjual    = $cekPenjual->fetch_assoc();
-                    $_SESSION['kode_penjual'] = $penjual['kode_penjual'];
-                    $_SESSION['nama_toko']    = $penjual['nama_toko'];
+                    $cekToko = $db_ekantin->query("SELECT * FROM toko WHERE id_users='{$data['id_users']}'");
+                    $toko    = $cekToko->fetch_assoc();
+                
+                    $_SESSION['id_toko']   = $toko['id_toko'];
+                    $_SESSION['nama_toko'] = $toko['nama_toko'];
 
                     header("Location: penjual/dashboard.php");
                     exit;
-
-                } else if($data['role'] == 'pembeli'){
-                    $_SESSION['nama_pembeli'] = $data['username'];
-
-                    header("Location: pembeli/dashboard.php");
-                    exit;
                 }
+
             } else {
                 $show_popup = true;
                 $pesan_error1 = "Akun anda Tidak Aktif. Hubungi Admin.";

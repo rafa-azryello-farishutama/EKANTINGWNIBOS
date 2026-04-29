@@ -2,6 +2,8 @@
 include "../config/koneksi.php";
 
 $show_popup = false;
+$error_register = "";
+
 if($_SERVER["REQUEST_METHOD"] == "POST"){
 
     $role = "pembeli";
@@ -9,30 +11,30 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
     if(strpos($username, ' ') !== false){
         $error_register = "Username tidak boleh mengandung spasi.";
-    }
+    } else {
+        $password = $_POST['password'];
+        $telepon = $_POST['phone'];
+        $email = $_POST['email'];
 
-    $password = $_POST['password'];
-    $telepon = $_POST['phone'];
-    $email = $_POST['email'];
+        $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
-    $hash_password = password_hash($password, PASSWORD_DEFAULT);
+        $cek = "INSERT INTO users(username, password, role, no_telepon, email) 
+                VALUES('$username','$hash_password','$role','$telepon','$email')";
 
-    $cek = "INSERT INTO users(username, password, role, no_telepon, email) 
-            VALUES('$username','$hash_password','$role','$telepon','$email')";
-
-    if($db_ekantin->query($cek)){
-            $id_user = $db_ekantin->insert_id;
-
-            $db_ekantin->query("INSERT INTO pembeli(id_users)
-                        VALUES('$id_user')");
+        if($db_ekantin->query($cek)){
             $show_popup = true;
         }
+    }
 }
 ?>
 
 <?php 
 if($show_popup) {
     include "../includes/popup.php"; 
+}
+
+if($error_register != "") {
+    echo "<script>alert('$error_register');</script>";
 }
 ?>
 
@@ -108,7 +110,7 @@ if($show_popup) {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Username</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="text" name="username" oninput="this.value = this.value.replace(/\s/g, '')" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="Username Anda">
+                            <input type="text" name="username" oninput="this.value = this.value.replace(/\s/g, '')" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="Username Anda" required>
                             <img src="../assets/img/Person.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
@@ -116,7 +118,7 @@ if($show_popup) {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Password</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="password" name="password" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="••••••••">
+                            <input type="password" name="password" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="••••••••" required>
                             <img src="../assets/img/Key.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
@@ -124,7 +126,7 @@ if($show_popup) {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">No. Telepon</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="tel" name="phone" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="0812xxxx">
+                            <input type="tel" name="phone" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="0812xxxx" required>
                             <img src="../assets/img/phone1.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
@@ -132,7 +134,7 @@ if($show_popup) {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Email</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="email" name="email" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="email@contoh.com">
+                            <input type="email" name="email" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="email@contoh.com" required>
                             <img src="../assets/img/email1.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
