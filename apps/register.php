@@ -9,20 +9,37 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     $role = "pembeli";
     $username = $_POST['username'];
 
-    if(strpos($username, ' ') !== false){
+    if(strlen($username) < 3 || strlen($username) > 20){
+        $error_register = "Username harus antara 3-20 karakter.";
+    } else if(!preg_match('/^[a-zA-Z0-9_.]+$/', $username)){
+        $error_register = "Username hanya boleh huruf, angka, underscore, dan titik.";
+    }else if(strpos($username, ' ') !== false){
         $error_register = "Username tidak boleh mengandung spasi.";
     } else {
         $password = $_POST['password'];
         $telepon = $_POST['phone'];
         $email = $_POST['email'];
 
+        $cekUsername = $db_ekantin->query("SELECT id_users FROM users WHERE username='$username'");
+            if($cekUsername->num_rows > 0){
+                $error_register = "Username sudah digunakan, silakan pilih yang lain.";
+                }
+        
+        $cekEmail = $db_ekantin->query("SELECT id_users FROM users WHERE email='$email'");
+            if($cekEmail->num_rows > 0){
+                $error_register = "Email sudah terdaftar, silakan gunakan email lain.";
+                }
+
+
+        if($error_register == ""){
         $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
         $cek = "INSERT INTO users(username, password, role, no_telepon, email) 
                 VALUES('$username','$hash_password','$role','$telepon','$email')";
 
-        if($db_ekantin->query($cek)){
-            $show_popup = true;
+            if($db_ekantin->query($cek)){
+                $show_popup = true;
+            }
         }
     }
 }
@@ -110,7 +127,8 @@ if($error_register != "") {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Username</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="text" name="username" oninput="this.value = this.value.replace(/\s/g, '')" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="Username Anda" required>
+                            <input type="text" name="username"  pattern="[a-zA-Z0-9_.]{3,20}" oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')"
+                                    maxlength="20" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="Username Anda" required>
                             <img src="../assets/img/Person.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>

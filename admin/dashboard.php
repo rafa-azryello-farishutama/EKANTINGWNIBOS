@@ -52,16 +52,28 @@ if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
 
         <div class="grid grid-cols-2 gap-4 md:gap-6">
 
-    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2">
-        <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Anggota Aktif</p>
-        <p class="text-4xl font-extrabold text-primary">128</p>
-        <p class="text-xs text-text-2">pengguna terdaftar</p>
+    <div class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group">
+        <div class="relative z-10">
+            <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Anggota Aktif</p>
+            <p class="text-4xl font-extrabold text-primary">128</p>
+            <p class="text-xs text-text-2">pengguna terdaftar</p>
+        </div>
+        
+        <img src="../assets/img/gambarBesar.png" 
+             alt="User Icon" 
+             class="absolute -bottom-2 -right-2 w-[100px] md:w-[140px] opacity-10 pointer-events-none transition-transform duration-300 group-hover:scale-110">
     </div>
 
-    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2">
-        <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Toko Aktif</p>
-        <p class="text-4xl font-extrabold text-primary">12</p>
-        <p class="text-xs text-text-2">toko berjalan</p>
+    <div class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group">
+        <div class="relative z-10">
+            <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Toko Aktif</p>
+            <p class="text-4xl font-extrabold text-primary">12</p>
+            <p class="text-xs text-text-2">toko berjalan</p>
+        </div>
+        
+        <img src="../assets/img/icon-store.png" 
+             alt="Store Icon" 
+             class="absolute -bottom-2 -right-2 w-[130px] md:w-[140px] opacity-10 pointer-events-none transition-transform duration-300 group-hover:scale-110">
     </div>
 
 </div>

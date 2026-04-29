@@ -15,6 +15,12 @@ if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
 if(isset($_POST['edit_user'])){
     $id_edit      = $_POST['edit_id'];
     $nama_edit    = $db_ekantin->real_escape_string($_POST['edit_nama']);
+    if(strlen($nama_edit) < 3 || strlen($nama_edit) > 20){
+        $error_edit = "Username harus antara 3-20 karakter.";
+    } else if(!preg_match('/^[a-zA-Z0-9_.]+$/', $nama_edit)){
+        $error_edit = "Username hanya boleh huruf, angka, underscore, dan titik.";
+    }
+
     $email_edit   = $db_ekantin->real_escape_string($_POST['edit_email']);
     $telepon_edit = $db_ekantin->real_escape_string($_POST['edit_telepon']);
 
@@ -241,7 +247,9 @@ $total_toko = $hasilCari->num_rows;
 
             <div class="flex flex-col gap-1">
                 <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Username</label>
-                <input type="text" name="edit_nama" id="edit_nama" class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20" required>
+                <input type="text" name="edit_nama" id="edit_nama" 
+                oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')" maxlength="20" 
+                class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20" required>
             </div>
 
             <div class="flex flex-col gap-1">
