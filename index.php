@@ -23,7 +23,6 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                 $_SESSION['id_users'] = $data['id_users'];
                 $_SESSION['username'] = $data['username'];
                 $_SESSION['role']     = $data['role'];
-                $_SESSION['tipe']     = $data['tipe'];
 
                 if($data['role'] == 'admin'){
                     $_SESSION['username'] = $data['username'];
@@ -38,6 +37,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                     $_SESSION['nama_toko'] = $toko['nama_toko'];
 
                     header("Location: penjual/dashboard.php");
+                    exit;
+                } else if($data['role'] == 'pembeli'){
+                    $_SESSION['username'] = $data['username'];
+                    header("Location: pembeli/dashboard.php");
                     exit;
                 }
 
@@ -96,7 +99,7 @@ if($show_popup){
     </script>
 </head>
 
-<body class="bg-background min-h-screen relative flex-col items-center justify-center relative overflow-y-scroll">
+<body class="bg-background min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll">
 
     <div class="absolute top-4 left-1/2 mb-[20px] -translate-x-1/2 md:top-8 md:left-10 md:translate-x-0 lg:left-12 z-20">
         <img src="assets/img/logoBaru1.png" alt="Logo e-Kantin" class="w-[140px] md:w-[160px] lg:w-[180px] h-auto">

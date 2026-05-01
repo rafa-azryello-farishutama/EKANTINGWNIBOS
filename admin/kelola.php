@@ -41,10 +41,17 @@ if(isset($_POST['edit_user'])){
     }
 
     if(!isset($error_edit)){
-        $db_ekantin->query("UPDATE users SET username='$nama_edit', email='$email_edit', no_telepon='$telepon_edit' WHERE id_users='$id_edit'");
+    $updatePassword = "";
+        if(!empty($_POST['edit_password'])){
+            $hash_baru = password_hash($_POST['edit_password'], PASSWORD_DEFAULT);
+            $updatePassword = ", password='$hash_baru'";
+        }
+
+        $db_ekantin->query("UPDATE users SET username='$nama_edit', email='$email_edit', no_telepon='$telepon_edit'$updatePassword WHERE id_users='$id_edit'");
         header("Location: kelola.php");
         exit;
     }
+    
 }
 
 // TAMBAHAN: handle aktifkan/nonaktifkan
@@ -262,6 +269,13 @@ $total_toko = $hasilCari->num_rows;
                 <input type="text" name="edit_nama" id="edit_nama" 
                 oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')" maxlength="20" 
                 class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20" required>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Password Baru <span class="text-gray-400 normal-case tracking-normal font-normal">(kosongkan jika tidak diubah)</span></label>
+                <input type="password" name="edit_password" id="edit_password"
+                class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="••••••••">
             </div>
 
             <div class="flex flex-col gap-1">
