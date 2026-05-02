@@ -12,14 +12,24 @@ if (isset($_POST['update_status'])) {
     $id = $_POST['id_pesanan'];
     $status_baru = $_POST['status_baru'];
 
-    // Update status ke database
     $query_update = "UPDATE pesanan SET status_pesanan = '$status_baru' WHERE id_pesanan = '$id'";
     $db_ekantin->query($query_update);
     
-    // Refresh halaman agar perubahan status langsung terlihat di card
     header("Location: pesanan.php");
     exit;
 }
+
+$qTotal = "SELECT * FROM pesanan";
+$hasil = $db_ekantin->query($qTotal);
+$jTotal = $hasil->num_rows;
+
+$qPending = "SELECT * FROM pesanan WHERE status_pesanan = 'pending'";
+$hTotal = $db_ekantin->query($qPending);
+$pTotal = $hTotal->num_rows;
+
+$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan =  'selesai'";
+$hSelesai = $db_ekantin->query($qSelesai);
+$sTotal = $hSelesai->num_rows;
 ?>
 
 <!DOCTYPE html>
@@ -71,7 +81,7 @@ if (isset($_POST['update_status'])) {
                     class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Hari Ini</p>
-                        <p class="text-4xl font-extrabold text-primary">0</p>
+                        <p class="text-4xl font-extrabold text-primary"><?php echo $jTotal; ?></p>
                         <p class="text-xs text-text-2">total pesanan masuk</p>
                     </div>
                     <img src="../assets/img/user-icon.png"
@@ -82,7 +92,7 @@ if (isset($_POST['update_status'])) {
                     class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Pending</p>
-                        <p class="text-4xl font-extrabold text-yellow-500">0</p>
+                        <p class="text-4xl font-extrabold text-yellow-500"><?php echo $pTotal; ?></p>
                         <p class="text-xs text-text-2">menunggu diproses</p>
                     </div>
                     <img src="../assets/img/store-icon.png"
@@ -93,7 +103,7 @@ if (isset($_POST['update_status'])) {
                     class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group col-span-2 md:col-span-1 md:col-start-1 md:translate-x-1/2">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Selesai Hari Ini</p>
-                        <p class="text-4xl font-extrabold text-green-600">0</p>
+                        <p class="text-4xl font-extrabold text-green-600"><?php echo $sTotal; ?></p>
                         <p class="text-xs text-text-2">pesanan selesai</p>
                     </div>
                     <img src="../assets/img/revenue-icon.png"
