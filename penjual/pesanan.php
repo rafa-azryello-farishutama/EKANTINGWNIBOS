@@ -14,7 +14,7 @@ if (isset($_POST['update_status'])) {
 
     $query_update = "UPDATE pesanan SET status_pesanan = '$status_baru' WHERE id_pesanan = '$id'";
     $db_ekantin->query($query_update);
-    
+
     header("Location: pesanan.php");
     exit;
 }
@@ -280,17 +280,16 @@ $sTotal = $hSelesai->num_rows;
             document.getElementById('form-filter').submit();
         }
 
-        // Tambahkan id_pesanan di parameter terakhir
-function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
-    document.getElementById('popup-nama').textContent = nama;
-    document.getElementById('popup-waktu').textContent = waktu;
-    document.getElementById('popup-items').textContent = items;
-    document.getElementById('popup-catatan').textContent = catatan;
-    document.getElementById('popup-total').textContent = total;
+        function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
+            document.getElementById('popup-nama').textContent = nama;
+            document.getElementById('popup-waktu').textContent = waktu;
+            document.getElementById('popup-items').textContent = items;
+            document.getElementById('popup-catatan').textContent = catatan;
+            document.getElementById('popup-total').textContent = total;
 
-    // Tambahkan form di dalam tombol
-    const aksiMap = {
-        pending: `
+            // Tambahkan form di dalam tombol
+            const aksiMap = {
+                pending: `
             <form method="POST">
                 <input type="hidden" name="id_pesanan" value="${id_pesanan}">
                 <input type="hidden" name="status_baru" value="diproses">
@@ -298,7 +297,7 @@ function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
                     Proses Pesanan
                 </button>
             </form>`,
-        diproses: `
+                diproses: `
             <form method="POST">
                 <input type="hidden" name="id_pesanan" value="${id_pesanan}">
                 <input type="hidden" name="status_baru" value="selesai">
@@ -306,12 +305,12 @@ function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
                     Tandai Selesai
                 </button>
             </form>`,
-        selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">Pesanan Selesai</div>`
-    };
+                selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">Pesanan Selesai</div>`
+            };
 
-    document.getElementById('popup-aksi').innerHTML = aksiMap[status];
-    document.getElementById('overlay-popup').classList.remove('hidden');
-}
+            document.getElementById('popup-aksi').innerHTML = aksiMap[status];
+            document.getElementById('overlay-popup').classList.remove('hidden');
+        }
 
         function tutupPopup() {
             document.getElementById('overlay-popup').classList.add('hidden');
