@@ -119,11 +119,17 @@ $total_aktif = $row['total'];
             </header>
 
             <div class="grid grid-cols-1 gap-4 md:gap-6">
-                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col justify-center items-center gap-2">
+                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden group">
+                <div class="relative gap-4 z-10">
                     <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Toko Aktif</p>
                     <p class="text-4xl font-extrabold text-primary"><?php echo $total_aktif; ?></p>
                     <p class="text-xs text-text-2">status aktif</p>
                 </div>
+
+                <img src="../assets/img/ikonstore.png" 
+                    alt="User Icon" 
+                    class="absolute bottom-0 right-0 translate-y-9 w-[120px] md:w-[140px] opacity-10 pointer-events-none transition-transform duration-300 group-hover:scale-110">
+            </div>
             </div>
 
             <div class="w-full bg-white rounded-[20px] mt-[20px] shadow-sm border border-gray-100 overflow-hidden">
