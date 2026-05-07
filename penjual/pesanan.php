@@ -113,7 +113,7 @@ $sTotal = $hSelesai->num_rows;
             </div>
 
             <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-                <form method="POST" id="form-filter">
+                <form method="GET" id="form-filter">
                     <input type="hidden" name="filter_status" id="input-filter" value="semua">
                 </form>
                 <button onclick="filterPesanan('semua')" id="btn-semua"
@@ -137,7 +137,7 @@ $sTotal = $hSelesai->num_rows;
             <div class="flex flex-col gap-3">
                 <?php
                 $id_toko = $_SESSION['id_toko'];
-                $filter = isset($_POST['filter_status']) ? $_POST['filter_status'] : 'semua';
+                $filter = isset($_GET['filter_status']) ? $_GET['filter_status'] : 'semua';
                 $where_status = ($filter !== 'semua') ? " AND p.status_pesanan = '$filter'" : "";
 
                 $query = "SELECT p.*, u.username FROM pesanan p 
@@ -265,10 +265,18 @@ $sTotal = $hSelesai->num_rows;
 
     <script>
         function filterPesanan(status) {
+            document.getElementById('input-filter').value = status;
+            document.getElementById('form-filter').submit();
+        }
+
+        function setActiveButton() {
+            const params = new URLSearchParams(window.location.search);
+            const aktif = params.get('filter_status') || 'semua';
+
             const buttons = ['semua', 'pending', 'diproses', 'selesai'];
             buttons.forEach(btn => {
                 const el = document.getElementById('btn-' + btn);
-                if (btn === status) {
+                if (btn === aktif) {
                     el.classList.add('bg-primary', 'text-white');
                     el.classList.remove('bg-white', 'border', 'border-gray-200', 'text-text-2');
                 } else {
@@ -276,9 +284,9 @@ $sTotal = $hSelesai->num_rows;
                     el.classList.add('bg-white', 'border', 'border-gray-200', 'text-text-2');
                 }
             });
-            document.getElementById('input-filter').value = status;
-            document.getElementById('form-filter').submit();
         }
+
+        setActiveButton();
 
         function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
             document.getElementById('popup-nama').textContent = nama;
@@ -287,24 +295,23 @@ $sTotal = $hSelesai->num_rows;
             document.getElementById('popup-catatan').textContent = catatan;
             document.getElementById('popup-total').textContent = total;
 
-            // Tambahkan form di dalam tombol
             const aksiMap = {
                 pending: `
-            <form method="POST">
-                <input type="hidden" name="id_pesanan" value="${id_pesanan}">
-                <input type="hidden" name="status_baru" value="diproses">
-                <button type="submit" name="update_status" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
-                    Proses Pesanan
-                </button>
-            </form>`,
+        <form method="POST">
+            <input type="hidden" name="id_pesanan" value="${id_pesanan}">
+            <input type="hidden" name="status_baru" value="diproses">
+            <button type="submit" name="update_status" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Proses Pesanan
+            </button>
+        </form>`,
                 diproses: `
-            <form method="POST">
-                <input type="hidden" name="id_pesanan" value="${id_pesanan}">
-                <input type="hidden" name="status_baru" value="selesai">
-                <button type="submit" name="update_status" class="w-full h-[46px] bg-blue-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
-                    Tandai Selesai
-                </button>
-            </form>`,
+        <form method="POST">
+            <input type="hidden" name="id_pesanan" value="${id_pesanan}">
+            <input type="hidden" name="status_baru" value="selesai">
+            <button type="submit" name="update_status" class="w-full h-[46px] bg-blue-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Tandai Selesai
+            </button>
+        </form>`,
                 selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">Pesanan Selesai</div>`
             };
 

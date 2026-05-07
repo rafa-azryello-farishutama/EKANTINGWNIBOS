@@ -19,29 +19,29 @@ if (isset($_GET['error'])) {
 }
 
 if (isset($_POST['tambah_menu'])) {
-    $nama_menu  = $db_ekantin->real_escape_string($_POST['tambah_nama']);
+    $nama_menu = $db_ekantin->real_escape_string($_POST['tambah_nama']);
     $harga_menu = $db_ekantin->real_escape_string($_POST['tambah_harga']);
-    $stok_menu  = $db_ekantin->real_escape_string($_POST['tambah_stok']);
-    $id_toko    = $_SESSION['id_toko'];
+    $stok_menu = $db_ekantin->real_escape_string($_POST['tambah_stok']);
+    $id_toko = $_SESSION['id_toko'];
 
     $result_user = $db_ekantin->query("SELECT id_users FROM toko WHERE id_toko='$id_toko'");
-    $row_user    = $result_user->fetch_assoc();
-    $id_user     = $row_user['id_users'];
+    $row_user = $result_user->fetch_assoc();
+    $id_user = $row_user['id_users'];
 
     $result_toko = $db_ekantin->query("SELECT username FROM users WHERE id_users='$id_user'");
-    $row_toko    = $result_toko->fetch_assoc();
-    $nama_toko   = $row_toko['username'];
+    $row_toko = $result_toko->fetch_assoc();
+    $nama_toko = $row_toko['username'];
     $tipe_produk = $_POST['tipe_pesanan'];
 
     $nama_baru = null;
 
     if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
-        $nama_file     = $_FILES['foto_produk']['name'];
-        $tmp_name      = $_FILES['foto_produk']['tmp_name'];
-        $file_size     = $_FILES['foto_produk']['size'];
+        $nama_file = $_FILES['foto_produk']['name'];
+        $tmp_name = $_FILES['foto_produk']['tmp_name'];
+        $file_size = $_FILES['foto_produk']['size'];
         $ekstensi_file = strtolower(pathinfo($nama_file, PATHINFO_EXTENSION));
         $ekstensi_valid = ['jpg', 'png', 'jpeg', 'webp'];
-        $folder   = "../assets/img_produk/";
+        $folder = "../assets/img_produk/";
         $max_size = 2097152;
 
         if ($file_size > $max_size) {
@@ -53,7 +53,7 @@ if (isset($_POST['tambah_menu'])) {
         } else {
             $nama_filter = preg_replace('/[^a-zA-Z0-9\s]/', '', $nama_menu);
             $nama_bersih = str_replace(' ', '_', $nama_filter);
-            $nama_baru   = $id_toko . '_' . $nama_bersih . '_' . $nama_toko . '.' . $ekstensi_file;
+            $nama_baru = $id_toko . '_' . $nama_bersih . '_' . $nama_toko . '.' . $ekstensi_file;
             $upload_path = $folder . $nama_baru;
 
             if (!move_uploaded_file($tmp_name, $upload_path)) {
@@ -79,6 +79,13 @@ if (isset($_POST['edit_menu'])) {
 $keyword = '';
 if (isset($_POST['cari_user']) && isset($_POST['name_id'])) {
     $keyword = $db_ekantin->real_escape_string(trim($_POST['name_id']));
+}
+
+$filter_tipe = '';
+if (isset($_POST['filter_makanan'])) {
+    $filter_tipe = 'makanan';
+} else if (isset($_POST['filter_minuman'])) {
+    $filter_tipe = 'minuman';
 }
 ?>
 
@@ -124,9 +131,12 @@ if (isset($_POST['cari_user']) && isset($_POST['name_id'])) {
 
                 <div class="flex flex-col sm:flex-row gap-3 w-full">
                     <form method="POST" class="flex flex-1 gap-3">
-                        <div class="flex flex-1 items-center gap-3 bg-input rounded-xl px-4 h-12 focus-within:ring-2 focus-within:ring-primary transition-all">
-                            <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <div
+                            class="flex flex-1 items-center gap-3 bg-input rounded-xl px-4 h-12 focus-within:ring-2 focus-within:ring-primary transition-all">
+                            <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <input type="text" name="name_id" placeholder="Search Menu"
                                 value="<?= htmlspecialchars($keyword) ?>"
@@ -140,7 +150,8 @@ if (isset($_POST['cari_user']) && isset($_POST['name_id'])) {
 
                     <button onclick="searchEdit()"
                         class="h-10 md:h-12 px-6 bg-primary text-white rounded-xl text-sm font-bold hover:bg-submit transition-colors whitespace-nowrap flex items-center gap-2 flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
                         Tambah Menu
@@ -148,17 +159,22 @@ if (isset($_POST['cari_user']) && isset($_POST['name_id'])) {
                 </div>
 
                 <div class="flex gap-3 overflow-x-auto pb-1">
+                    <?php
+                    $aktif = 'px-6 py-2 rounded-full font-bold text-sm bg-submit text-white transition-colors whitespace-nowrap flex-shrink-0';
+                    $nonaktif = 'px-6 py-2 rounded-full font-bold text-sm bg-input text-text-3 hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0';
+                    ?>
+
                     <form method="POST" class="flex gap-3">
                         <button type="submit" name="filter_semua"
-                            class="px-6 py-2 rounded-full font-bold text-sm bg-submit text-white transition-colors whitespace-nowrap flex-shrink-0">
+                            class="<?= $filter_tipe == '' ? $aktif : $nonaktif ?>">
                             Semua
                         </button>
                         <button type="submit" name="filter_makanan"
-                            class="px-6 py-2 rounded-full font-bold text-sm bg-input text-text-3 hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0">
+                            class="<?= $filter_tipe == 'makanan' ? $aktif : $nonaktif ?>">
                             Makanan
                         </button>
                         <button type="submit" name="filter_minuman"
-                            class="px-6 py-2 rounded-full font-bold text-sm bg-input text-text-3 hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0">
+                            class="<?= $filter_tipe == 'minuman' ? $aktif : $nonaktif ?>">
                             Minuman
                         </button>
                     </form>
@@ -172,24 +188,27 @@ if (isset($_POST['cari_user']) && isset($_POST['name_id'])) {
                     if ($keyword !== '') {
                         $sql .= " AND nama_menu LIKE '%$keyword%'";
                     }
+                    if ($filter_tipe !== '') {
+                        $sql .= " AND tipe_produk = '$filter_tipe'";
+                    }
 
                     $result = $db_ekantin->query($sql);
-                    $pesan  = "";
+                    $pesan = "";
 
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
-                            $file_foto    = htmlspecialchars($row['file_foto']);
-                            $nama         = htmlspecialchars($row['nama_menu']);
-                            $harga        = number_format($row['harga'], 0, ',', '.');
-                            $harga_asli   = $row['harga'];
-                            $stok         = $row['stok'];
-                            $id_produk    = $row['id_produk'];
-                            $tipe_produk  = htmlspecialchars($row['tipe_produk']);
-                            $nama_js      = addslashes($row['nama_menu']);
-                            $tipe_js      = addslashes($row['tipe_produk']);
+                            $file_foto = htmlspecialchars($row['file_foto']);
+                            $nama = htmlspecialchars($row['nama_menu']);
+                            $harga = number_format($row['harga'], 0, ',', '.');
+                            $harga_asli = $row['harga'];
+                            $stok = $row['stok'];
+                            $id_produk = $row['id_produk'];
+                            $tipe_produk = htmlspecialchars($row['tipe_produk']);
+                            $nama_js = addslashes($row['nama_menu']);
+                            $tipe_js = addslashes($row['tipe_produk']);
                             $file_foto_js = addslashes($row['file_foto']);
 
-                            $pesan    = $tipe_produk == 'makanan' ? 'porsi' : 'gelas';
+                            $pesan = $tipe_produk == 'makanan' ? 'porsi' : 'gelas';
                             $foto_src = $file_foto ? "../assets/img_produk/$file_foto" : "../assets/img/no-image.png";
 
                             echo "
