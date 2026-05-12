@@ -6,6 +6,11 @@ $halaman = basename($_SERVER['PHP_SELF']);
 session_start();
 include '../config/koneksi.php';
 
+if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual'){
+    header("Location: ../index.php");
+    exit;
+}
+
 $error_edit = null;
 $dari = null;
 if (isset($_GET['error'])) {

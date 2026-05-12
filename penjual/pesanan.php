@@ -6,6 +6,13 @@ $halaman = basename($_SERVER['PHP_SELF']);
 session_start();
 include "../config/koneksi.php";
 
+if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual'){
+    header("Location: ../index.php");
+    exit;
+}
+
+$id_toko = $_SESSION['id_toko'];
+
 date_default_timezone_set('Asia/Jakarta');
 
 if (isset($_POST['update_status'])) {
@@ -19,15 +26,15 @@ if (isset($_POST['update_status'])) {
     exit;
 }
 
-$qTotal = "SELECT * FROM pesanan";
+$qTotal = "SELECT * FROM pesanan WHERE id_toko = '$id_toko'";
 $hasil = $db_ekantin->query($qTotal);
 $jTotal = $hasil->num_rows;
 
-$qPending = "SELECT * FROM pesanan WHERE status_pesanan = 'pending'";
+$qPending = "SELECT * FROM pesanan WHERE status_pesanan = 'pending' AND id_toko = '$id_toko'";
 $hTotal = $db_ekantin->query($qPending);
 $pTotal = $hTotal->num_rows;
 
-$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan =  'selesai'";
+$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan =  'selesai' AND id_toko = '$id_toko'";
 $hSelesai = $db_ekantin->query($qSelesai);
 $sTotal = $hSelesai->num_rows;
 ?>
@@ -166,11 +173,30 @@ $sTotal = $hSelesai->num_rows;
                             $waktu_lalu = $jam . " jam yang lalu";
                         }
 
-                        $jam_menit = date('H:i', $waktu_pesan);
-                        $tulisanTanggal = "$jam_menit · $waktu_lalu";
+                        $tulisanTanggal = date('d M Y, H:i', $waktu_pesan);
 
                         $id_pesanan = $row['id_pesanan'];
                         $status = $row['status_pesanan'];
+
+    
+                        $badgeClass = match ($status) {
+                            'pending' => 'text-yellow-700 bg-yellow-100',
+                            'diproses' => 'text-blue-700 bg-blue-100',
+                            'selesai' => 'text-green-700 bg-green-100',
+                            'dibatalkan' => 'text-red-600 bg-red-100',
+                            default => 'text-gray-600 bg-gray-100'
+                        };
+
+                
+                        $tombolAksi = '';
+                        if ($status == 'pending') {
+                            $tombolAksi = "<button class='text-sm font-bold bg-green-100 text-green-700 px-6 py-2 rounded-xl hover:bg-green-200 transition-all'>Proses</button>";
+                        } else if ($status == 'diproses') {
+                            $tombolAksi = "<button class='text-sm font-bold bg-blue-100 text-blue-700 px-6 py-2 rounded-xl hover:bg-blue-200 transition-all'>Selesai</button>";
+                        } else {
+                            $tombolAksi = "";
+                        }
+
                         $username = htmlspecialchars($row['username'], ENT_QUOTES);
                         $harga = "Rp " . number_format($row['total_harga'], 0, ',', '.');
                         $catatan = htmlspecialchars($row['catatan'] ?? '-', ENT_QUOTES);
@@ -198,9 +224,7 @@ $sTotal = $hSelesai->num_rows;
 
                 <div class='flex justify-between items-center'>
                     <p class='text-xl font-extrabold text-text-1'>$harga</p>
-                    <button class='text-sm font-bold bg-green-100 text-green-700 px-6 py-2 rounded-xl hover:bg-green-200 transition-all'>
-                        Proses
-                    </button>
+                    $tombolAksi
                 </div>
             </div>";
                     }
