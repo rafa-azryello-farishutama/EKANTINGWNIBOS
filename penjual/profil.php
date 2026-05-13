@@ -2,227 +2,378 @@
 $halaman = basename($_SERVER['PHP_SELF']);
 ?>
 
+<?php
+session_start();
+include '../config/koneksi.php';
+
+if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual'){
+    header("Location: ../index.php");
+    exit;
+}
+
+$id_users = $_SESSION['id_users'];
+$id_toko  = $_SESSION['id_toko'];
+
+$error_profil   = null;
+$success_profil = null;
+
+if(isset($_POST['simpan_profil'])){
+    $username_baru  = $db_ekantin->real_escape_string($_POST['edit_username']);
+    $email_baru     = $db_ekantin->real_escape_string($_POST['edit_email']);
+    $telepon_baru   = $db_ekantin->real_escape_string($_POST['edit_telepon']);
+    $nama_toko_baru = $db_ekantin->real_escape_string($_POST['edit_nama_toko']);
+    $lokasi_baru    = $db_ekantin->real_escape_string($_POST['edit_lokasi']);
+    $deskripsi_baru = $db_ekantin->real_escape_string($_POST['edit_deskripsi']);
+    $jam_buka_baru  = $db_ekantin->real_escape_string($_POST['edit_jam_buka']);
+    $jam_tutup_baru = $db_ekantin->real_escape_string($_POST['edit_jam_tutup']);
+
+    $detik_buka = strtotime($jam_buka_baru);
+    $detik_tutup = strtotime($jam_tutup_baru);
+
+    if(strlen($username_baru) < 3 || strlen($username_baru) > 20){
+        $error_profil = "Username harus antara 3-20 karakter.";
+    } elseif(!preg_match('/^[a-zA-Z0-9_.]+$/', $username_baru)){
+        $error_profil = "Username hanya boleh huruf, angka, underscore, dan titik.";
+    } elseif($detik_tutup < $detik_buka){
+        $error_profil = "Jam tutup tidak boleh lebih awal dari jam buka.";
+    } else {
+        $cekUsername = $db_ekantin->query("SELECT id_users FROM users WHERE username='$username_baru' AND id_users != '$id_users'");
+        if($cekUsername->num_rows > 0){
+            $error_profil = "Username sudah digunakan orang lain.";
+        }
+    }
+
+    if(!$error_profil){
+        $db_ekantin->query("UPDATE users SET username='$username_baru', email='$email_baru', no_telepon='$telepon_baru' WHERE id_users='$id_users'");
+        $db_ekantin->query("UPDATE toko SET nama_toko='$nama_toko_baru', lokasi='$lokasi_baru', deskripsi='$deskripsi_baru', jam_buka='$jam_buka_baru', jam_tutup='$jam_tutup_baru' WHERE id_toko='$id_toko'");
+        $_SESSION['nama_toko'] = $nama_toko_baru;
+        $success_profil = "Profil berhasil diperbarui.";
+    }
+}
+
+if(isset($_POST['logout'])){
+    session_destroy();
+    header("Location: ../index.php");
+    exit;
+}
+
+$qUser = $db_ekantin->query("SELECT * FROM users WHERE id_users='$id_users'");
+$user  = $qUser->fetch_assoc();
+
+$qToko = $db_ekantin->query("SELECT * FROM toko WHERE id_toko='$id_toko'");
+$toko  = $qToko->fetch_assoc();
+
+$qStatistik = $db_ekantin->query("SELECT COUNT(*) as total FROM pesanan WHERE id_toko='$id_toko' AND status_pesanan='selesai'");
+$statistik  = $qStatistik->fetch_assoc();
+$total_pesanan = $statistik['total'] ?? 0;
+
+$qProduk = $db_ekantin->query("SELECT COUNT(*) as total FROM produk_kantin WHERE id_toko='$id_toko'");
+$produk  = $qProduk->fetch_assoc();
+$total_produk = $produk['total'] ?? 0;
+?>
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Profil - Kantin Ceria</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil</title>
 
-        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Inter:wght@400;600&display=swap"
-                rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-                rel="stylesheet" />
-        <link rel="stylesheet" href="../assets/css/style.css">
-
-        <script>
-                tailwind.config = {
-                        darkMode: "class",
-                        theme: {
-                                extend: {
-                                        colors: {
-                                                "background": "#f7f8f9",
-                                                "primary": "#004900",
-                                                "second-primary": "#f9f9fb",
-                                                "input": "#f3f3f5",
-                                                "primary-container": "#004b00",
-                                                "on-primary": "#ffffff",
-                                                "on-primary-container": "#76bc65",
-                                                "surface": "#f7fbf0",
-                                                "surface-bright": "#f7fbf0",
-                                                "surface-variant": "#e0e4d9",
-                                                "surface-container": "#ecefe5",
-                                                "surface-container-low": "#f1f5ea",
-                                                "surface-container-lowest": "#ffffff",
-                                                "on-surface": "#191d16",
-                                                "on-surface-variant": "#41493d",
-                                                "on-background": "#191d16",
-                                                "outline": "#717a6b",
-                                                "outline-variant": "#c0c9b9",
-                                                "inverse-primary": "#90d87e",
-                                                "text-1": "#191c1c",
-                                                "text-2": "#4e5a48",
-                                        },
-                                        fontFamily: {
-                                                "headline-xl": ["Plus Jakarta Sans"],
-                                                "headline-lg": ["Plus Jakarta Sans"],
-                                                "headline-md": ["Plus Jakarta Sans"],
-                                                "body-lg": ["Inter"],
-                                                "body-md": ["Inter"],
-                                                "label-md": ["Inter"],
-                                        },
-                                        fontSize: {
-                                                "headline-xl": ["32px", { lineHeight: "1.2", fontWeight: "700" }],
-                                                "headline-lg": ["24px", { lineHeight: "1.3", fontWeight: "600" }],
-                                                "headline-md": ["18px", { lineHeight: "1.4", fontWeight: "600" }],
-                                                "body-lg": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
-                                                "body-md": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
-                                                "label-md": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" }],
-                                        },
-                                        spacing: {
-                                                "xs": "4px",
-                                                "sm": "12px",
-                                                "base": "8px",
-                                                "md": "24px",
-                                                "lg": "40px",
-                                                "xl": "64px",
-                                                "margin": "32px",
-                                                "gutter": "24px",
-                                        },
-                                        borderRadius: {
-                                                DEFAULT: "0.25rem",
-                                                lg: "0.5rem",
-                                                xl: "0.75rem",
-                                                full: "9999px",
-                                        },
-                                }
-                        }
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#f7f8f9",
+                        "primary": "#004900",
+                        "second-primary": "#f9f9fb",
+                        "input": "#f3f3f5",
+                        "text-1": "#191c1c",
+                        "text-2": "#4e5a48",
+                        "text-3": "#5e6659",
+                        "submit": "#005300"
+                    }
                 }
-        </script>
-        <style>
-                .material-symbols-outlined {
-                        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-                }
-        </style>
+            }
+        }
+    </script>
+    <style>
+        .popup-enter { animation: popupIn 0.25s cubic-bezier(.4,0,.2,1) both; }
+        @keyframes popupIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
 </head>
+<body class="bg-background text-text-1 selection:bg-primary selection:text-text-2">
+<div class="flex min-h-screen relative">
 
-<body class="bg-background text-on-background font-body-md min-h-screen flex">
+    <?php include 'navbar.php'; ?>
 
-        <!-- Sidebar Navbar -->
-        <?php include 'navbar.php'; ?>
+    <main class="lg:ml-80 flex-grow w-full px-4 md:px-8 pb-8 pt-[72px] lg:pt-8">
+        <div class="w-full max-w-4xl mx-auto flex flex-col gap-6">
 
-        <!-- Main Content — ml-64 untuk desktop (lebar sidebar), tidak perlu padding-top -->
-        <main class="flex-1 lg:ml-80 p-6 md:p-margin w-full">
-                <div class="max-w-[1200px] mx-auto">
+            <header>
+                <h2 class="font-extrabold text-3xl md:text-4xl tracking-tight text-primary">Profil</h2>
+                <p class="text-text-3 mt-1 text-sm">Kelola informasi toko dan profil pribadi Anda</p>
+            </header>
 
-                        <!-- Header -->
-                        <header class="mb-lg">
-                                <h2 class="text-headline-xl font-headline-xl text-on-background">Profil</h2>
-                                <p class="text-body-lg font-body-lg text-on-surface-variant mt-xs">
-                                        Kelola informasi toko dan profil pribadi Anda.
-                                </p>
-                        </header>
+            <?php if($success_profil): ?>
+            <div class="px-4 py-3 bg-green-50 border border-green-100 rounded-[15px] text-sm text-green-700 font-medium">
+                <?= $success_profil ?>
+            </div>
+            <?php endif; ?>
 
-                        <!-- Bento Grid Layout -->
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                                <!-- Left Column: Profile Card -->
-                                <div class="lg:col-span-1 space-y-gutter">
-                                        <div
-                                                class="bg-surface-container-lowest rounded-xl p-md shadow-sm border border-surface-variant flex flex-col items-center text-center relative overflow-hidden">
-                                                <!-- Banner hijau di atas -->
-                                                <div class="w-full h-24 bg-primary-container absolute top-0 left-0">
-                                                </div>
-                                                <!-- Avatar -->
-                                                <img alt="Avatar Warung Ayam Bakar"
-                                                        class="w-24 h-24 rounded-full border-4 border-surface-container-lowest relative z-10 mt-8 object-cover"
-                                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdnWgfa088PexzOZqQhzv1AhBnKpGNX4GMTixF1sbQSoMGYiAXNTiCtZcC6ITp9tRyfC18uv79xHmeZmyVMYtDeCw1Nr-zpEyTfdhZuPMZZCCnD-2atzzPI7UqNbSnseBjtQg93VI0jmKFTBGejgbd3etWFyVn3jCx0wYuskf0FSn64Bk8zPRdVNAILRxGSiCvkwRlZ1QKzUhpvsElzTxxgSh_l3he0MFbng6UQwI7jc7FCvY8tc0GReN-2iA-OZeQb4tRYEVsObY" />
-                                                <h3 class="text-headline-md font-headline-md text-on-background mt-4">
-                                                        Warung Ayam Bakar</h3>
-                                                <p class="text-body-md font-body-md text-on-surface-variant">Vendor
-                                                        Aktif</p>
-                                                <button
-                                                        class="mt-6 w-full bg-primary text-on-primary font-label-md text-label-md py-sm px-md rounded-lg shadow-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                                                        Edit Profil
-                                                </button>
-                                        </div>
-                                </div>
-
-                                <!-- Right Column: Info & Stats -->
-                                <div class="lg:col-span-2 space-y-gutter">
-
-                                        <!-- Informasi Pribadi -->
-                                        <div
-                                                class="bg-surface-container-lowest rounded-xl p-md shadow-sm border border-surface-variant">
-                                                <h4
-                                                        class="text-headline-md font-headline-md text-on-background mb-6 pb-4 border-b border-surface-variant">
-                                                        Informasi Pribadi
-                                                </h4>
-                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <div class="space-y-xs">
-                                                                <label
-                                                                        class="text-label-md font-label-md text-on-surface-variant block">Nama
-                                                                        Pemilik</label>
-                                                                <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                                        readonly type="text" value="Budi Santoso" />
-                                                        </div>
-                                                        <div class="space-y-xs">
-                                                                <label
-                                                                        class="text-label-md font-label-md text-on-surface-variant block">Nama
-                                                                        Toko</label>
-                                                                <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                                        readonly type="text"
-                                                                        value="Warung Ayam Bakar" />
-                                                        </div>
-                                                        <div class="space-y-xs md:col-span-2">
-                                                                <label
-                                                                        class="text-label-md font-label-md text-on-surface-variant block">Alamat</label>
-                                                                <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                                        readonly type="text"
-                                                                        value="Gedung Kantin Utama, Lantai 1, Stan C3" />
-                                                        </div>
-                                                        <div class="space-y-xs md:col-span-2">
-                                                                <label
-                                                                        class="text-label-md font-label-md text-on-surface-variant block">Nomor
-                                                                        Telepon</label>
-                                                                <input class="w-full bg-surface-bright border border-outline-variant rounded-lg px-4 py-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                                        readonly type="tel" value="0812-3456-7890" />
-                                                        </div>
-                                                </div>
-                                        </div>
-
-                                        <!-- Statistik Toko -->
-                                        <div
-                                                class="bg-surface-container-lowest rounded-xl p-md shadow-sm border border-surface-variant">
-                                                <h4
-                                                        class="text-headline-md font-headline-md text-on-background mb-6 pb-4 border-b border-surface-variant">
-                                                        Statistik Toko
-                                                </h4>
-                                                <div class="grid grid-cols-2 gap-4">
-                                                        <div
-                                                                class="bg-surface-container-low p-4 rounded-lg flex items-center gap-4">
-                                                                <div
-                                                                        class="w-12 h-12 bg-primary-container/10 rounded-full flex items-center justify-center text-primary-container">
-                                                                        <span
-                                                                                class="material-symbols-outlined text-2xl">shopping_bag</span>
-                                                                </div>
-                                                                <div>
-                                                                        <p
-                                                                                class="text-label-md font-label-md text-on-surface-variant">
-                                                                                Total Pesanan</p>
-                                                                        <p
-                                                                                class="text-headline-lg font-headline-lg text-on-surface">
-                                                                                1,245</p>
-                                                                </div>
-                                                        </div>
-                                                        <div
-                                                                class="bg-surface-container-low p-4 rounded-lg flex items-center gap-4">
-                                                                <div
-                                                                        class="w-12 h-12 bg-primary-container/10 rounded-full flex items-center justify-center text-primary-container">
-                                                                        <span
-                                                                                class="material-symbols-outlined text-2xl">star</span>
-                                                                </div>
-                                                                <div>
-                                                                        <p
-                                                                                class="text-label-md font-label-md text-on-surface-variant">
-                                                                                Rating</p>
-                                                                        <p
-                                                                                class="text-headline-lg font-headline-lg text-on-surface">
-                                                                                4.8 <span
-                                                                                        class="text-body-md text-on-surface-variant font-normal">/
-                                                                                        5</span></p>
-                                                                </div>
-                                                        </div>
-                                                </div>
-                                        </div>
-
-                                </div>
+                <div class="lg:col-span-1 flex flex-col gap-4">
+                    <div class="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col items-center text-center relative pb-6">
+                        <div class="w-full h-20 bg-primary"></div>
+                        <div class="w-20 h-20 rounded-full border-4 border-white bg-primary/10 flex items-center justify-center -mt-10 relative z-10 overflow-hidden">
+                            <?php if($toko['foto_toko']): ?>
+                            <img src="../assets/img_toko/<?= htmlspecialchars($toko['foto_toko']) ?>" class="w-full h-full object-cover">
+                            <?php else: ?>
+                            <span class="text-primary font-bold text-2xl"><?= strtoupper(substr($toko['nama_toko'], 0, 1)) ?></span>
+                            <?php endif; ?>
                         </div>
+                        <h3 class="font-bold text-text-1 text-lg mt-3"><?= htmlspecialchars($toko['nama_toko']) ?></h3>
+                        <p class="text-xs text-text-3"><?= htmlspecialchars($user['username']) ?></p>
+                        <span class="mt-2 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">
+                            <?= ucfirst($toko['status']) ?>
+                        </span>
+                        <button onclick="bukaEdit()"
+                            class="mt-4 mx-6 w-[calc(100%-48px)] h-[44px] bg-primary text-white text-sm font-bold rounded-[12px] hover:opacity-90 transition-all">
+                            Edit Profil
+                        </button>
+                    </div>
+
+                    <form method="POST">
+                        <button type="submit" name="logout"
+                            class="w-full h-[44px] bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-[12px] transition-all active:scale-[0.98]">
+                            Log Out
+                        </button>
+                    </form>
                 </div>
-        </main>
+
+                <div class="lg:col-span-2 flex flex-col gap-4">
+
+                    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-text-1 text-base mb-5 pb-4 border-b border-gray-100">Informasi Akun</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($user['username']) ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Email</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($user['email'] ?? '-') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1 md:col-span-2">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">No. Telepon</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($user['no_telepon'] ?? '-') ?></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-text-1 text-base mb-5 pb-4 border-b border-gray-100">Informasi Toko</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Toko</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['nama_toko']) ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Lokasi</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['lokasi'] ?? '-') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['jam_buka'] ?? '-') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Tutup</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['jam_tutup'] ?? '-') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1 md:col-span-2">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Deskripsi</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3 min-h-[60px]"><?= htmlspecialchars($toko['deskripsi'] ?? '-') ?></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-text-1 text-base mb-5 pb-4 border-b border-gray-100">Statistik Toko</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-input rounded-[15px] p-4 flex flex-col gap-1">
+                                <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Selesai</p>
+                                <p class="text-3xl font-extrabold text-primary"><?= $total_pesanan ?></p>
+                            </div>
+                            <div class="bg-input rounded-[15px] p-4 flex flex-col gap-1">
+                                <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Total Produk</p>
+                                <p class="text-3xl font-extrabold text-primary"><?= $total_produk ?></p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="modal-edit" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="popup-enter bg-white rounded-[24px] w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+
+        <div class="flex justify-between items-center p-5 border-b flex-shrink-0">
+            <h2 class="text-primary font-extrabold text-xl">Edit Profil</h2>
+            <button onclick="tutupEdit()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="overflow-y-auto p-5 flex flex-col gap-4">
+
+            <div id="error-box" class="hidden px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium"></div>
+
+            <form method="POST" id="form-edit" class="flex flex-col gap-4">
+
+                <p class="text-xs font-bold uppercase tracking-widest text-text-3 border-b pb-2">Informasi Akun</p>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>
+                    <input type="text" name="edit_username"
+                        value="<?= htmlspecialchars($user['username']) ?>"
+                        oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')"
+                        onpaste="event.preventDefault()" maxlength="20"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20" required>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Email</label>
+                    <input type="email" name="edit_email"
+                        value="<?= htmlspecialchars($user['email'] ?? '') ?>"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">No. Telepon</label>
+                    <input type="tel" name="edit_telepon"
+                        value="<?= htmlspecialchars($user['no_telepon'] ?? '') ?>"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+
+                <p class="text-xs font-bold uppercase tracking-widest text-text-3 border-b pb-2 mt-2">Informasi Toko</p>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Toko</label>
+                    <input type="text" name="edit_nama_toko"
+                        value="<?= htmlspecialchars($toko['nama_toko']) ?>"
+                        maxlength="100"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20" required>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Lokasi</label>
+                    <input type="text" name="edit_lokasi"
+                        value="<?= htmlspecialchars($toko['lokasi'] ?? '') ?>"
+                        placeholder="Contoh: Kantin Utama, Stan A1"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
+                        <input type="time" name="edit_jam_buka"
+                            value="<?= htmlspecialchars($toko['jam_buka'] ?? '') ?>"
+                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Tutup</label>
+                        <input type="time" name="edit_jam_tutup"
+                            value="<?= htmlspecialchars($toko['jam_tutup'] ?? '') ?>"
+                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Deskripsi Toko</label>
+                    <textarea name="edit_deskripsi" rows="3" maxlength="255"
+                        placeholder="Ceritakan sedikit tentang toko Anda..."
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"><?= htmlspecialchars($toko['deskripsi'] ?? '') ?></textarea>
+                </div>
+
+                <button type="submit" name="simpan_profil"
+                    class="w-full h-[48px] bg-submit rounded-[15px] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all">
+                    Simpan Perubahan
+                </button>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const nilaiAwal = {
+        username:   <?= json_encode($user['username']) ?>,
+        email:      <?= json_encode($user['email'] ?? '') ?>,
+        telepon:    <?= json_encode($user['no_telepon'] ?? '') ?>,
+        nama_toko:  <?= json_encode($toko['nama_toko']) ?>,
+        lokasi:     <?= json_encode($toko['lokasi'] ?? '') ?>,
+        jam_buka:   <?= json_encode($toko['jam_buka'] ?? '') ?>,
+        jam_tutup:  <?= json_encode($toko['jam_tutup'] ?? '') ?>,
+        deskripsi:  <?= json_encode($toko['deskripsi'] ?? '') ?>,
+    };
+
+    function bukaEdit() {
+        document.getElementById('modal-edit').classList.remove('hidden');
+    }
+
+    function tutupEdit() {
+        document.getElementById('modal-edit').classList.add('hidden');
+
+        const f = document.getElementById('form-edit');
+        f.edit_username.value  = nilaiAwal.username;
+        f.edit_email.value     = nilaiAwal.email;
+        f.edit_telepon.value   = nilaiAwal.telepon;
+        f.edit_nama_toko.value = nilaiAwal.nama_toko;
+        f.edit_lokasi.value    = nilaiAwal.lokasi;
+        f.edit_jam_buka.value  = nilaiAwal.jam_buka;
+        f.edit_jam_tutup.value = nilaiAwal.jam_tutup;
+        f.edit_deskripsi.value = nilaiAwal.deskripsi;
+
+        const errBox = document.getElementById('error-box');
+        errBox.classList.add('hidden');
+        errBox.textContent = '';
+    }
+
+    document.getElementById('form-edit').addEventListener('submit', function(e) {
+        const username  = this.edit_username.value.trim();
+        const jamBuka   = this.edit_jam_buka.value;
+        const jamTutup  = this.edit_jam_tutup.value;
+
+        const errBox = document.getElementById('error-box');
+        let pesan = '';
+
+        if(username.length < 3 || username.length > 20){
+            pesan = 'Username harus antara 3-20 karakter.';
+        } else if(!/^[a-zA-Z0-9_.]+$/.test(username)){
+            pesan = 'Username hanya boleh huruf, angka, underscore, dan titik.';
+        } else if(jamBuka && jamTutup && jamTutup < jamBuka){
+            pesan = 'Jam tutup tidak boleh lebih awal dari jam buka.';
+        }
+
+        if(pesan){
+            e.preventDefault(); 
+            errBox.textContent = pesan;
+            errBox.classList.remove('hidden');
+        }
+    });
+</script>
 
 </body>
-
 </html>

@@ -6,7 +6,7 @@
 /* Menghilangkan scrollbar untuk IE, Edge, dan Firefox */
 .no-scrollbar {
     -ms-overflow-style: none;  /* IE dan Edge */
-    scrollbar-width: none;  /* Firefox */
+    scrollbar-width: none;  
 }
 
 body::-webkit-scrollbar{

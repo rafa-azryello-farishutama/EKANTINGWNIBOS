@@ -1,0 +1,106 @@
+<div id="search-edit" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[24px] p-4 w-full max-w-sm shadow-2xl flex flex-col max-h-[90vh]">
+
+            <div class="flex justify-between items-center p-4 border-b flex-shrink-0">
+                <h2 class="text-primary font-extrabold text-xl">Tambah Menu</h2>
+                <button onclick="tutupSearch()"
+                    class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto no-scrollbar p-4 flex flex-col gap-4">
+
+                <?php if (isset($error_edit)): ?>
+                    <div id="pesan-error"
+                        class="px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium">
+                        <?= $error_edit ?>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" class="flex flex-col gap-4" enctype="multipart/form-data">
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Foto Menu</label>
+                        <label for="input-foto" class="cursor-pointer text-center">
+                            <div id="preview-container"
+                                class="w-full h-[120px] bg-input rounded-[15px] border-2 border-dashed border-gray-300 hover:border-primary transition-all flex flex-col items-center justify-center gap-2 overflow-hidden">
+                                <img id="preview-img" src="" alt="" class="hidden w-full h-full object-cover">
+                                <div id="placeholder" class="flex flex-col items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-gray-400" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="text-xs font-medium text-text-3">Klik untuk upload foto</p>
+                                    <p class="text-xs text-gray-400">JPG, PNG, JPEG, WEBP maks. 2MB</p>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">(Opsional), produk dengan foto lebih diminati pembeli
+                            </p>
+                        </label>
+                        <input type="file" id="input-foto" name="foto_produk" accept="image/*" class="hidden"
+                            onchange="previewFoto(this)">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Produk</label>
+                        <input type="text" name="tambah_nama"
+                            oninput="this.value = this.value.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')"
+                            onpaste="event.preventDefault()" maxlength="50" placeholder="Nama Produk"
+                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            required>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Harga</label>
+                        <input type="number" min="0" step="1" max="999999999" oninput="cekHarga(this)"
+                            onpaste="event.preventDefault()"
+                            onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
+                            name="tambah_harga" placeholder="Masukkan harga satuan produk"
+                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            required>
+                        <p id="harga-menu" class="hidden text-xs text-red-500 font-medium ml-1">Harga maksimal Rp
+                            999.999.999!</p>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Stok</label>
+                        <input type="number" min="0" max="999" step="1" oninput="cekStok(this)"
+                            onpaste="event.preventDefault()"
+                            onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
+                            name="tambah_stok" placeholder="Stok awal produk (0-999)"
+                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            required>
+                        <p id="pesan-stok" class="hidden text-xs text-red-500 font-medium ml-1">Stok maksimal 999!</p>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Tipe menu</label>
+
+                        <div class="flex gap-3 justify-center items-centerS">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="tipe_pesanan" value="makanan"
+                                    class="w-4 h-4 accent-primary cursor-pointer">
+                                <span class="text-sm font-medium text-text-2">Makanan</span>
+                            </label>
+
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="tipe_pesanan" value="minuman"
+                                    class="w-4 h-4 accent-primary cursor-pointer">
+                                <span class="text-sm font-medium text-text-2">Minuman</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="tambah_menu"
+                        class="w-full h-[48px] bg-submit rounded-[15px] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all">
+                        Tambah Menu
+                    </button>
+
+                </form>
+            </div>
+        </div>

@@ -6,6 +6,13 @@ $halaman = basename($_SERVER['PHP_SELF']);
 session_start();
 include "../config/koneksi.php";
 
+if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual'){
+    header("Location: ../index.php");
+    exit;
+}
+
+$id_toko = $_SESSION['id_toko'];
+
 date_default_timezone_set('Asia/Jakarta');
 
 if (isset($_POST['update_status'])) {
@@ -19,15 +26,15 @@ if (isset($_POST['update_status'])) {
     exit;
 }
 
-$qTotal = "SELECT * FROM pesanan";
+$qTotal = "SELECT * FROM pesanan WHERE id_toko = '$id_toko'";
 $hasil = $db_ekantin->query($qTotal);
 $jTotal = $hasil->num_rows;
 
-$qPending = "SELECT * FROM pesanan WHERE status_pesanan = 'pending'";
+$qPending = "SELECT * FROM pesanan WHERE status_pesanan = 'pending' AND id_toko = '$id_toko'";
 $hTotal = $db_ekantin->query($qPending);
 $pTotal = $hTotal->num_rows;
 
-$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan =  'selesai'";
+$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan =  'selesai' AND id_toko = '$id_toko'";
 $hSelesai = $db_ekantin->query($qSelesai);
 $sTotal = $hSelesai->num_rows;
 ?>
@@ -113,7 +120,7 @@ $sTotal = $hSelesai->num_rows;
             </div>
 
             <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-                <form method="POST" id="form-filter">
+                <form method="GET" id="form-filter">
                     <input type="hidden" name="filter_status" id="input-filter" value="semua">
                 </form>
                 <button onclick="filterPesanan('semua')" id="btn-semua"
@@ -137,7 +144,7 @@ $sTotal = $hSelesai->num_rows;
             <div class="flex flex-col gap-3">
                 <?php
                 $id_toko = $_SESSION['id_toko'];
-                $filter = isset($_POST['filter_status']) ? $_POST['filter_status'] : 'semua';
+                $filter = isset($_GET['filter_status']) ? $_GET['filter_status'] : 'semua';
                 $where_status = ($filter !== 'semua') ? " AND p.status_pesanan = '$filter'" : "";
 
                 $query = "SELECT p.*, u.username FROM pesanan p 
@@ -166,11 +173,30 @@ $sTotal = $hSelesai->num_rows;
                             $waktu_lalu = $jam . " jam yang lalu";
                         }
 
-                        $jam_menit = date('H:i', $waktu_pesan);
-                        $tulisanTanggal = "$jam_menit · $waktu_lalu";
+                        $tulisanTanggal = date('d M Y, H:i', $waktu_pesan);
 
                         $id_pesanan = $row['id_pesanan'];
                         $status = $row['status_pesanan'];
+
+    
+                        $badgeClass = match ($status) {
+                            'pending' => 'text-yellow-700 bg-yellow-100',
+                            'diproses' => 'text-blue-700 bg-blue-100',
+                            'selesai' => 'text-green-700 bg-green-100',
+                            'dibatalkan' => 'text-red-600 bg-red-100',
+                            default => 'text-gray-600 bg-gray-100'
+                        };
+
+                
+                        $tombolAksi = '';
+                        if ($status == 'pending') {
+                            $tombolAksi = "<button class='text-sm font-bold bg-green-100 text-green-700 px-6 py-2 rounded-xl hover:bg-green-200 transition-all'>Proses</button>";
+                        } else if ($status == 'diproses') {
+                            $tombolAksi = "<button class='text-sm font-bold bg-blue-100 text-blue-700 px-6 py-2 rounded-xl hover:bg-blue-200 transition-all'>Selesai</button>";
+                        } else {
+                            $tombolAksi = "";
+                        }
+
                         $username = htmlspecialchars($row['username'], ENT_QUOTES);
                         $harga = "Rp " . number_format($row['total_harga'], 0, ',', '.');
                         $catatan = htmlspecialchars($row['catatan'] ?? '-', ENT_QUOTES);
@@ -198,9 +224,7 @@ $sTotal = $hSelesai->num_rows;
 
                 <div class='flex justify-between items-center'>
                     <p class='text-xl font-extrabold text-text-1'>$harga</p>
-                    <button class='text-sm font-bold bg-green-100 text-green-700 px-6 py-2 rounded-xl hover:bg-green-200 transition-all'>
-                        Proses
-                    </button>
+                    $tombolAksi
                 </div>
             </div>";
                     }
@@ -265,10 +289,18 @@ $sTotal = $hSelesai->num_rows;
 
     <script>
         function filterPesanan(status) {
+            document.getElementById('input-filter').value = status;
+            document.getElementById('form-filter').submit();
+        }
+
+        function setActiveButton() {
+            const params = new URLSearchParams(window.location.search);
+            const aktif = params.get('filter_status') || 'semua';
+
             const buttons = ['semua', 'pending', 'diproses', 'selesai'];
             buttons.forEach(btn => {
                 const el = document.getElementById('btn-' + btn);
-                if (btn === status) {
+                if (btn === aktif) {
                     el.classList.add('bg-primary', 'text-white');
                     el.classList.remove('bg-white', 'border', 'border-gray-200', 'text-text-2');
                 } else {
@@ -276,9 +308,9 @@ $sTotal = $hSelesai->num_rows;
                     el.classList.add('bg-white', 'border', 'border-gray-200', 'text-text-2');
                 }
             });
-            document.getElementById('input-filter').value = status;
-            document.getElementById('form-filter').submit();
         }
+
+        setActiveButton();
 
         function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
             document.getElementById('popup-nama').textContent = nama;
@@ -287,24 +319,23 @@ $sTotal = $hSelesai->num_rows;
             document.getElementById('popup-catatan').textContent = catatan;
             document.getElementById('popup-total').textContent = total;
 
-            // Tambahkan form di dalam tombol
             const aksiMap = {
                 pending: `
-            <form method="POST">
-                <input type="hidden" name="id_pesanan" value="${id_pesanan}">
-                <input type="hidden" name="status_baru" value="diproses">
-                <button type="submit" name="update_status" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
-                    Proses Pesanan
-                </button>
-            </form>`,
+        <form method="POST">
+            <input type="hidden" name="id_pesanan" value="${id_pesanan}">
+            <input type="hidden" name="status_baru" value="diproses">
+            <button type="submit" name="update_status" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Proses Pesanan
+            </button>
+        </form>`,
                 diproses: `
-            <form method="POST">
-                <input type="hidden" name="id_pesanan" value="${id_pesanan}">
-                <input type="hidden" name="status_baru" value="selesai">
-                <button type="submit" name="update_status" class="w-full h-[46px] bg-blue-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
-                    Tandai Selesai
-                </button>
-            </form>`,
+        <form method="POST">
+            <input type="hidden" name="id_pesanan" value="${id_pesanan}">
+            <input type="hidden" name="status_baru" value="selesai">
+            <button type="submit" name="update_status" class="w-full h-[46px] bg-blue-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Tandai Selesai
+            </button>
+        </form>`,
                 selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">Pesanan Selesai</div>`
             };
 
