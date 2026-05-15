@@ -1,96 +1,115 @@
-<div id="modal-edit" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+<div id="modal-edit" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div
-            class="bg-white overflow-y-hidden rounded-[24px] p-4 w-full max-w-sm shadow-2xl flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center p-4 border-b flex-shrink-0">
-                <h2 class="text-primary font-extrabold text-xl">Edit Menu</h2>
-                <button onclick="tutupModalEdit()"
-                    class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-all text-gray-500">
+            class="bg-white overflow-y-hidden rounded-[24px] w-full max-w-sm shadow-[0_20px_50px_-12px_rgba(0,73,0,0.15)] flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-5 border-b border-gray-100 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-text-1 font-extrabold text-xl">Edit Menu</h2>
+                </div>
+                <button type="button" onclick="tutupModalEdit()"
+                    class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <div class="overflow-y-auto p-4 flex flex-col gap-4">
-                <form method="POST" class="flex flex-col gap-4" enctype="multipart/form-data">
+            <div class="overflow-y-auto p-5 flex flex-col gap-5">
+                <form method="POST" class="flex flex-col gap-5" enctype="multipart/form-data">
 
                     <input type="hidden" name="edit_foto_lama" id="edit_foto_lama">
 
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1.5">
                         <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Foto Menu</label>
-                        <label for="input-foto-edit" class="cursor-pointer text-center">
+                        <label for="input-foto-edit" class="cursor-pointer text-center group">
                             <div id="preview-container-edit"
-                                class="w-full h-[120px] bg-input rounded-[15px] border-2 border-dashed border-gray-300 hover:border-primary transition-all flex flex-col items-center justify-center gap-2 overflow-hidden">
+                                class="w-full h-[140px] bg-gray-50 rounded-[16px] border-2 border-dashed border-gray-200 group-hover:border-primary group-hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 overflow-hidden relative">
                                 <img id="preview-img-edit" src="" alt="" class="hidden w-full h-full object-cover">
                                 <div id="placeholder-edit" class="flex flex-col items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-gray-400" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <p class="text-xs font-medium text-text-3">Klik untuk ganti foto</p>
-                                    <p class="text-xs text-gray-400">JPG, PNG, JPEG, WEBP maks. 2MB</p>
+                                    <div class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs font-semibold text-text-3 group-hover:text-primary transition-colors">Klik untuk ganti foto</p>
+                                    <p class="text-[10px] text-gray-400">JPG, PNG, JPEG, WEBP maks. 2MB</p>
                                 </div>
                             </div>
-                            <p class="text-xs text-gray-400 mt-1">Kosongkan jika tidak ingin ganti foto</p>
+                            <p class="text-[11px] text-gray-400 mt-2">Kosongkan jika tidak ingin ganti foto</p>
                         </label>
                         <input type="file" id="input-foto-edit" name="foto_produk_edit" accept="image/*" class="hidden"
                             onchange="previewFotoEdit(this)">
                     </div>
                     <input type="hidden" name="edit_id" id="edit_id">
 
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Produk</label>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Nama Produk</label>
                         <input type="text" name="edit_nama" id="edit_nama"
                             oninput="this.value = this.value.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')"
                             onpaste="event.preventDefault()" maxlength="50" placeholder="Nama Produk"
-                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            class="border border-gray-200 rounded-[14px] px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-1 placeholder-gray-400"
                             required>
                     </div>
 
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Harga</label>
-                        <input type="number" min="0" step="1" max="999999999" oninput="cekHarga(this)"
-                            onpaste="event.preventDefault()"
-                            onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
-                            name="edit_harga" id="edit_harga" placeholder="Masukkan harga satuan produk"
-                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            required>
-                        <p id="harga-menu-tambah" class="hidden text-xs text-red-500 font-medium ml-1">Harga maksimal Rp
-                            999.999.999!</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Harga</label>
+                            <input type="number" min="0" step="1" max="999999999" oninput="cekHarga(this)"
+                                onpaste="event.preventDefault()"
+                                onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
+                                name="edit_harga" id="edit_harga" placeholder="0"
+                                class="border border-gray-200 rounded-[14px] px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-1 placeholder-gray-400"
+                                required>
+                            <p id="harga-menu-tambah" class="hidden text-[10px] text-red-500 font-medium ml-1 leading-tight">Maks Rp 999.999.999</p>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Stok</label>
+                            <input type="number" min="0" max="999" step="1" oninput="cekStok(this)"
+                                onpaste="event.preventDefault()"
+                                onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
+                                name="edit_stok" id="edit_stok" placeholder="0"
+                                class="border border-gray-200 rounded-[14px] px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-1 placeholder-gray-400"
+                                required>
+                            <p id="pesan-stok-tambah" class="hidden text-[10px] text-red-500 font-medium ml-1 leading-tight">Maksimal 999</p>
+                        </div>
                     </div>
 
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Stok</label>
-                        <input type="number" min="0" max="999" step="1" oninput="cekStok(this)"
-                            onpaste="event.preventDefault()"
-                            onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
-                            name="edit_stok" id="edit_stok" placeholder="Stok awal produk (0-999)"
-                            class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            required>
-                        <p id="pesan-stok-tambah" class="hidden text-xs text-red-500 font-medium ml-1">Stok maksimal 999!</p>
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Tipe menu</label>
-
-                        <div class="flex gap-3 justify-center items-centerS">
-                            <label class="flex items-center gap-2 cursor-pointer">
+                    <div class="flex flex-col gap-2 mt-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 text-center">Kategori Menu</label>
+                        
+                        <div class="flex gap-3 justify-center items-center bg-gray-50 p-1.5 rounded-[14px] border border-gray-100">
+                            <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer py-2 rounded-[10px] hover:bg-white transition-colors relative has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary has-[:checked]:font-bold text-text-3 font-medium">
                                 <input type="radio" name="tipe_pesanan" id="makanan_radio" value="makanan"
-                                    class="w-4 h-4 accent-primary cursor-pointer">
-                                <span class="text-sm font-medium text-text-2">Makanan</span>
+                                    class="peer w-4 h-4 accent-primary cursor-pointer absolute opacity-0">
+                                <svg class="w-4 h-4 peer-checked:text-primary text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
+                                </svg>
+                                <span class="text-sm">Makanan</span>
                             </label>
 
-                            <label class="flex items-center gap-2 cursor-pointer">
+                            <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer py-2 rounded-[10px] hover:bg-white transition-colors relative has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary has-[:checked]:font-bold text-text-3 font-medium">
                                 <input type="radio" name="tipe_pesanan" id="minuman_radio" value="minuman"
-                                    class="w-4 h-4 accent-primary cursor-pointer">
-                                <span class="text-sm font-medium text-text-2">Minuman</span>
+                                    class="peer w-4 h-4 accent-primary cursor-pointer absolute opacity-0">
+                                <svg class="w-4 h-4 peer-checked:text-primary text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                <span class="text-sm">Minuman</span>
                             </label>
                         </div>
                     </div>
 
                     <button type="submit" name="edit_menu"
-                        class="mt-4 w-full h-[48px] bg-submit rounded-[15px] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all">
+                        class="mt-2 w-full h-[52px] bg-primary rounded-[16px] text-white text-sm font-bold hover:bg-submit active:scale-[0.98] transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
                         Simpan Perubahan
                     </button>
                 </form>

@@ -33,33 +33,33 @@
         </button>
     </div>
 
-    <nav class="flex flex-col gap-1">
+    <nav class="flex flex-col gap-2">
         <a href="dashboard.php"
-            class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'dashboard.php' ? '../assets/img/dashboard.png' : '../assets/img/dashboardHitam.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'dashboard.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Dashboard</span>
         </a>
         <a href="produk.php"
-            class="<?= $halaman == 'produk.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'produk.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'produk.php' ? '../assets/img/kotakGarpu_white.png' : '../assets/img/kotakGarpu_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'produk.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Produk</span>
         </a>
         <a href="pesanan.php"
-            class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'pesanan.php' ? '../assets/img/menuBook_white.png' : '../assets/img/menuBook_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'pesanan.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Pesanan</span>
         </a>
         <a href="history.php"
-            class="<?= $halaman == 'history.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'history.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'history.php' ? '../assets/img/history_white.png' : '../assets/img/history_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Riwayat</span>
         </a>
         <a href="profil.php"
-            class="<?= $halaman == 'profil.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'profil.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Profil</span>
@@ -73,40 +73,40 @@
     <img src="../assets/img/logoBaru1.png" class="w-[200px] h-auto">
 </div>
 
-<nav class="flex-grow space-y-1 px-6">
+<nav class="flex-grow space-y-2 px-6 mt-4">
 
-    <a href="dashboard.php" class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+    <a href="dashboard.php" class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
         <img src="<?= $halaman == 'dashboard.php' ? '../assets/img/dashboard.png' : '../assets/img/dashboardHitam.png' ?>"
-            class="w-[25px] h-auto mr-3 <?= $halaman != 'dashboard.php' ? 'opacity-40' : '' ?>">
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'dashboard.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Dashboard</span>
     </a>
 
-    <a href="produk.php" class="<?= $halaman == 'produk.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+    <a href="produk.php" class="<?= $halaman == 'produk.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
         <img src="<?= $halaman == 'produk.php' ? '../assets/img/kotakGarpu_white.png' : '../assets/img/kotakGarpu_black.png' ?>"
-            class="w-[25px] h-auto mr-3 <?= $halaman != 'pesan.php' ? 'opacity-40' : '' ?>">
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'produk.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Produk</span>
     </a>
 
-    <a href="pesanan.php" class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+    <a href="pesanan.php" class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
         <img src="<?= $halaman == 'pesanan.php' ? '../assets/img/menuBook_white.png' : '../assets/img/menuBook_black.png' ?>"
-            class="w-[25px] h-auto mr-3 <?= $halaman != 'kelolaToko.php' ? 'opacity-40' : '' ?>">
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'pesanan.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Pesanan</span>
     </a>
 
-    <a href="history.php" class="<?= $halaman == 'history.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+    <a href="history.php" class="<?= $halaman == 'history.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
         <img src="<?= $halaman == 'history.php' ? '../assets/img/history_white.png' : '../assets/img/history_black.png' ?>"
-            class="w-[25px] h-auto mr-3 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Riwayat</span>
     </a>
 
-    <a href="profil.php" class="<?= $halaman == 'profil.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+    <a href="profil.php" class="<?= $halaman == 'profil.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
         <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
-            class="w-[25px] h-auto mr-3 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Profil</span>
     </a>
 </nav>

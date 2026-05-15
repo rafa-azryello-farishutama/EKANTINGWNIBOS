@@ -128,28 +128,28 @@ function tampilkanMode(id, nama, harga, stok, produk, foto) {
         }
 
         function cekStok(input) {
-            const pesan = document.getElementById('pesan-stok');
+            const pesan = input.nextElementSibling;
             if (parseInt(input.value) > 999) {
                 input.value = 999;
-                pesan.classList.remove('hidden');
+                if (pesan) pesan.classList.remove('hidden');
                 input.classList.add('border-red-400');
                 input.classList.remove('border-gray-200');
             } else {
-                pesan.classList.add('hidden');
+                if (pesan) pesan.classList.add('hidden');
                 input.classList.remove('border-red-400');
                 input.classList.add('border-gray-200');
             }
         }
 
         function cekHarga(input) {
-            const pesan = document.getElementById('harga-menu');
+            const pesan = input.nextElementSibling;
             if (parseInt(input.value) > 999999999) {
                 input.value = 999999999;
-                pesan.classList.remove('hidden');
+                if (pesan) pesan.classList.remove('hidden');
                 input.classList.add('border-red-400');
                 input.classList.remove('border-gray-200');
             } else {
-                pesan.classList.add('hidden');
+                if (pesan) pesan.classList.add('hidden');
                 input.classList.remove('border-red-400');
                 input.classList.add('border-gray-200');
             }

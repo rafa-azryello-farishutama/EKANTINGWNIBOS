@@ -119,6 +119,12 @@ if (isset($_POST['filter_makanan'])) {
                         "text-2":         "#4e5a48",
                         "text-3":         "#5e6659",
                         "submit":         "#005300"
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(15px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
                     }
                 }
             }
@@ -135,7 +141,7 @@ if (isset($_POST['filter_makanan'])) {
             <div class="w-full max-w-7xl mx-auto flex flex-col gap-6">
 
                 <!-- Search + Tambah Menu -->
-                <div class="flex flex-col sm:flex-row gap-3 w-full">
+                <div class="flex flex-col sm:flex-row gap-3 w-full animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.1s;">
                     <form method="POST" class="flex flex-1 gap-3">
                         <div class="flex flex-1 items-center gap-3 bg-input rounded-xl px-4 h-12 focus-within:ring-2 focus-within:ring-primary transition-all">
                             <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,10 +169,10 @@ if (isset($_POST['filter_makanan'])) {
                 </div>
 
                 <!-- Filter Tipe -->
-                <div class="flex gap-3 overflow-x-auto pb-1">
+                <div class="flex gap-3 overflow-x-auto pb-1 animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.2s;">
                     <?php
-                    $aktif   = 'px-6 py-2 rounded-full font-bold text-sm bg-submit text-white transition-colors whitespace-nowrap flex-shrink-0';
-                    $nonaktif = 'px-6 py-2 rounded-full font-bold text-sm bg-input text-text-3 hover:bg-gray-200 transition-colors whitespace-nowrap flex-shrink-0';
+                    $aktif   = 'px-6 py-2 rounded-full font-bold text-sm bg-submit text-white shadow-md shadow-submit/30 transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0';
+                    $nonaktif = 'px-6 py-2 rounded-full font-bold text-sm bg-input text-text-3 hover:bg-gray-200 transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0';
                     ?>
                     <form method="POST" class="flex gap-3">
                         <button type="submit" name="filter_semua"
@@ -185,7 +191,7 @@ if (isset($_POST['filter_makanan'])) {
                 </div>
 
                 <!-- Grid Produk -->
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-8">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 pb-8 animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.3s;">
                     <?php
                     $id_toko = $_SESSION['id_toko'];
 
@@ -216,9 +222,9 @@ if (isset($_POST['filter_makanan'])) {
                             $foto_src = $file_foto ? "../assets/img_produk/$file_foto" : "../assets/img/no-image.png";
 
                             echo "
-                            <div class='bg-second-primary rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow'>
-                                <div class='h-[140px] bg-gray-200 w-full'>
-                                    <img src='$foto_src' alt='$nama' class='w-full h-full object-cover'>
+                            <div class='bg-second-primary rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group'>
+                                <div class='h-[140px] bg-gray-200 w-full overflow-hidden'>
+                                    <img src='$foto_src' alt='$nama' class='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'>
                                 </div>
                                 <div class='p-3 sm:p-4 flex flex-col gap-1 flex-1'>
                                     <h3 class='font-bold text-text-1 text-sm sm:text-base line-clamp-1'>$nama</h3>
