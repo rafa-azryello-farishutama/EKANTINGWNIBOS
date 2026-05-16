@@ -1,15 +1,15 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --primary: #1a3a2a;
-      --primary-light: #2d5e42;
+      --primary: #004900;
+      --primary-light: #005300;
       --accent: #e8a838;
       --accent-light: #f5c866;
-      --bg: #f7f3ec;
-      --bg-card: #ffffff;
-      --text-main: #1a1a1a;
-      --text-muted: #6b6b6b;
-      --text-light: #9e9e9e;
+      --bg: #f7f8f9;
+      --bg-card: #f9f9fb;
+      --text-main: #191c1c;
+      --text-muted: #4e5a48;
+      --text-light: #5e6659;
       --border: rgba(0,0,0,0.08);
       --shadow: 0 2px 20px rgba(0,0,0,0.08);
       --shadow-hover: 0 8px 40px rgba(0,0,0,0.15);
@@ -111,7 +111,7 @@
 
     /* ── HERO ── */
     .hero {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, #3a7a55 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, #006400 100%);
       color: #fff;
       padding: 4rem 1.5rem 5rem;
       text-align: center;
@@ -201,8 +201,6 @@
       background: rgba(255,255,255,0.2);
     }
 
-
-
     /* ── MAIN CONTENT ── */
     .main {
       max-width: 1100px;
@@ -244,8 +242,6 @@
 
     .link-more:hover { color: var(--accent); }
 
-
-
     /* ── KANTIN GRID ── */
     .kantin-grid {
       display: grid;
@@ -281,17 +277,15 @@
       font-size: 4rem;
     }
 
-    .thumb-nasi { background: linear-gradient(135deg, #fef3c7, #fde68a); }
-    .thumb-mie  { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
-    .thumb-soto { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
-    .thumb-gado { background: linear-gradient(135deg, #ecfdf5, #bbf7d0); }
-    .thumb-ayam { background: linear-gradient(135deg, #ffedd5, #fed7aa); }
-    .thumb-seaf { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-    .thumb-veg  { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+    .thumb-nasi   { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+    .thumb-mie    { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
+    .thumb-soto   { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+    .thumb-gado   { background: linear-gradient(135deg, #ecfdf5, #bbf7d0); }
+    .thumb-ayam   { background: linear-gradient(135deg, #ffedd5, #fed7aa); }
+    .thumb-seaf   { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .thumb-veg    { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
     .thumb-noodle { background: linear-gradient(135deg, #fef3c7, #fcd34d); }
     .thumb-drink  { background: linear-gradient(135deg, #ede9fe, #c4b5fd); }
-
-
 
     .card-body {
       padding: 1rem 1.1rem 1.1rem;
@@ -316,14 +310,12 @@
       margin-bottom: 0.75rem;
     }
 
-
-
     .card-footer {
       display: flex;
       justify-content: flex-end;
       padding: 0.75rem 1.1rem;
       border-top: 1px solid var(--border);
-      background: #fafaf8;
+      background: var(--bg);
     }
 
     .btn-sm {
@@ -339,8 +331,6 @@
     }
 
     .btn-sm:hover { background: var(--primary-light); }
-
-
 
     /* ── FOOTER ── */
     footer {
