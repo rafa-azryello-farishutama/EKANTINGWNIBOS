@@ -56,10 +56,10 @@ $sTotal = $hSelesai->num_rows;
             theme: {
                 extend: {
                     "colors": {
-                        "background": "#f7f8f9",
+                        "background": "#fafbf9",
                         "primary": "#004900",
                         "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
+                        "input": "#f0f4f0",
                         "text-1": "#191c1c",
                         "text-2": "#4e5a48",
                         "text-3": "#5e6659",
@@ -85,10 +85,10 @@ $sTotal = $hSelesai->num_rows;
             <div class="grid grid-cols-2 gap-4 md:gap-6 mb-8">
 
                 <div
-                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group">
+                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-blue-50 flex flex-col gap-2 group hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100/50 transition-all">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Hari Ini</p>
-                        <p class="text-4xl font-extrabold text-primary"><?php echo $jTotal; ?></p>
+                        <p class="text-4xl font-extrabold text-blue-600"><?php echo $jTotal; ?></p>
                         <p class="text-xs text-text-2">total pesanan masuk</p>
                     </div>
                     <img src="../assets/img/user-icon.png"
@@ -96,7 +96,7 @@ $sTotal = $hSelesai->num_rows;
                 </div>
 
                 <div
-                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group">
+                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-yellow-50 flex flex-col gap-2 group hover:-translate-y-1 hover:shadow-md hover:shadow-yellow-100/50 transition-all">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Pending</p>
                         <p class="text-4xl font-extrabold text-yellow-500"><?php echo $pTotal; ?></p>
@@ -107,7 +107,7 @@ $sTotal = $hSelesai->num_rows;
                 </div>
 
                 <div
-                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-gray-100 flex flex-col gap-2 group col-span-2 md:col-span-1 md:col-start-1 md:translate-x-1/2">
+                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-green-50 flex flex-col gap-2 group col-span-2 md:col-span-1 md:col-start-1 md:translate-x-1/2 hover:-translate-y-1 hover:shadow-md hover:shadow-green-100/50 transition-all">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Selesai Hari Ini</p>
                         <p class="text-4xl font-extrabold text-green-600"><?php echo $sTotal; ?></p>
@@ -180,15 +180,28 @@ $sTotal = $hSelesai->num_rows;
 
     
                         $badgeClass = match ($status) {
-                            'pending' => 'text-yellow-700 bg-yellow-100',
-                            'diproses' => 'text-blue-700 bg-blue-100',
-                            'selesai' => 'text-green-700 bg-green-100',
-                            'dibatalkan' => 'text-red-600 bg-red-100',
-                            default => 'text-gray-600 bg-gray-100'
+                            'pending' => 'text-yellow-700 bg-yellow-100 border border-yellow-200',
+                            'diproses' => 'text-blue-700 bg-blue-100 border border-blue-200',
+                            'selesai' => 'text-green-700 bg-green-100 border border-green-200',
+                            'dibatalkan' => 'text-red-600 bg-red-100 border border-red-200',
+                            default => 'text-gray-600 bg-gray-100 border border-gray-200'
                         };
 
-                
-                        $tombolAksi = '';
+                        $badgePill = match ($status) {
+                            'pending' => 'text-yellow-700 bg-yellow-100 border border-yellow-200',
+                            'diproses' => 'text-blue-700 bg-blue-100 border border-blue-200',
+                            'selesai' => 'text-green-700 bg-green-100 border border-green-200',
+                            'dibatalkan' => 'text-red-600 bg-red-100 border border-red-200',
+                            default => 'text-gray-600 bg-gray-100 border border-gray-200'
+                        };
+
+                        $cardBorderClass = match ($status) {
+                            'pending' => 'border-yellow-100 hover:border-yellow-200',
+                            'diproses' => 'border-blue-100 hover:border-blue-200',
+                            'selesai' => 'border-green-100 hover:border-green-200',
+                            'dibatalkan' => 'border-red-100 hover:border-red-200',
+                            default => 'border-gray-100 hover:border-primary/30'
+                        };
                         if ($status == 'pending') {
                             $tombolAksi = "<button class='text-sm font-bold bg-green-100 text-green-700 px-6 py-2 rounded-xl hover:bg-green-200 transition-all'>Proses</button>";
                         } else if ($status == 'diproses') {
@@ -210,14 +223,14 @@ $sTotal = $hSelesai->num_rows;
 
                         echo "
             <div onclick=\"bukaPopup('$username', '$tulisanTanggal', '$status', '$tampilMenu', '$catatan', '$harga','$id_pesanan')\"
-                class='bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 cursor-pointer hover:border-primary/30 transition-all mb-2'>
+                class='bg-white rounded-[24px] p-6 shadow-sm border $cardBorderClass cursor-pointer transition-all mb-2 hover:-translate-y-0.5 hover:shadow-md'>
                 
                 <div class='flex justify-between items-start mb-2'>
                     <div>
                         <p class='text-lg font-bold text-text-1'>$username</p>
                         <p class='text-xs text-text-3'>$tulisanTanggal</p>
                     </div>
-                    <span class='text-xs font-bold text-orange-700 bg-orange-100 px-4 py-1.5 rounded-full capitalize'>$status</span>
+                    <span class='text-xs font-bold $badgePill px-4 py-1.5 rounded-full capitalize'>$status</span>
                 </div>
 
                 <p class='text-sm text-text-2 mb-4'>$tampilMenu</p>
@@ -242,7 +255,7 @@ $sTotal = $hSelesai->num_rows;
         <div class="bg-white rounded-[24px] w-full max-w-md shadow-2xl overflow-hidden"
             onclick="event.stopPropagation()">
 
-            <div class="bg-primary px-8 py-6 flex items-center justify-between">
+            <div class="bg-gradient-to-r from-primary to-[#006800] px-8 py-6 flex items-center justify-between">
                 <div>
                     <p class="text-white/60 text-xs uppercase tracking-widest mb-1">Detail Pesanan</p>
                     <h2 id="popup-nama" class="text-white font-bold text-xl">-</h2>

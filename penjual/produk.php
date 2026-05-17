@@ -111,10 +111,10 @@ if (isset($_POST['filter_makanan'])) {
             theme: {
                 extend: {
                     "colors": {
-                        "background":     "#f7f8f9",
+                        "background":     "#fafbf9",
                         "primary":        "#004900",
                         "second-primary": "#f9f9fb",
-                        "input":          "#f3f3f5",
+                        "input":          "#f0f4f0",
                         "text-1":         "#191c1c",
                         "text-2":         "#4e5a48",
                         "text-3":         "#5e6659",

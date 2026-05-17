@@ -54,10 +54,10 @@ $qRiwayat = $db_ekantin->query("SELECT p.*, u.username
             theme: {
                 extend: {
                     "colors": {
-                        "background": "#f7f8f9",
+                        "background": "#fafbf9",
                         "primary": "#004900",
                         "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
+                        "input": "#f0f4f0",
                         "text-1": "#191c1c",
                         "text-2": "#4e5a48",
                         "text-3": "#5e6659",
@@ -88,17 +88,17 @@ $qRiwayat = $db_ekantin->query("SELECT p.*, u.username
             </header>
 
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 flex flex-col gap-1 relative overflow-hidden group">
+                <div class="bg-white rounded-[20px] p-5 shadow-sm border border-green-50 flex flex-col gap-1 relative overflow-hidden group hover:-translate-y-1 hover:shadow-md hover:shadow-green-100/50 transition-all">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Selesai</p>
-                        <p class="text-4xl font-extrabold text-primary"><?= $total_pesanan ?></p>
+                        <p class="text-4xl font-extrabold text-green-600"><?= $total_pesanan ?></p>
                         <p class="text-xs text-text-2">dalam periode ini</p>
                     </div>
                 </div>
-                <div class="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 flex flex-col gap-1 relative overflow-hidden group">
+                <div class="bg-white rounded-[20px] p-5 shadow-sm border border-blue-50 flex flex-col gap-1 relative overflow-hidden group hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100/50 transition-all">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Total Pendapatan</p>
-                        <p class="text-2xl font-extrabold text-primary">Rp <?= $total_pendapatan ?></p>
+                        <p class="text-2xl font-extrabold text-blue-600">Rp <?= $total_pendapatan ?></p>
                         <p class="text-xs text-text-2">dari pesanan selesai</p>
                     </div>
                 </div>
@@ -162,10 +162,10 @@ $qRiwayat = $db_ekantin->query("SELECT p.*, u.username
                     $tampilMenu = implode(', ', $listMenu) ?: '-';
 
                     $badge = $ps['status_pesanan'] == 'selesai'
-                        ? "<span class='text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full'>Selesai</span>"
-                        : "<span class='text-xs font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-full'>Dibatalkan</span>";
+                        ? "<span class='text-xs font-semibold text-green-700 bg-green-100 border border-green-200 px-3 py-1 rounded-full'>Selesai</span>"
+                        : "<span class='text-xs font-semibold text-red-600 bg-red-100 border border-red-200 px-3 py-1 rounded-full'>Dibatalkan</span>";
                 ?>
-                <div class="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
+                <div class="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 flex flex-col gap-3 hover:-translate-y-0.5 hover:shadow-md transition-all">
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="text-base font-semibold text-text-1"><?= htmlspecialchars($ps['username']) ?></p>

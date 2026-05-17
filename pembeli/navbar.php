@@ -19,8 +19,8 @@
 </div>
 
 <!-- Mobile Sidebar -->
-<aside id="mobile-sidebar" class="fixed top-0 left-0 h-full w-[280px] bg-input z-50 lg:hidden
-    -translate-x-full transition-transform duration-300 flex flex-col py-8 px-6">
+<aside id="mobile-sidebar" class="fixed top-0 left-0 h-full w-[280px] bg-white z-50 lg:hidden
+    -translate-x-full transition-transform duration-300 flex flex-col py-8 px-6 shadow-2xl border-r border-gray-100">
 
     <div class="flex items-center justify-between mb-8">
         <img src="../assets/img/logoBaru1.png" class="w-[140px] h-auto">
@@ -33,86 +33,85 @@
         </button>
     </div>
 
-    <nav class="flex flex-col gap-1">
+    <nav class="flex flex-col gap-2">
         <a href="dashboard.php"
-            class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'dashboard.php' ? '../assets/img/dashboard.png' : '../assets/img/dashboardHitam.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'dashboard.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Dashboard</span>
         </a>
-        
         <a href="pesan.php"
-            class="<?= $halaman == 'pesan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'pesan.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'pesan.php' ? '../assets/img/menuBook_white.png' : '../assets/img/menuBook_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'pesan.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Pesan</span>
         </a>
-        
         <a href="keranjang.php"
-            class="<?= $halaman == 'keranjang.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'keranjang.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'keranjang.php' ? '../assets/img/keranjang_white.png' : '../assets/img/keranjang_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'keranjang.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Keranjang</span>
         </a>
-        
         <a href="history.php"
-            class="<?= $halaman == 'history.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'history.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'history.php' ? '../assets/img/history_white.png' : '../assets/img/history_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Riwayat</span>
         </a>
-        
         <a href="profil.php"
-            class="<?= $halaman == 'profil.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all">
+            class="<?= $halaman == 'profil.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
                 class="w-5 h-5 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Akun</span>
         </a>
     </nav>
+
 </aside>
 
 <!-- Desktop Sidebar -->
-<aside class="hidden lg:flex flex-col top-0 left-0 w-80 h-full fixed py-8 bg-input rounded-r-xl z-40">
-    <div class="flex items-center justify-center mb-4">
-        <img src="../assets/img/logoBaru1.png" class="w-[200px] h-auto">
-    </div>
+<aside class="hidden lg:flex flex-col top-0 left-0 w-80 h-full fixed py-8 bg-white rounded-r-2xl z-40 shadow-[4px_0_24px_rgba(0,73,0,0.08)] border-r border-green-50">
+<div class="flex items-center justify-center mb-4">
+    <img src="../assets/img/logoBaru1.png" class="w-[200px] h-auto">
+</div>
 
-    <nav class="flex-grow space-y-1 px-6">
-        <a href="dashboard.php" class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
-            <img src="<?= $halaman == 'dashboard.php' ? '../assets/img/dashboard.png' : '../assets/img/dashboardHitam.png' ?>"
-                class="w-[25px] h-auto mr-3 <?= $halaman != 'dashboard.php' ? 'opacity-40' : '' ?>">
-            <span class="font-medium text-sm">Dashboard</span>
-        </a>
+<nav class="flex-grow space-y-2 px-6 mt-4">
 
-        <a href="pesan.php" class="<?= $halaman == 'pesan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
-            <img src="<?= $halaman == 'pesan.php' ? '../assets/img/menuBook_white.png' : '../assets/img/menuBook_black.png' ?>"
-                class="w-[25px] h-auto mr-3 <?= $halaman != 'pesan.php' ? 'opacity-40' : '' ?>">
-            <span class="font-medium text-sm">Pesan</span>
-        </a>
+    <a href="dashboard.php" class="<?= $halaman == 'dashboard.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <img src="<?= $halaman == 'dashboard.php' ? '../assets/img/dashboard.png' : '../assets/img/dashboardHitam.png' ?>"
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'dashboard.php' ? 'opacity-40' : '' ?>">
+        <span class="font-medium text-sm">Dashboard</span>
+    </a>
 
-        <a href="keranjang.php" class="<?= $halaman == 'keranjang.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
-            <img src="<?= $halaman == 'keranjang.php' ? '../assets/img/keranjang_white.png' : '../assets/img/keranjang_black.png' ?>"
-                class="w-[25px] h-auto mr-3 <?= $halaman != 'keranjang.php' ? 'opacity-40' : '' ?>">
-            <span class="font-medium text-sm">Keranjang</span>
-        </a>
+    <a href="pesan.php" class="<?= $halaman == 'pesan.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <img src="<?= $halaman == 'pesan.php' ? '../assets/img/menuBook_white.png' : '../assets/img/menuBook_black.png' ?>"
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'pesan.php' ? 'opacity-40' : '' ?>">
+        <span class="font-medium text-sm">Pesan</span>
+    </a>
 
-        <a href="history.php" class="<?= $halaman == 'history.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
-            <img src="<?= $halaman == 'history.php' ? '../assets/img/history_white.png' : '../assets/img/history_black.png' ?>"
-                class="w-[25px] h-auto mr-3 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
-            <span class="font-medium text-sm">Riwayat</span>
-        </a>
+    <a href="keranjang.php" class="<?= $halaman == 'keranjang.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <img src="<?= $halaman == 'keranjang.php' ? '../assets/img/keranjang_white.png' : '../assets/img/keranjang_black.png' ?>"
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'keranjang.php' ? 'opacity-40' : '' ?>">
+        <span class="font-medium text-sm">Keranjang</span>
+    </a>
 
-        <a href="profil.php" class="<?= $halaman == 'profil.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
-                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
-            <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
-                class="w-[25px] h-auto mr-3 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
-            <span class="font-medium text-sm">Akun</span>
-        </a>
-    </nav>
+    <a href="history.php" class="<?= $halaman == 'history.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <img src="<?= $halaman == 'history.php' ? '../assets/img/history_white.png' : '../assets/img/history_black.png' ?>"
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
+        <span class="font-medium text-sm">Riwayat</span>
+    </a>
+
+    <a href="profil.php" class="<?= $halaman == 'profil.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
+        <span class="font-medium text-sm">Akun</span>
+    </a>
+</nav>
+
 </aside>
 
 <script>

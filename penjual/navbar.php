@@ -19,8 +19,8 @@
 </div>
 
 <!-- Mobile Sidebar -->
-<aside id="mobile-sidebar" class="fixed top-0 left-0 h-full w-[280px] bg-input z-50 lg:hidden
-    -translate-x-full transition-transform duration-300 flex flex-col py-8 px-6">
+<aside id="mobile-sidebar" class="fixed top-0 left-0 h-full w-[280px] bg-white z-50 lg:hidden
+    -translate-x-full transition-transform duration-300 flex flex-col py-8 px-6 shadow-2xl border-r border-gray-100">
 
     <div class="flex items-center justify-between mb-8">
         <img src="../assets/img/logoBaru1.png" class="w-[140px] h-auto">
@@ -68,7 +68,7 @@
 
 </aside>
 
-<aside class="hidden lg:flex flex-col top-0 left-0 w-80 h-full fixed py-8 bg-input rounded-r-xl z-40">
+<aside class="hidden lg:flex flex-col top-0 left-0 w-80 h-full fixed py-8 bg-white rounded-r-2xl z-40 shadow-[4px_0_24px_rgba(0,73,0,0.08)] border-r border-green-50">
 <div class="flex items-center justify-center mb-4">
     <img src="../assets/img/logoBaru1.png" class="w-[200px] h-auto">
 </div>

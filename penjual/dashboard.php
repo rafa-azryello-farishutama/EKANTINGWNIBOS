@@ -57,10 +57,10 @@ function badgeStatus($status) {
             theme: {
                 extend: {
                     colors: {
-                        "background": "#f7f8f9",
+                        "background": "#fafbf9",
                         "primary": "#004900",
                         "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
+                        "input": "#f0f4f0",
                         "text-1": "#191c1c",
                         "text-2": "#4e5a48",
                         "text-3": "#5e6659",
@@ -96,14 +96,14 @@ function badgeStatus($status) {
             <!-- Cards Statistik -->
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.2s;">
 
-                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-md relative overflow-hidden group">
-                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-blue-50 flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100/50 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-28 h-28 bg-blue-100 rounded-full opacity-40 group-hover:scale-150 transition-transform duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Total Pesanan</p>
-                            <p class="text-4xl font-extrabold text-primary mt-1"><?= $total_pesanan ?></p>
+                            <p class="text-4xl font-extrabold text-blue-600 mt-1"><?= $total_pesanan ?></p>
                         </div>
-                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <div class="p-3 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                             </svg>
@@ -112,14 +112,14 @@ function badgeStatus($status) {
                     <p class="text-xs text-text-2 relative z-10 mt-1">semua pesanan masuk</p>
                 </div>
 
-                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-md relative overflow-hidden group">
-                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-orange-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-orange-50 flex flex-col gap-2 transition-all hover:-translate-y-1 hover:shadow-md hover:shadow-orange-100/50 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-28 h-28 bg-orange-100 rounded-full opacity-40 group-hover:scale-150 transition-transform duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Total Menu</p>
-                            <p class="text-4xl font-extrabold text-primary mt-1"><?= $total_menu ?></p>
+                            <p class="text-4xl font-extrabold text-orange-500 mt-1"><?= $total_menu ?></p>
                         </div>
-                        <div class="p-3 bg-orange-50 text-orange-600 rounded-xl">
+                        <div class="p-3 bg-orange-100 text-orange-500 rounded-xl shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                             </svg>
@@ -128,16 +128,16 @@ function badgeStatus($status) {
                     <p class="text-xs text-text-2 relative z-10 mt-1">menu terdaftar</p>
                 </div>
 
-                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 col-span-2 lg:col-span-1 transition-all hover:-translate-y-1 hover:shadow-md relative overflow-hidden group">
-                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-green-50 flex flex-col gap-2 col-span-2 lg:col-span-1 transition-all hover:-translate-y-1 hover:shadow-md hover:shadow-green-100/50 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-28 h-28 bg-green-100 rounded-full opacity-40 group-hover:scale-150 transition-transform duration-500"></div>
                     <div class="flex justify-between items-start relative z-10">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pendapatan</p>
-                            <p class="text-3xl font-extrabold text-primary leading-tight mt-1">
+                            <p class="text-3xl font-extrabold text-green-600 leading-tight mt-1">
                                 Rp <?= number_format($pendapatan, 0, ',', '.') ?>
                             </p>
                         </div>
-                        <div class="p-3 bg-green-50 text-green-600 rounded-xl">
+                        <div class="p-3 bg-green-100 text-green-600 rounded-xl shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -157,7 +157,7 @@ function badgeStatus($status) {
                 </div>
 
                 <!-- Header tabel (desktop) -->
-                <div class="hidden md:grid grid-cols-[60px_1fr_140px_160px_110px] bg-primary px-6 py-3 gap-4">
+                <div class="hidden md:grid grid-cols-[60px_1fr_140px_160px_110px] bg-gradient-to-r from-primary to-[#006800] px-6 py-3 gap-4">
                     <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white">Pembeli</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white">Total</p>

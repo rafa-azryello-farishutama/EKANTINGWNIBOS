@@ -87,10 +87,10 @@ $total_produk = $produk['total'] ?? 0;
             theme: {
                 extend: {
                     colors: {
-                        "background": "#f7f8f9",
+                        "background": "#fafbf9",
                         "primary": "#004900",
                         "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
+                        "input": "#f0f4f0",
                         "text-1": "#191c1c",
                         "text-2": "#4e5a48",
                         "text-3": "#5e6659",
@@ -131,7 +131,7 @@ $total_produk = $produk['total'] ?? 0;
 
                 <div class="lg:col-span-1 flex flex-col gap-4">
                     <div class="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col items-center text-center relative pb-6">
-                        <div class="w-full h-20 bg-primary"></div>
+                        <div class="w-full h-20 bg-gradient-to-r from-primary to-[#006800]"></div>
                         <div class="w-20 h-20 rounded-full border-4 border-white bg-primary/10 flex items-center justify-center -mt-10 relative z-10 overflow-hidden">
                             <?php if($toko['foto_toko']): ?>
                             <img src="../assets/img_toko/<?= htmlspecialchars($toko['foto_toko']) ?>" class="w-full h-full object-cover">
@@ -207,13 +207,13 @@ $total_produk = $produk['total'] ?? 0;
                     <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
                         <h4 class="font-bold text-text-1 text-base mb-5 pb-4 border-b border-gray-100">Statistik Toko</h4>
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-input rounded-[15px] p-4 flex flex-col gap-1">
+                            <div class="bg-green-50 border border-green-100 rounded-[15px] p-4 flex flex-col gap-1">
                                 <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Pesanan Selesai</p>
-                                <p class="text-3xl font-extrabold text-primary"><?= $total_pesanan ?></p>
+                                <p class="text-3xl font-extrabold text-green-600"><?= $total_pesanan ?></p>
                             </div>
-                            <div class="bg-input rounded-[15px] p-4 flex flex-col gap-1">
+                            <div class="bg-blue-50 border border-blue-100 rounded-[15px] p-4 flex flex-col gap-1">
                                 <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Total Produk</p>
-                                <p class="text-3xl font-extrabold text-primary"><?= $total_produk ?></p>
+                                <p class="text-3xl font-extrabold text-blue-600"><?= $total_produk ?></p>
                             </div>
                         </div>
                     </div>
