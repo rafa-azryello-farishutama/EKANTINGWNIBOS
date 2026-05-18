@@ -213,7 +213,8 @@ function badgeStatus($status)
                                         <p class="text-sm font-semibold text-text-1"><?= htmlspecialchars($row['username']) ?>
                                         </p>
                                         <p class="text-xs text-text-3"><?= $tanggal ?> · Rp
-                                            <?= number_format($row['total_harga'], 0, ',', '.') ?></p>
+                                            <?= number_format($row['total_harga'], 0, ',', '.') ?>
+                                        </p>
                                     </div>
                                     <span class="text-xs font-semibold px-2 py-1 rounded-full <?= $tColor ?> <?= $bgColor ?>">
                                         <?= $label ?>
