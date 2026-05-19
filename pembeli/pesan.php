@@ -154,7 +154,7 @@ if ($id_toko_selected) {
             $bannerUtamaSrc = "../assets/img/default_banner_app.jpg";
             ?>
             <div class="opacity-0 animate-fadeInUp" style="animation-delay:0.2s;">
-                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-wrap">
+                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-wrap w-full h-32 sm:h-40 md:h-48">
 
                     <?php if ($bannerUtamaSrc): ?>
                         <!-- Banner dari toko (image) -->
@@ -208,7 +208,7 @@ if ($id_toko_selected) {
                            hover:border-primary/40 hover:shadow-md active:scale-[0.98]
                            transition-all duration-200 flex group block"
                     style="animation-delay:<?= 0.15 + ($i * 0.05) ?>s;">
-                    <div class="store-icon bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 overflow-hidden relative">
+                    <div class="store-icon w-[90px] sm:w-[120px] flex-shrink-0 self-stretch bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 overflow-hidden relative">
                         <?php if ($banner_src && file_exists($banner_src)): ?>
                             <img src="<?= htmlspecialchars($banner_src) ?>"
                                  alt="Banner"
@@ -274,7 +274,7 @@ if ($id_toko_selected) {
                                       ? "../assets/img_banner/" . htmlspecialchars($banner_toko_detail)
                                       : null;
                 ?>
-                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap">
+                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full h-32 sm:h-40 md:h-48">
 
                     <?php if ($banner_detail_src): ?>
                         <!-- Banner custom dari penjual (image) -->
@@ -335,7 +335,7 @@ if ($id_toko_selected) {
                         <div class="opacity-0 bg-white rounded-xl border border-gray-100 overflow-hidden
                                     hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col"
                              style="animation:fadeInUp 0.4s ease-out <?= $j * 0.05 ?>s forwards;">
-                            <div class="menu-img bg-input flex items-center justify-center overflow-hidden relative">
+                            <div class="menu-img w-full h-28 sm:h-32 flex-shrink-0 bg-input flex items-center justify-center overflow-hidden relative">
                                 <?php if ($foto_menu_src): ?>
                                     <img src="<?= htmlspecialchars($foto_menu_src) ?>" alt="Menu" class="w-full h-full object-cover">
                                 <?php else: ?>
