@@ -233,22 +233,8 @@ if ($id_toko_selected) {
             </div>
 
             <?php if (!$store_details): ?>
-            <!-- ═══════════════════════════════════════════ -->
-            <!--  VIEW 1: Daftar Toko                        -->
-            <!-- ═══════════════════════════════════════════ -->
-
-            <!-- BANNER UTAMA
-                 Prioritas: banner_toko dari DB (jika ada) → fallback gradient hijau
-                 Karena ini halaman daftar semua toko, kita tampilkan banner toko
-                 pertama yang sudah upload, atau default jika tidak ada. -->
             <?php
-            // Cek apakah ada toko yang sudah punya banner, gunakan yang pertama
-            // Anda bisa ubah logika ini sesuai kebutuhan (misal: banner platform global)
-            $qBannerUtama = $db_ekantin->query("SELECT banner_toko FROM toko WHERE banner_toko IS NOT NULL AND banner_toko != '' LIMIT 1");
-            $bannerUtamaRow  = $qBannerUtama ? $qBannerUtama->fetch_assoc() : null;
-            $bannerUtamaSrc  = ($bannerUtamaRow && $bannerUtamaRow['banner_toko'])
-                               ? "../assets/img_banner/" . htmlspecialchars($bannerUtamaRow['banner_toko'])
-                               : null;
+            $bannerUtamaSrc = "../assets/img/default_banner_app.jpg";
             ?>
             <div class="opacity-0 animate-fadeInUp" style="animation-delay:0.2s;">
                 <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-wrap">
@@ -296,9 +282,9 @@ if ($id_toko_selected) {
                 if ($qKantin && $qKantin->num_rows > 0):
                     while ($kantin = $qKantin->fetch_assoc()):
                         $i++;
-                        $foto_toko = $kantin['foto_toko'] ?? null;
-                        $foto_src  = $foto_toko ? "../assets/img_toko/$foto_toko" : null;
-                        $initial   = strtoupper(substr($kantin['nama_toko'], 0, 1));
+                        $banner_toko = $kantin['banner_toko'] ?? null;
+                        $banner_src  = $banner_toko ? "../assets/img_banner/$banner_toko" : null;
+                        $initial     = strtoupper(substr($kantin['nama_toko'], 0, 1));
                 ?>
                 <a href="pesan.php?id_toko=<?= $kantin['id_toko'] ?>"
                     class="store-card opacity-0 animate-fadeInUp text-left bg-white rounded-xl border border-gray-100
@@ -306,8 +292,10 @@ if ($id_toko_selected) {
                            transition-all duration-200 flex group block"
                     style="animation-delay:<?= 0.15 + ($i * 0.05) ?>s;">
                     <div class="store-icon bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 overflow-hidden relative">
-                        <?php if ($foto_src): ?>
-                            <img src="<?= $foto_src ?>" alt="Store" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                        <?php if ($banner_src && file_exists($banner_src)): ?>
+                            <img src="<?= htmlspecialchars($banner_src) ?>"
+                                 alt="Banner"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                         <?php else: ?>
                             <span class="text-primary font-bold text-3xl"><?= $initial ?></span>
                         <?php endif; ?>
