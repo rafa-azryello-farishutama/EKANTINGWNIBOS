@@ -206,9 +206,9 @@ if ($id_toko_selected) {
                 <a href="pesan.php?id_toko=<?= $kantin['id_toko'] ?>"
                     class="store-card opacity-0 animate-fadeInUp text-left bg-white rounded-xl border border-gray-100
                            hover:border-primary/40 hover:shadow-md active:scale-[0.98]
-                           transition-all duration-200 flex group block"
+                           transition-all duration-200 flex flex-col group overflow-hidden h-full"
                     style="animation-delay:<?= 0.15 + ($i * 0.05) ?>s;">
-                    <div class="store-icon w-[90px] sm:w-[120px] flex-shrink-0 self-stretch bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 overflow-hidden relative">
+                    <div class="store-icon w-full h-28 sm:h-32 flex-shrink-0 bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 relative overflow-hidden">
                         <?php if ($banner_src && file_exists($banner_src)): ?>
                             <img src="<?= htmlspecialchars($banner_src) ?>"
                                  alt="Banner"
@@ -218,21 +218,21 @@ if ($id_toko_selected) {
                         <?php endif; ?>
                         <?php $is_open_card = isStoreOpen($kantin); ?>
                         <?php if ($is_open_card): ?>
-                            <span class="absolute top-2 left-2 text-[9px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">Buka</span>
+                            <span class="absolute top-2 left-2 text-[9px] font-bold bg-green-500 text-white px-2 py-0.5 rounded shadow-sm z-10">Buka</span>
                         <?php else: ?>
-                            <span class="absolute top-2 left-2 text-[9px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">Tutup</span>
+                            <span class="absolute top-2 left-2 text-[9px] font-bold bg-red-500 text-white px-2 py-0.5 rounded shadow-sm z-10">Tutup</span>
                         <?php endif; ?>
                     </div>
-                    <div class="p-2 sm:p-3 flex flex-col flex-grow">
-                        <p class="store-name font-semibold text-text-1 leading-snug truncate"><?= htmlspecialchars($kantin['nama_toko']) ?></p>
-                        <span class="store-tag inline-block mt-1 px-1.5 py-0.5 rounded-full bg-input text-text-3 font-medium self-start">
+                    <div class="p-3 flex flex-col flex-grow min-w-0">
+                        <p class="store-name font-semibold text-text-1 text-sm sm:text-base leading-snug truncate"><?= htmlspecialchars($kantin['nama_toko']) ?></p>
+                        <span class="store-tag inline-block mt-1.5 px-2 py-0.5 rounded-full bg-input text-text-3 text-[10px] sm:text-xs font-medium self-start">
                             <?= $kantin['total_menu'] ?> Menu
                         </span>
-                        <p class="store-desc text-xs text-text-3 mt-1.5 leading-relaxed line-clamp-2">
+                        <p class="store-desc text-[11px] sm:text-xs text-text-3 mt-2 leading-relaxed line-clamp-2 flex-grow">
                             <?= htmlspecialchars($kantin['lokasi'] ?? 'Berbagai macam makanan dan minuman.') ?>
                         </p>
-                        <p class="text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 mt-auto pt-1.5 <?= $is_open_card ? 'text-green-600' : 'text-red-600' ?>">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <p class="text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 mt-3 pt-2 border-t border-gray-50 <?= $is_open_card ? 'text-green-600' : 'text-red-600' ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <?= htmlspecialchars($kantin['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($kantin['jam_tutup'] ?? '--:--') ?> WIB
@@ -273,8 +273,11 @@ if ($id_toko_selected) {
                 $banner_detail_src  = $banner_toko_detail
                                       ? "../assets/img_banner/" . htmlspecialchars($banner_toko_detail)
                                       : null;
+                
+                // Tinggi dinamis: Besar jika ada foto, sedang jika tidak ada (default)
+                $banner_height_class = $banner_detail_src ? 'h-40 sm:h-48 md:h-64' : 'h-32 sm:h-40 md:h-48';
                 ?>
-                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full h-32 sm:h-40 md:h-48">
+                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full <?= $banner_height_class ?> transition-all duration-300">
 
                     <?php if ($banner_detail_src): ?>
                         <!-- Banner custom dari penjual (image) -->
@@ -333,7 +336,7 @@ if ($id_toko_selected) {
                             $foto_menu_src = $foto_produk ? "../assets/img_produk/$foto_produk" : null;
                     ?>
                         <div class="opacity-0 bg-white rounded-xl border border-gray-100 overflow-hidden
-                                    hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col"
+                                    hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col h-full"
                              style="animation:fadeInUp 0.4s ease-out <?= $j * 0.05 ?>s forwards;">
                             <div class="menu-img w-full h-28 sm:h-32 flex-shrink-0 bg-input flex items-center justify-center overflow-hidden relative">
                                 <?php if ($foto_menu_src): ?>
