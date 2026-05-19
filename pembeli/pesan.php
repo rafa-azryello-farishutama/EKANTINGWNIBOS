@@ -2,10 +2,13 @@
 session_start();
 include '../config/koneksi.php';
 
-if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
+if(!isset($_SESSION['pembeli_id_users'])){
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $halaman = basename($_SERVER['PHP_SELF']);
 
@@ -58,34 +61,8 @@ if ($id_toko_selected) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pesan Menu</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "background":     "#fafbf9",
-                        "primary":        "#004900",
-                        "second-primary": "#f9f9fb",
-                        "input":          "#f0f4f0",
-                        "text-1":         "#191c1c",
-                        "text-2":         "#4e5a48",
-                        "text-3":         "#5e6659",
-                        "submit":         "#005300"
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%':   { opacity: '0', transform: 'translateY(15px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    },
-                    animation: { fadeInUp: 'fadeInUp 0.5s ease-out forwards' }
-                }
-            }
-        }
-    </script>
     <style>
         /* Banner utama & toko */
         .banner-wrap      { height: 140px; }

@@ -26,6 +26,9 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
                 if($data['role'] == 'admin'){
                     $_SESSION['username'] = $data['username'];
+                    $_SESSION['admin_id_users'] = $data['id_users'];
+                    $_SESSION['admin_username'] = $data['username'];
+                    $_SESSION['admin_role']     = $data['role'];
                     header("Location: admin/dashboard.php");
                     exit;
 
@@ -33,12 +36,21 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                     $cekToko = $db_ekantin->query("SELECT * FROM toko WHERE id_users='{$data['id_users']}'");
                     $toko    = $cekToko->fetch_assoc();
                 
+                    $_SESSION['penjual_id_users']   = $data['id_users'];
+                    $_SESSION['penjual_username']   = $data['username'];
+                    $_SESSION['penjual_role']       = $data['role'];
+                    $_SESSION['penjual_id_toko']     = $toko['id_toko'];
+                    $_SESSION['penjual_nama_toko']   = $toko['nama_toko'];
+
                     $_SESSION['id_toko']   = $toko['id_toko'];
                     $_SESSION['nama_toko'] = $toko['nama_toko'];
 
                     header("Location: penjual/dashboard.php");
                     exit;
                 } else if($data['role'] == 'pembeli'){
+                    $_SESSION['pembeli_id_users'] = $data['id_users'];
+                    $_SESSION['pembeli_username'] = $data['username'];
+                    $_SESSION['pembeli_role']     = $data['role'];
                     $_SESSION['username'] = $data['username'];
                     header("Location: pembeli/dashboard.php");
                     exit;
@@ -75,28 +87,8 @@ if($show_popup){
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>e-Kantin | Login</title>
 
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
+    <link rel="stylesheet" href="assets/css/tailwind.css">
     <link rel="stylesheet" href="assets/css/style.css">
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "background": "#f7f8f9",
-                        "primary": "#004900",
-                        "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
-                        "text-1": "#191c1c",
-                        "text-2": "#4e5a48",
-                        "text-3": "#5e6659",
-                        "submit": "#005300"
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 
 <body class="bg-background min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll">

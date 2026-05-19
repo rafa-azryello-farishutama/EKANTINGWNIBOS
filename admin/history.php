@@ -1,9 +1,6 @@
 <?php
-$halaman = basename($_SERVER['PHP_SELF']);
-?>
-
-<?php
 session_start();
+$halaman = basename($_SERVER['PHP_SELF']);
 include '../config/koneksi.php';
 
 if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
@@ -58,28 +55,8 @@ $total_pages = ceil($total_items / $limit);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Riwayat Transaksi - E-Kantin Admin</title>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link rel="stylesheet" href="../assets/css/style.css" />
-  <script>
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            background: "#f7f8f9", primary: "#004900",
-            "text-1": "#191c1c", "text-2": "#4e5a48", "text-3": "#5e6659",
-            "input": "#f0f4f0", "submit": "#005300"
-          },
-          keyframes: {
-            fadeInUp: {
-                '0%': { opacity: '0', transform: 'translateY(15px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-            }
-          }
-        },
-      },
-    };
-  </script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body class="bg-slate-50 text-text-1">
   <div class="flex min-h-screen relative">

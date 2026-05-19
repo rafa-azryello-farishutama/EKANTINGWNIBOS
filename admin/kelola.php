@@ -1,10 +1,7 @@
 <?php 
-$halaman = basename($_SERVER['PHP_SELF']);
-?>
-
-<?php 
-include '../config/koneksi.php';
 session_start();
+$halaman = basename($_SERVER['PHP_SELF']);
+include '../config/koneksi.php';
 
 if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
     header("Location: ../index.php");
@@ -98,29 +95,8 @@ $total_toko = $hasilCari->num_rows;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelola User</title>
 
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
-
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "background": "#f7f8f9",
-                        "primary": "#004900",
-                        "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
-                        "text-1": "#191c1c",
-                        "text-2": "#4e5a48",
-                        "text-3": "#5e6659",
-                        "submit": "#005300"
-                    }
-                }
-            }
-        }
-    </script>
 
     <style>
         .popup-enter { animation: popupIn 0.25s cubic-bezier(.4,0,.2,1) both; }

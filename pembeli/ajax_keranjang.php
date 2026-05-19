@@ -5,10 +5,13 @@ include '../config/koneksi.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli') {
+if (!isset($_SESSION['pembeli_id_users'])) {
     echo json_encode(['status' => 'error', 'message' => 'Tidak diizinkan']);
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $id_users = (int) $_SESSION['id_users'];
 $aksi     = $_POST['aksi'] ?? '';

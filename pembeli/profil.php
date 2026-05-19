@@ -3,10 +3,13 @@
 session_start();
 include '../config/koneksi.php';
 
-if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli') {
+if (!isset($_SESSION['pembeli_id_users'])) {
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $id_users = (int) $_SESSION['id_users']; // PERBAIKAN: cast ke int, lebih aman dari injection
 
@@ -97,27 +100,8 @@ $halaman = basename($_SERVER['PHP_SELF']); // dipindah ke sini, tidak mengganggu
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "background":     "#fafbf9",
-                        "primary":        "#004900",
-                        "second-primary": "#f9f9fb",
-                        "input":          "#f0f4f0",
-                        "text-1":         "#191c1c",
-                        "text-2":         "#4e5a48",
-                        "text-3":         "#5e6659",
-                        "submit":         "#005300"
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         .popup-enter { animation: popupIn 0.25s cubic-bezier(.4,0,.2,1) both; }
         @keyframes popupIn {
