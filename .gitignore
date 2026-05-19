@@ -10,3 +10,6 @@ uploads/foto_profil/*
 Thumbs.db
 .vscode/
 *.log
+
+node_modules/
+package-lock.json
