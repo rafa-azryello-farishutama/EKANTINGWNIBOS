@@ -2,10 +2,13 @@
 session_start();
 include '../config/koneksi.php';
 
-if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
+if(!isset($_SESSION['pembeli_id_users'])){
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $id_toko = isset($_POST['id_toko']) ? (int)$_POST['id_toko'] : 0;
 $cart_data_json = isset($_POST['cart_data']) ? $_POST['cart_data'] : '{}';
@@ -29,23 +32,7 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Pesanan</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        "background":     "#fafbf9",
-                        "primary":        "#004900",
-                        "input":          "#f0f4f0",
-                        "text-1":         "#191c1c",
-                        "text-3":         "#5e6659",
-                        "submit":         "#005300"
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
 </head>
 <body class="bg-background text-text-1">
 <div class="min-h-screen flex items-center justify-center p-4">

@@ -2,10 +2,13 @@
 session_start();
 include '../config/koneksi.php';
 
-if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
+if(!isset($_SESSION['pembeli_id_users'])){
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: pesan.php");

@@ -1,15 +1,17 @@
 <?php
-$halaman = basename($_SERVER['PHP_SELF']);
-?>
-
-<?php
 session_start();
+$halaman = basename($_SERVER['PHP_SELF']);
 include '../config/koneksi.php';
 
-if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual') {
+if (!isset($_SESSION['penjual_id_users'])) {
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['penjual_id_users'];
+$_SESSION['username'] = $_SESSION['penjual_username'];
+$_SESSION['role']     = $_SESSION['penjual_role'];
+$_SESSION['id_toko']   = $_SESSION['penjual_id_toko'];
+$_SESSION['nama_toko'] = $_SESSION['penjual_nama_toko'];
 
 $id_toko = $_SESSION['id_toko'];
 $nama_toko = $_SESSION['nama_toko'] ?? 'Toko';
@@ -90,33 +92,8 @@ function badgeStatus($status)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "background": "#fafbf9",
-                        "primary": "#004900",
-                        "second-primary": "#f9f9fb",
-                        "input": "#f0f4f0",
-                        "text-1": "#191c1c",
-                        "text-2": "#4e5a48",
-                        "text-3": "#5e6659",
-                        "submit": "#005300"
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(15px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 
 <body class="bg-background text-text-1 selection:bg-primary selection:text-text-2">

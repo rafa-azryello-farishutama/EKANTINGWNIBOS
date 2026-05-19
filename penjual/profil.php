@@ -1,15 +1,17 @@
 <?php
-$halaman = basename($_SERVER['PHP_SELF']);
-?>
-
-<?php
 session_start();
+$halaman = basename($_SERVER['PHP_SELF']);
 include '../config/koneksi.php';
 
-if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual'){
+if(!isset($_SESSION['penjual_id_users'])){
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['penjual_id_users'];
+$_SESSION['username'] = $_SESSION['penjual_username'];
+$_SESSION['role']     = $_SESSION['penjual_role'];
+$_SESSION['id_toko']   = $_SESSION['penjual_id_toko'];
+$_SESSION['nama_toko'] = $_SESSION['penjual_nama_toko'];
 
 $id_users = $_SESSION['id_users'];
 $id_toko  = $_SESSION['id_toko'];
@@ -79,27 +81,8 @@ $total_produk = $produk['total'] ?? 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil</title>
 
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "background": "#fafbf9",
-                        "primary": "#004900",
-                        "second-primary": "#f9f9fb",
-                        "input": "#f0f4f0",
-                        "text-1": "#191c1c",
-                        "text-2": "#4e5a48",
-                        "text-3": "#5e6659",
-                        "submit": "#005300"
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         .popup-enter { animation: popupIn 0.25s cubic-bezier(.4,0,.2,1) both; }
         @keyframes popupIn {
