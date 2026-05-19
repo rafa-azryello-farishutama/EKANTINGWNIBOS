@@ -9,12 +9,40 @@ if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
 
 $halaman = basename($_SERVER['PHP_SELF']);
 
+$keyword = '';
+if (isset($_POST['cari_pembeli']) && isset($_POST['keyword'])) {
+    $keyword = $db_ekantin->real_escape_string(trim($_POST['keyword']));
+} elseif (isset($_GET['keyword'])) {
+    $keyword = $db_ekantin->real_escape_string(trim($_GET['keyword']));
+}
+
+function isStoreOpen($toko) {
+    if (!$toko) return false;
+    if (($toko['status'] ?? 'aktif') === 'tutup') {
+        return false;
+    }
+    if (($toko['status'] ?? 'aktif') === 'buka') {
+        return true;
+    }
+    if (empty($toko['jam_buka']) || empty($toko['jam_tutup']) || $toko['jam_buka'] == '--:--' || $toko['jam_tutup'] == '--:--') {
+        return true;
+    }
+    date_default_timezone_set('Asia/Jakarta');
+    $now = date('H:i');
+    $buka = $toko['jam_buka'];
+    $tutup = $toko['jam_tutup'];
+    if ($buka <= $tutup) {
+        return ($now >= $buka && $now <= $tutup);
+    } else {
+        return ($now >= $buka || $now <= $tutup);
+    }
+}
+
 // Periksa apakah kantin tertentu dipilih (ada di URL)
 $id_toko_selected = isset($_GET['id_toko']) ? (int)$_GET['id_toko'] : null;
 $store_details = null;
 
 if ($id_toko_selected) {
-    // Ambil detail kantin
     $qStore = $db_ekantin->prepare("SELECT * FROM toko WHERE id_toko = ?");
     $qStore->bind_param("i", $id_toko_selected);
     $qStore->execute();
@@ -22,7 +50,6 @@ if ($id_toko_selected) {
     if ($resStore->num_rows > 0) {
         $store_details = $resStore->fetch_assoc();
     } else {
-        // Jika kantin tidak ditemukan, kembali ke halaman awal pesan
         header("Location: pesan.php");
         exit;
     }
@@ -133,6 +160,19 @@ if ($id_toko_selected) {
     <main class="lg:ml-80 flex-grow w-full px-3 sm:px-8 pb-8 pt-20 lg:pt-8">
         <div class="w-full max-w-5xl mx-auto flex flex-col gap-3 md:gap-6">
 
+            <?php if (isset($_SESSION['pesan_error'])): ?>
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-700 animate-fadeInUp">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="flex-grow">
+                    <p class="font-bold text-sm">Gagal Melakukan Pemesanan</p>
+                    <p class="text-xs text-red-600/90 mt-0.5"><?= htmlspecialchars($_SESSION['pesan_error']) ?></p>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 font-bold text-base">&times;</button>
+            </div>
+            <?php unset($_SESSION['pesan_error']); endif; ?>
+
             <!-- Header -->
             <header class="opacity-0 animate-fadeInUp" style="animation-delay:0.1s;">
                 <div class="flex items-center gap-2 md:gap-3">
@@ -164,9 +204,41 @@ if ($id_toko_selected) {
                         <p class="text-text-3 mt-0.5 text-xs sm:text-sm truncate">
                             <?= $store_details ? htmlspecialchars($store_details['lokasi'] ?? 'Kantin Sekolah') : 'Pilih kantin dan menu favoritmu' ?>
                         </p>
+                        <?php if ($store_details): 
+                            $is_open_header = isStoreOpen($store_details);
+                        ?>
+                        <p class="text-[11px] sm:text-xs font-semibold mt-1 flex items-center gap-1 <?= $is_open_header ? 'text-green-600' : 'text-red-600' ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0 <?= $is_open_header ? 'text-green-500' : 'text-red-500' ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <?= htmlspecialchars($store_details['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($store_details['jam_tutup'] ?? '--:--') ?> WIB <?= $is_open_header ? '(Buka)' : '(Tutup)' ?>
+                        </p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </header>
+
+            <!-- Search Bar -->
+            <div class="w-full animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.15s;">
+                <form method="POST" action="pesan.php<?= $id_toko_selected ? '?id_toko=' . $id_toko_selected : '' ?>" class="flex gap-3">
+                    <div class="flex flex-1 items-center gap-3 bg-input rounded-xl px-4 h-12 focus-within:ring-2 focus-within:ring-primary transition-all">
+                        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" name="keyword" placeholder="<?= $store_details ? 'Cari menu di kantin ini...' : 'Cari kantin...' ?>"
+                            value="<?= htmlspecialchars($keyword) ?>"
+                            class="w-full h-12 bg-transparent border-none outline-none text-text-1 placeholder-gray-500 text-sm focus:ring-0 p-0">
+                        <?php if ($keyword !== ''): ?>
+                            <a href="pesan.php<?= $id_toko_selected ? '?id_toko=' . $id_toko_selected : '' ?>" class="text-text-3 hover:text-text-1 text-sm font-medium pr-1">Reset</a>
+                        <?php endif; ?>
+                    </div>
+                    <button type="submit" name="cari_pembeli"
+                        class="h-12 px-6 bg-submit text-white rounded-xl text-sm font-bold hover:bg-primary transition-colors whitespace-nowrap">
+                        Cari
+                    </button>
+                </form>
+            </div>
 
             <?php if (!$store_details): ?>
             <!-- VIEW 1: Daftar Toko -->
@@ -188,7 +260,11 @@ if ($id_toko_selected) {
             <!-- STORE GRID -->
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                 <?php
-                $qKantin = $db_ekantin->query("SELECT t.*, (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko) as total_menu FROM toko t");
+                $sqlKantin = "SELECT t.*, (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko) as total_menu FROM toko t";
+                if ($keyword !== '') {
+                    $sqlKantin .= " WHERE t.nama_toko LIKE '%$keyword%' OR t.lokasi LIKE '%$keyword%'";
+                }
+                $qKantin = $db_ekantin->query($sqlKantin);
                 $i = 0;
                 if ($qKantin && $qKantin->num_rows > 0):
                     while ($kantin = $qKantin->fetch_assoc()):
@@ -208,6 +284,18 @@ if ($id_toko_selected) {
                         <?php else: ?>
                             <span class="text-primary font-bold text-3xl"><?= $initial ?></span>
                         <?php endif; ?>
+                        
+                        <?php 
+                        $is_open_card = isStoreOpen($kantin);
+                        if ($is_open_card): ?>
+                            <span class="absolute top-2 left-2 text-[9px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+                                Buka
+                            </span>
+                        <?php else: ?>
+                            <span class="absolute top-2 left-2 text-[9px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-md shadow-sm z-10">
+                                Tutup
+                            </span>
+                        <?php endif; ?>
                     </div>
                     <div class="p-2 sm:p-3 flex flex-col flex-grow">
                         <p class="store-name font-semibold text-text-1 leading-snug truncate"><?= htmlspecialchars($kantin['nama_toko']) ?></p>
@@ -217,10 +305,18 @@ if ($id_toko_selected) {
                         <p class="store-desc text-xs text-text-3 mt-1.5 leading-relaxed line-clamp-2">
                             <?= htmlspecialchars($kantin['lokasi'] ?? 'Berbagai macam makanan dan minuman.') ?>
                         </p>
+                        <p class="text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 mt-auto pt-1.5 <?= $is_open_card ? 'text-green-600' : 'text-red-600' ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0 <?= $is_open_card ? 'text-green-500' : 'text-red-500' ?>" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <?= htmlspecialchars($kantin['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($kantin['jam_tutup'] ?? '--:--') ?> WIB
+                        </p>
                     </div>
                 </a>
                 <?php endwhile; else: ?>
-                    <div class="col-span-full text-center text-text-3 py-10 text-sm">Belum ada kantin yang terdaftar.</div>
+                    <div class="col-span-full text-center text-text-3 py-10 text-sm">
+                        <?= $keyword !== '' ? 'Tidak ada kantin yang cocok dengan pencarian "' . htmlspecialchars($keyword) . '".' : 'Belum ada kantin yang terdaftar.' ?>
+                    </div>
                 <?php endif; ?>
             </div>
 
@@ -228,6 +324,20 @@ if ($id_toko_selected) {
             <?php else: ?>
             <!-- VIEW 2: Produk Toko -->
             <div class="flex flex-col gap-3 md:gap-6">
+                <?php 
+                $is_open = isStoreOpen($store_details);
+                if (!$is_open): ?>
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-700 animate-fadeInUp">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <p class="font-bold text-sm">Kantin Sedang Tutup</p>
+                        <p class="text-xs text-red-600/90 mt-0.5">Maaf, saat ini kantin sedang tutup atau di luar jam operasional. Anda tidak dapat melakukan pemesanan.</p>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <!-- BANNER TOKO -->
                 <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap bg-gradient-to-br from-[#4a2800] to-[#b86600]">
                     <div class="min-w-full h-full relative flex items-center px-4 sm:px-7 overflow-hidden">
@@ -244,8 +354,17 @@ if ($id_toko_selected) {
                 <!-- MENU GRID -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
                     <?php
-                    $qMenu = $db_ekantin->prepare("SELECT * FROM produk_kantin WHERE id_toko = ?");
-                    $qMenu->bind_param("i", $id_toko_selected);
+                    $sqlMenu = "SELECT * FROM produk_kantin WHERE id_toko = ?";
+                    if ($keyword !== '') {
+                        $sqlMenu .= " AND nama_menu LIKE ?";
+                    }
+                    $qMenu = $db_ekantin->prepare($sqlMenu);
+                    if ($keyword !== '') {
+                        $search_param = "%$keyword%";
+                        $qMenu->bind_param("is", $id_toko_selected, $search_param);
+                    } else {
+                        $qMenu->bind_param("i", $id_toko_selected);
+                    }
                     $qMenu->execute();
                     $resMenu = $qMenu->get_result();
                     $j = 0;
@@ -273,15 +392,18 @@ if ($id_toko_selected) {
                                 </p>
                                 <div class="flex items-center justify-between mt-2">
                                     <span class="menu-price text-primary font-bold">Rp <?= number_format($menu['harga'], 0, ',', '.') ?></span>
-                                    
-                                    <?php 
+                                    <?php
                                         $btn_add = '<button onclick="addToCart('.$menu['id_produk'].', \''.addslashes($menu['nama_menu']).'\', '.$menu['harga'].')" class="w-7 h-7 rounded-full bg-primary text-white font-light flex items-center justify-center hover:bg-submit active:scale-95 transition-all duration-150 shadow-sm">+</button>';
                                     ?>
-                                    <div class="flex items-center gap-1.5 min-h-[28px]" id="btn-group-<?= $menu['id_produk'] ?>" data-original="<?= htmlspecialchars($btn_add) ?>" data-stok="<?= $menu['stok'] ?>">
-                                        <button onclick="addToCart(<?= $menu['id_produk'] ?>, '<?= addslashes($menu['nama_menu']) ?>', <?= $menu['harga'] ?>)"
-                                            class="w-7 h-7 rounded-full bg-primary text-white font-light flex items-center justify-center hover:bg-submit active:scale-95 transition-all duration-150 shadow-sm"
-                                            aria-label="Tambah Menu">+</button>
-                                    </div>
+                                    <?php if ($is_open): ?>
+                                        <div class="flex items-center gap-1.5 min-h-[28px]" id="btn-group-<?= $menu['id_produk'] ?>" data-stok="<?= $menu['stok'] ?>" data-original="<?= htmlspecialchars($btn_add) ?>">
+                                            <button onclick="addToCart(<?= $menu['id_produk'] ?>, '<?= addslashes($menu['nama_menu']) ?>', <?= $menu['harga'] ?>)"
+                                                class="w-7 h-7 rounded-full bg-primary text-white font-light flex items-center justify-center hover:bg-submit active:scale-95 transition-all duration-150 shadow-sm"
+                                                aria-label="Tambah">+</button>
+                                        </div>
+                                    <?php else: ?>
+                                        <button disabled class="w-7 h-7 rounded-full bg-gray-200 text-gray-400 font-bold flex items-center justify-center cursor-not-allowed shadow-sm" aria-label="Tutup">-</button>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -290,7 +412,7 @@ if ($id_toko_selected) {
                     else: 
                     ?>
                         <div class="col-span-full bg-white rounded-xl border border-gray-100 p-8 text-center text-text-3 text-sm">
-                            Menu belum tersedia di kantin ini.
+                            <?= $keyword !== '' ? 'Tidak ada menu yang cocok dengan pencarian "' . htmlspecialchars($keyword) . '".' : 'Menu belum tersedia di kantin ini.' ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -302,28 +424,44 @@ if ($id_toko_selected) {
 </div>
 
 <!-- Sticky Checkout Bar -->
+<?php if ($id_toko_selected && $is_open): ?>
 <div id="sticky-cart" class="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-gray-100 z-40 transform translate-y-full transition-transform duration-300 lg:pl-80">
-    <div class="max-w-5xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
-        <div class="flex flex-col">
+    <div class="max-w-5xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-3">
+        <!-- Info Total -->
+        <div class="flex flex-col flex-shrink-0">
             <span class="text-[10px] sm:text-xs text-text-3 font-medium uppercase tracking-wider">Total Pesanan</span>
             <div class="flex items-center gap-2 mt-0.5">
                 <span id="cart-total-items" class="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full">0 item</span>
                 <span id="cart-total-price" class="text-text-1 font-extrabold text-base sm:text-lg">Rp 0</span>
             </div>
         </div>
-        
-        <form action="checkout.php" method="POST" id="checkout-form">
-            <input type="hidden" name="cart_data" id="cart-data-input">
-            <input type="hidden" name="id_toko" value="<?= htmlspecialchars($id_toko_selected) ?>">
-            <button type="submit" id="btn-checkout" class="bg-primary text-white font-bold text-xs sm:text-sm px-5 sm:px-6 py-2.5 rounded-xl hover:bg-submit active:scale-95 transition-all shadow-md flex items-center gap-2">
-                Bayar Langsung
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+
+        <!-- Tombol Aksi -->
+        <div class="flex items-center gap-2">
+            <!-- Tombol: Tambah ke Keranjang -->
+            <button onclick="simpanKeKeranjang()"
+                class="border border-primary text-primary font-bold text-xs sm:text-sm px-3 sm:px-4 py-2.5 rounded-xl hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
                 </svg>
+                <span class="hidden sm:inline">Tambah ke</span> Keranjang
             </button>
-        </form>
+
+            <!-- Tombol: Bayar Langsung -->
+            <form action="checkout.php" method="POST" id="checkout-form">
+                <input type="hidden" name="cart_data" id="cart-data-input">
+                <input type="hidden" name="id_toko" value="<?= htmlspecialchars($id_toko_selected) ?>">
+                <button type="submit" class="bg-primary text-white font-bold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl hover:bg-submit active:scale-95 transition-all shadow-md flex items-center gap-1.5">
+                    Bayar Langsung
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </form>
+        </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Toast -->
 <div id="toast"
@@ -437,6 +575,26 @@ if ($id_toko_selected) {
             t.classList.remove("show-toast", "opacity-100");
             t.classList.add("opacity-0");
         }, 1500);
+    }
+
+    /* ── Simpan Seluruh Pilihan ke Keranjang ── */
+    function simpanKeKeranjang() {
+        if (Object.keys(cart).length === 0) return;
+
+        const formData = new FormData();
+        formData.append("cart_data", JSON.stringify(cart));
+        formData.append("id_toko", document.querySelector('#checkout-form input[name="id_toko"]').value);
+        formData.append("aksi", "simpan_cart"); // WAJIB ADA AGAR DITERIMA AJAX
+
+        fetch("ajax_keranjang.php", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    showToast("Disimpan ke Keranjang! 🔖");
+                } else {
+                    showToast("Gagal menyimpan, coba lagi.");
+                }
+            });
     }
 </script>
 </body>

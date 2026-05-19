@@ -13,6 +13,28 @@ if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
 
 $id_users = $_SESSION['id_users'];
 $username = $_SESSION['username'] ?? 'Pembeli';
+
+function isStoreOpen($toko) {
+    if (!$toko) return false;
+    if (($toko['status'] ?? 'aktif') === 'tutup') {
+        return false;
+    }
+    if (($toko['status'] ?? 'aktif') === 'buka') {
+        return true;
+    }
+    if (empty($toko['jam_buka']) || empty($toko['jam_tutup']) || $toko['jam_buka'] == '--:--' || $toko['jam_tutup'] == '--:--') {
+        return true;
+    }
+    date_default_timezone_set('Asia/Jakarta');
+    $now = date('H:i');
+    $buka = $toko['jam_buka'];
+    $tutup = $toko['jam_tutup'];
+    if ($buka <= $tutup) {
+        return ($now >= $buka && $now <= $tutup);
+    } else {
+        return ($now >= $buka || $now <= $tutup);
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -153,6 +175,8 @@ $username = $_SESSION['username'] ?? 'Pembeli';
                         while ($kantin = $qKantin->fetch_assoc()):
                             $nama       = htmlspecialchars($kantin['nama_toko']);
                             $lokasi     = htmlspecialchars($kantin['lokasi'] ?? 'Kantin Sekolah');
+                            $jam_buka   = htmlspecialchars($kantin['jam_buka'] ?? '--:--');
+                            $jam_tutup  = htmlspecialchars($kantin['jam_tutup'] ?? '--:--');
                             $total_menu = $kantin['total_menu'];
                             $foto_toko  = $kantin['foto_toko'] ?? null;
                             $foto_src   = $foto_toko ? "../assets/img_toko/$foto_toko" : null;
@@ -165,7 +189,7 @@ $username = $_SESSION['username'] ?? 'Pembeli';
                         <div class="h-[140px] w-full overflow-hidden relative bg-gradient-to-br from-primary/5 to-green-100/60 flex-shrink-0">
                             <?php if ($foto_src): ?>
                                 <img src="<?= $foto_src ?>" alt="<?= $nama ?>"
-                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             <?php else: ?>
                                 <div class="w-full h-full flex items-center justify-center">
                                     <div class="w-16 h-16 rounded-2xl bg-white/80 shadow-sm flex items-center justify-center">
@@ -173,6 +197,19 @@ $username = $_SESSION['username'] ?? 'Pembeli';
                                     </div>
                                 </div>
                             <?php endif; ?>
+                            
+                            <?php 
+                            $is_open = isStoreOpen($kantin);
+                            if ($is_open): ?>
+                                <span class="absolute top-3 left-3 text-[10px] font-bold bg-green-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
+                                    Buka
+                                </span>
+                            <?php else: ?>
+                                <span class="absolute top-3 left-3 text-[10px] font-bold bg-red-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
+                                    Tutup
+                                </span>
+                            <?php endif; ?>
+                            
                             <span class="absolute top-3 right-3 text-[10px] font-bold bg-white/90 backdrop-blur-sm text-green-700 px-2 py-1 rounded-full shadow-sm">
                                 <?= $total_menu ?> menu
                             </span>
@@ -181,13 +218,26 @@ $username = $_SESSION['username'] ?? 'Pembeli';
                         <!-- Info Kantin -->
                         <div class="p-4 flex flex-col gap-1 flex-1">
                             <h4 class="font-bold text-text-1 text-sm leading-tight line-clamp-1"><?= $nama ?></h4>
-                            <p class="text-xs text-text-3 flex items-center gap-1">
+                            <p class="text-xs text-text-3 flex items-center gap-1 mt-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                                 </svg>
                                 <span class="truncate"><?= $lokasi ?></span>
                             </p>
+                             <p class="text-[11px] text-text-3 flex items-center gap-1">
+                                <?php if ($is_open): ?>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="truncate font-semibold text-green-600"><?= $jam_buka ?> - <?= $jam_tutup ?> WIB (Buka)</span>
+                                <?php else: ?>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="truncate font-semibold text-red-600"><?= $jam_buka ?> - <?= $jam_tutup ?> WIB (Tutup)</span>
+                                <?php endif; ?>
+                             </p>
                             <div class="mt-auto pt-3">
                                 <span class="inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:gap-2 transition-all duration-300">
                                     Lihat Menu

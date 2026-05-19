@@ -43,13 +43,15 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
     if($error_toko == ""){
         $hash_password = password_hash($password, PASSWORD_DEFAULT);
+        $jamBuka = $_POST['jam_buka'] ?? '07:00';
+        $jamTutup = $_POST['jam_tutup'] ?? '15:00';
         $cek = "INSERT INTO users(username, password, role, no_telepon, email, status) 
                     VALUES('$username','$hash_password','$role','$telepon','$email','aktif')";
 
         if($db_ekantin->query($cek)){
             $id_user = $db_ekantin->insert_id;
-            $db_ekantin->query("INSERT INTO toko(id_users, nama_toko)
-                            VALUES('$id_user','$namaToko')");
+            $db_ekantin->query("INSERT INTO toko(id_users, nama_toko, jam_buka, jam_tutup)
+                            VALUES('$id_user','$namaToko', '$jamBuka', '$jamTutup')");
         }
     }
 }
@@ -238,6 +240,21 @@ $total_aktif = $row['total'];
                     <input type="tel" name="telepon"
                         value="<?= isset($_POST['telepon']) && $error_toko != '' ? htmlspecialchars($_POST['telepon']) : '' ?>"
                         placeholder="0812xxxx" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
+                        <input type="time" name="jam_buka"
+                            value="<?= isset($_POST['jam_buka']) && $error_toko != '' ? htmlspecialchars($_POST['jam_buka']) : '07:00' ?>"
+                            class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Tutup</label>
+                        <input type="time" name="jam_tutup"
+                            value="<?= isset($_POST['jam_tutup']) && $error_toko != '' ? htmlspecialchars($_POST['jam_tutup']) : '15:00' ?>"
+                            class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    </div>
                 </div>
 
                 <button type="submit" class="w-full bg-submit text-white font-bold py-4 rounded-[15px] mt-2 shadow-lg shadow-submit/20 hover:opacity-90 active:scale-[0.98] transition-all">

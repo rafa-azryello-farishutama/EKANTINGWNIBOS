@@ -18,9 +18,18 @@ date_default_timezone_set('Asia/Jakarta');
 if (isset($_POST['update_status'])) {
     $id = $_POST['id_pesanan'];
     $status_baru = $_POST['status_baru'];
+    $alasan_tolak = isset($_POST['alasan_tolak']) ? $db_ekantin->real_escape_string($_POST['alasan_tolak']) : '';
 
-    $query_update = "UPDATE pesanan SET status_pesanan = '$status_baru' WHERE id_pesanan = '$id'";
+    $query_update = "UPDATE pesanan SET status_pesanan = '$status_baru', alasan_tolak = '$alasan_tolak' WHERE id_pesanan = '$id'";
     $db_ekantin->query($query_update);
+
+    // Kembalikan stok jika pesanan ditolak
+    if ($status_baru === 'dibatalkan') {
+        $qDetail = $db_ekantin->query("SELECT id_produk, jumlah FROM detail_pesanan WHERE id_pesanan = '$id'");
+        while ($det = $qDetail->fetch_assoc()) {
+            $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']} WHERE id_produk = '{$det['id_produk']}'");
+        }
+    }
 
     header("Location: pesanan.php");
     exit;
@@ -213,6 +222,8 @@ $sTotal = $hSelesai->num_rows;
                         $username = htmlspecialchars($row['username'], ENT_QUOTES);
                         $harga = "Rp " . number_format($row['total_harga'], 0, ',', '.');
                         $catatan = htmlspecialchars($row['catatan'] ?? '-', ENT_QUOTES);
+                        $metode_pembayaran = htmlspecialchars($row['metode_pembayaran'] ?? 'transfer', ENT_QUOTES);
+                        $bukti_pembayaran = htmlspecialchars($row['bukti_pembayaran'] ?? '', ENT_QUOTES);
 
                         $qMenu = $db_ekantin->query("SELECT dp.jumlah, pk.nama_menu FROM detail_pesanan dp JOIN produk_kantin pk ON dp.id_produk = pk.id_produk WHERE dp.id_pesanan = '$id_pesanan'");
                         $listMenu = [];
@@ -222,13 +233,16 @@ $sTotal = $hSelesai->num_rows;
                         $tampilMenu = implode(", ", $listMenu);
 
                         echo "
-            <div onclick=\"bukaPopup('$username', '$tulisanTanggal', '$status', '$tampilMenu', '$catatan', '$harga','$id_pesanan')\"
+            <div onclick=\"bukaPopup('$username', '$tulisanTanggal', '$status', '$tampilMenu', '$catatan', '$harga','$id_pesanan', '$metode_pembayaran', '$bukti_pembayaran')\"
                 class='bg-white rounded-[24px] p-6 shadow-sm border $cardBorderClass cursor-pointer transition-all mb-2 hover:-translate-y-0.5 hover:shadow-md'>
                 
                 <div class='flex justify-between items-start mb-2'>
                     <div>
-                        <p class='text-lg font-bold text-text-1'>$username</p>
-                        <p class='text-xs text-text-3'>$tulisanTanggal</p>
+                        <div class='flex items-center gap-2'>
+                            <p class='text-lg font-bold text-text-1'>#ORD-" . sprintf("%04d", $id_pesanan) . "</p>
+                            <p class='text-xs font-semibold px-2 py-0.5 bg-gray-100 rounded-md'>$username</p>
+                        </div>
+                        <p class='text-xs text-text-3 mt-1'>$tulisanTanggal</p>
                     </div>
                     <span class='text-xs font-bold $badgePill px-4 py-1.5 rounded-full capitalize'>$status</span>
                 </div>
@@ -289,6 +303,21 @@ $sTotal = $hSelesai->num_rows;
                     <p id="popup-catatan" class="text-sm text-text-2 italic">-</p>
                 </div>
 
+                <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <div>
+                        <p class="text-[10px] font-semibold uppercase tracking-widest text-text-3">Pembayaran</p>
+                        <p id="popup-metode" class="text-xs font-bold text-primary capitalize mt-0.5">-</p>
+                    </div>
+                    <div id="popup-bukti-wrapper" class="flex gap-2">
+                        <a id="popup-bukti-link" href="#" target="_blank" class="text-[11px] font-bold bg-primary text-white hover:bg-submit px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                            Lihat Bukti Bayar
+                        </a>
+                        <a id="popup-struk-link" href="#" target="_blank" class="text-[11px] font-bold bg-blue-600 text-white hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                            📄 Struk
+                        </a>
+                    </div>
+                </div>
+
                 <div class="flex justify-between items-center border-t border-gray-100 pt-4">
                     <p class="text-sm text-text-3">Total Harga</p>
                     <p id="popup-total" class="text-lg font-bold text-text-1">-</p>
@@ -325,20 +354,49 @@ $sTotal = $hSelesai->num_rows;
 
         setActiveButton();
 
-        function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan) {
-            document.getElementById('popup-nama').textContent = nama;
+        function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan, metode_bayar, bukti_bayar) {
+            document.getElementById('popup-nama').textContent = "#ORD-" + String(id_pesanan).padStart(4, '0') + " (" + nama + ")";
             document.getElementById('popup-waktu').textContent = waktu;
             document.getElementById('popup-items').textContent = items;
             document.getElementById('popup-catatan').textContent = catatan;
             document.getElementById('popup-total').textContent = total;
 
+            const metodeText = metode_bayar === 'qr' ? '📱 QRIS / QR Code' : '🏦 Transfer Bank';
+            document.getElementById('popup-metode').textContent = metodeText;
+
+            const linkEl = document.getElementById('popup-bukti-link');
+            if (bukti_bayar) {
+                linkEl.href = "../assets/uploads_bukti/" + bukti_bayar;
+                linkEl.style.display = 'inline-block';
+            } else {
+                linkEl.style.display = 'none';
+            }
+
+            document.getElementById('popup-struk-link').href = "../apps/struk.php?id_pesanan=" + id_pesanan;
+
             const aksiMap = {
                 pending: `
-        <form method="POST">
+        <form method="POST" class="flex flex-col gap-2.5" id="form-pesanan">
             <input type="hidden" name="id_pesanan" value="${id_pesanan}">
-            <input type="hidden" name="status_baru" value="diproses">
-            <button type="submit" name="update_status" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+            <input type="hidden" name="update_status" value="1">
+            <input type="hidden" name="status_baru" id="status-baru-input" value="diproses">
+            
+            <div id="alasan-tolak-section" class="hidden flex flex-col gap-1.5 border-t pt-3">
+                <label class="text-[10px] font-semibold uppercase tracking-widest text-text-3">Alasan Penolakan</label>
+                <textarea name="alasan_tolak" id="alasan-tolak-input" rows="2" placeholder="Sebutkan alasan penolakan..." class="w-full border-gray-200 bg-input focus:bg-white focus:ring-primary focus:border-primary text-sm rounded-xl resize-none"></textarea>
+            </div>
+
+            <button type="submit" id="btn-proses" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
                 Proses Pesanan
+            </button>
+            <button type="button" id="btn-tolak-init" onclick="showTolakSection()" class="w-full h-[46px] bg-red-50 text-red-600 border border-red-200 rounded-[12px] text-sm font-bold hover:bg-red-100 transition-all">
+                Tolak Pesanan
+            </button>
+            <button type="submit" id="btn-tolak-submit" onclick="return setStatusBatal()" class="hidden w-full h-[46px] bg-red-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Kirim & Tolak Pesanan
+            </button>
+            <button type="button" id="btn-batal-tolak" onclick="hideTolakSection()" class="hidden w-full h-[36px] text-text-3 text-xs font-semibold hover:underline">
+                Kembali
             </button>
         </form>`,
                 diproses: `
@@ -358,6 +416,35 @@ $sTotal = $hSelesai->num_rows;
 
         function tutupPopup() {
             document.getElementById('overlay-popup').classList.add('hidden');
+        }
+
+        function showTolakSection() {
+            document.getElementById('alasan-tolak-section').classList.remove('hidden');
+            document.getElementById('btn-proses').classList.add('hidden');
+            document.getElementById('btn-tolak-init').classList.add('hidden');
+            document.getElementById('btn-tolak-submit').classList.remove('hidden');
+            document.getElementById('btn-batal-tolak').classList.remove('hidden');
+            document.getElementById('alasan-tolak-input').setAttribute('required', 'true');
+            document.getElementById('status-baru-input').value = 'dibatalkan';
+        }
+
+        function hideTolakSection() {
+            document.getElementById('alasan-tolak-section').classList.add('hidden');
+            document.getElementById('btn-proses').classList.remove('hidden');
+            document.getElementById('btn-tolak-init').classList.remove('hidden');
+            document.getElementById('btn-tolak-submit').classList.add('hidden');
+            document.getElementById('btn-batal-tolak').classList.add('hidden');
+            document.getElementById('alasan-tolak-input').removeAttribute('required');
+            document.getElementById('status-baru-input').value = 'diproses';
+        }
+
+        function setStatusBatal() {
+            const input = document.getElementById('alasan-tolak-input');
+            if (!input.value.trim()) {
+                alert('Harap masukkan alasan penolakan.');
+                return false;
+            }
+            return true;
         }
     </script>
 

@@ -14,6 +14,45 @@ if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'penjual') {
 $id_toko = $_SESSION['id_toko'];
 $nama_toko = $_SESSION['nama_toko'] ?? 'Toko';
 
+// Ambil status operasional toko
+$qToko = $db_ekantin->query("SELECT * FROM toko WHERE id_toko = '$id_toko'");
+$toko = $qToko->fetch_assoc();
+$status_toko = $toko['status'] ?? 'aktif';
+
+function isStoreOpen($toko) {
+    if (!$toko) return false;
+    if (($toko['status'] ?? 'aktif') === 'tutup') {
+        return false;
+    }
+    if (($toko['status'] ?? 'aktif') === 'buka') {
+        return true;
+    }
+    if (empty($toko['jam_buka']) || empty($toko['jam_tutup']) || $toko['jam_buka'] == '--:--' || $toko['jam_tutup'] == '--:--') {
+        return true;
+    }
+    date_default_timezone_set('Asia/Jakarta');
+    $now = date('H:i');
+    $buka = $toko['jam_buka'];
+    $tutup = $toko['jam_tutup'];
+    if ($buka <= $tutup) {
+        return ($now >= $buka && $now <= $tutup);
+    } else {
+        return ($now >= $buka || $now <= $tutup);
+    }
+}
+
+$is_open = isStoreOpen($toko);
+
+// Handle Perubahan Status Manual/Otomatis
+if (isset($_POST['set_status'])) {
+    $new_status = $db_ekantin->real_escape_string($_POST['set_status']);
+    if (in_array($new_status, ['aktif', 'tutup', 'buka'])) {
+        $db_ekantin->query("UPDATE toko SET status = '$new_status' WHERE id_toko = '$id_toko'");
+    }
+    header("Location: dashboard.php");
+    exit;
+}
+
 $qTotalPesanan = $db_ekantin->query("SELECT COUNT(*) as total FROM pesanan WHERE id_toko='$id_toko'");
 $total_pesanan = $qTotalPesanan->fetch_assoc()['total'] ?? 0;
 
@@ -89,12 +128,49 @@ function badgeStatus($status)
             <div class="w-full max-w-5xl mx-auto flex flex-col gap-6">
 
                 <!-- Header -->
-                <header class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.1s;">
-                    <h2 class="font-extrabold text-3xl md:text-4xl tracking-tight text-primary flex items-center gap-2">
-                        Selamat Datang, <?= htmlspecialchars($nama_toko) ?> <span
-                            class="inline-block hover:animate-bounce origin-bottom-right">👋</span>
-                    </h2>
-                    <p class="text-text-3 mt-1 text-sm">Inilah keadaan toko kamu hari ini.</p>
+                <header class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style="animation-delay: 0.1s;">
+                    <div>
+                        <h2 class="font-extrabold text-3xl md:text-4xl tracking-tight text-primary flex items-center gap-2">
+                            Selamat Datang, <?= htmlspecialchars($nama_toko) ?> <span
+                                class="inline-block hover:animate-bounce origin-bottom-right">👋</span>
+                        </h2>
+                        <p class="text-text-3 mt-1 text-sm">Inilah keadaan toko kamu hari ini.</p>
+                    </div>
+                    <!-- Status Toko Control -->
+                    <form method="POST" class="flex flex-wrap items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-gray-100 shadow-sm">
+                        <span class="text-xs font-bold uppercase tracking-widest text-text-3">Status Toko:</span>
+                        
+                        <?php if ($status_toko == 'buka'): ?>
+                            <span class="text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">Buka (Manual)</span>
+                            <button type="submit" name="set_status" value="tutup" class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                Tutup Toko
+                            </button>
+                            <button type="submit" name="set_status" value="aktif" class="text-xs font-bold bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                Ikuti Jadwal
+                            </button>
+                        <?php elseif ($status_toko == 'tutup'): ?>
+                            <span class="text-xs font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-full">Tutup (Manual)</span>
+                            <button type="submit" name="set_status" value="buka" class="text-xs font-bold bg-primary hover:bg-submit text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                Buka Toko
+                            </button>
+                            <button type="submit" name="set_status" value="aktif" class="text-xs font-bold bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                Ikuti Jadwal
+                            </button>
+                        <?php else: ?>
+                            <!-- Status Aktif / Auto -->
+                            <?php if ($is_open): ?>
+                                <span class="text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">Buka (Jadwal)</span>
+                                <button type="submit" name="set_status" value="tutup" class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                    Tutup Toko
+                                </button>
+                            <?php else: ?>
+                                <span class="text-xs font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-full">Tutup (Jadwal)</span>
+                                <button type="submit" name="set_status" value="buka" class="text-xs font-bold bg-primary hover:bg-submit text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                    Buka Toko
+                                </button>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </form>
                 </header>
 
                 <!-- Cards Statistik -->

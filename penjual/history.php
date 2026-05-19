@@ -168,8 +168,11 @@ $qRiwayat = $db_ekantin->query("SELECT p.*, u.username
                 <div class="bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 flex flex-col gap-3 hover:-translate-y-0.5 hover:shadow-md transition-all">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-base font-semibold text-text-1"><?= htmlspecialchars($ps['username']) ?></p>
-                            <p class="text-xs text-text-3"><?= $tanggal ?> · <?= $jam ?></p>
+                            <div class="flex items-center gap-2">
+                                <p class="font-bold text-text-1 text-sm">#ORD-<?= sprintf("%04d", $ps['id_pesanan']) ?></p>
+                                <p class="text-xs text-text-3 px-2 py-0.5 bg-gray-100 rounded-md"><?= htmlspecialchars($ps['username']) ?></p>
+                            </div>
+                            <p class="text-xs text-text-3 mt-1"><?= $tanggal ?> · <?= $jam ?></p>
                         </div>
                         <?= $badge ?>
                     </div>
@@ -178,7 +181,9 @@ $qRiwayat = $db_ekantin->query("SELECT p.*, u.username
                     <p class="text-xs text-text-3 italic">Catatan: <?= htmlspecialchars($ps['catatan']) ?></p>
                     <?php endif; ?>
                     <div class="flex justify-between items-center border-t border-gray-100 pt-3">
-                        <p class="text-xs text-text-3">Total</p>
+                        <a href="../apps/struk.php?id_pesanan=<?= $ps['id_pesanan'] ?>" target="_blank" class="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-all">
+                            📄 Struk
+                        </a>
                         <p class="text-base font-bold text-text-1">Rp <?= $total ?></p>
                     </div>
                 </div>
