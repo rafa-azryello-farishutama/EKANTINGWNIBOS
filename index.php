@@ -9,8 +9,10 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    $sql = "SELECT * FROM users WHERE username='$username'";
-    $cek = $db_ekantin->query($sql);
+    $stmt = $db_ekantin->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $cek = $stmt->get_result();
 
     if($cek->num_rows>0){
         $data = $cek->fetch_assoc();

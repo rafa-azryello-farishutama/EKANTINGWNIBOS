@@ -52,12 +52,15 @@ if (isset($_FILES['foto_produk_edit']) && $_FILES['foto_produk_edit']['error'] =
     $nama_foto_simpan = $nama_foto_baru;
 }
 
+$status_menu  = isset($_POST['edit_status']) ? $db_ekantin->real_escape_string($_POST['edit_status']) : 'aktif';
+
 $nama_foto_escaped = $db_ekantin->real_escape_string($nama_foto_simpan);
 $db_ekantin->query("UPDATE produk_kantin 
                     SET nama_menu   = '$nama_produk',
                         harga       = '$harga_produk',
                         stok        = '$stok_produk',
                         tipe_produk = '$tipe_produk',
+                        status_menu = '$status_menu',
                         file_foto   = '$nama_foto_escaped'
                     WHERE id_produk = '$id_produk'");
 

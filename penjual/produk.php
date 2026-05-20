@@ -365,18 +365,20 @@ $nama_toko_display = htmlspecialchars($data_toko['nama_toko'] ?? 'Toko Saya');
                         $file_foto_js = addslashes($row['file_foto']);
                         $pesan        = $tipe_produk == 'makanan' ? 'porsi' : 'gelas';
                         $foto_src     = $file_foto ? "../assets/img_produk/$file_foto" : "../assets/img/no-image.png";
+                        $status_menu  = $row['status_menu'];
 
                         echo "
                         <div class='bg-second-primary rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group'>
-                            <div class='h-[140px] bg-gray-200 w-full overflow-hidden'>
+                            <div class='h-[140px] bg-gray-200 w-full overflow-hidden relative'>
                                 <img src='$foto_src' alt='$nama' class='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'>
+                                " . ($status_menu === 'nonaktif' ? "<span class='absolute top-2 left-2 text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded shadow-sm z-10'>Nonaktif</span>" : "") . "
                             </div>
                             <div class='p-3 sm:p-4 flex flex-col gap-1 flex-1'>
                                 <h3 class='font-bold text-text-1 text-sm sm:text-base line-clamp-1'>$nama</h3>
                                 <p class='text-primary font-bold text-sm sm:text-base'>Rp $harga</p>
                                 <p class='text-text-3 text-xs font-medium'>Stok: $stok $pesan</p>
                                 <div class='mt-auto pt-3'>
-                                    <button onclick='tampilkanMode($id_produk,&quot;$nama_js&quot;,$harga_asli,$stok,&quot;$tipe_js&quot;,&quot;$file_foto_js&quot;)'
+                                    <button onclick='tampilkanMode($id_produk,&quot;$nama_js&quot;,$harga_asli,$stok,&quot;$tipe_js&quot;,&quot;$file_foto_js&quot;,&quot;$status_menu&quot;)'
                                         class='w-full bg-input text-submit border border-submit rounded-xl py-2 text-xs sm:text-sm font-bold hover:bg-submit hover:text-white transition-colors'>
                                         Edit Menu
                                     </button>

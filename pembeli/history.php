@@ -66,9 +66,11 @@ if ($filter !== 'semua') {
 }
 
 // Ambil data pesanan
-$sql_pesanan = "SELECT p.*, t.nama_toko 
+$sql_pesanan = "SELECT p.*, t.nama_toko, pay.metode_bayar as metode_pembayaran, pay.bukti_bayar as bukti_pembayaran, pay.status_bayar,
+                (SELECT COUNT(*) FROM review r WHERE r.id_pesanan = p.id_pesanan) as is_reviewed
                 FROM pesanan p 
                 JOIN toko t ON p.id_toko = t.id_toko 
+                LEFT JOIN pembayaran pay ON p.id_pesanan = pay.id_pesanan
                 WHERE p.id_users = ? $where_status
                 ORDER BY p.tanggal_pesan DESC";
 
@@ -88,6 +90,27 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
     <title>Riwayat Pesanan</title>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .star-icon {
+            color: #e5e7eb !important;
+            cursor: pointer;
+            transition: color 0.15s ease-in-out;
+        }
+        .star-icon.active {
+            color: #facc15 !important;
+        }
+        .star-icon:hover,
+        .star-icon:hover ~ .star-icon {
+            color: #e5e7eb !important; /* Reset sibling hover if hovered from left */
+        }
+        /* Custom hover effect to light up stars on hover */
+        .rating-container:hover .star-icon {
+            color: #facc15 !important;
+        }
+        .rating-container .star-icon:hover ~ .star-icon {
+            color: #e5e7eb !important;
+        }
+    </style>
 </head>
 
 <body class="bg-background text-text-1 selection:bg-primary selection:text-white">
@@ -244,6 +267,18 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                         📄 Struk
                                     </a>
                                     
+                                    <?php if ($status === 'selesai' && $pesanan['is_reviewed'] == 0): ?>
+                                    <button type="button" onclick="bukaModalReview(<?= $id_pesanan ?>)" class="text-xs font-bold text-yellow-600 bg-yellow-100 hover:bg-yellow-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                                        ⭐ Beri Ulasan
+                                    </button>
+                                    <?php endif; ?>
+
+                                    <?php if ($status === 'selesai' && $pesanan['is_reviewed'] > 0): ?>
+                                    <span class="text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
+                                        Sudah Diulas
+                                    </span>
+                                    <?php endif; ?>
+
                                     <?php if ($status === 'pending'): ?>
                                     <!-- Tombol Batalkan Pesanan (Hanya jika pending) -->
                                     <form method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?');">
@@ -272,6 +307,193 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
             </div>
         </main>
     </div>
+
+    <!-- Modal Review -->
+    <div id="modal-review" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="tutupModalReview()"></div>
+        
+        <!-- Modal Content -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-white flex-shrink-0">
+                <div>
+                    <h2 class="text-text-1 font-extrabold text-xl">Beri Ulasan</h2>
+                    <p class="text-xs text-text-3 font-medium mt-1">Bagaimana rasa makanannya?</p>
+                </div>
+                <button type="button" onclick="tutupModalReview()"
+                    class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto p-5 flex flex-col gap-6" id="modal-review-body">
+                <!-- Konten dinamis akan dimuat di sini -->
+                <div class="flex justify-center p-8">
+                    <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            </div>
+            
+            <div class="p-5 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+                <button type="button" id="btn-submit-review" onclick="submitReview()"
+                    class="w-full h-12 bg-primary rounded-xl text-white text-sm font-bold hover:bg-submit active:scale-[0.98] transition-all shadow-lg shadow-primary/30">
+                    Kirim Ulasan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/navbar.js"></script>
+    <script>
+        let currentReviewItems = [];
+        let currentOrderId = null;
+
+        function bukaModalReview(id_pesanan) {
+            currentOrderId = id_pesanan;
+            document.getElementById('modal-review').classList.remove('hidden');
+            document.getElementById('modal-review-body').innerHTML = `
+                <div class="flex justify-center p-8">
+                    <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>`;
+            
+            // Fetch order items to review
+            fetch('ajax_get_review_items.php?id_pesanan=' + id_pesanan)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        currentReviewItems = data.items;
+                        renderReviewForm();
+                    } else {
+                        document.getElementById('modal-review-body').innerHTML = `<p class="text-red-500 text-center font-bold">Gagal memuat data pesanan.</p>`;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('modal-review-body').innerHTML = `<p class="text-red-500 text-center font-bold">Terjadi kesalahan sistem.</p>`;
+                });
+        }
+
+        function tutupModalReview() {
+            document.getElementById('modal-review').classList.add('hidden');
+            currentReviewItems = [];
+            currentOrderId = null;
+        }
+
+        function renderReviewForm() {
+            let html = '';
+            currentReviewItems.forEach((item, index) => {
+                html += `
+                <div class="flex flex-col gap-3 pb-5 ${index !== currentReviewItems.length - 1 ? 'border-b border-gray-100' : ''}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                            <img src="${item.foto ? '../assets/img_produk/'+item.foto : '../assets/img/no-image.png'}" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm text-text-1">${item.nama_menu}</p>
+                            <p class="text-xs text-text-3">Jumlah: ${item.jumlah}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[11px] font-bold text-text-3 uppercase tracking-wider">Rating</label>
+                        <div class="flex gap-2 rating-container" data-id="${item.id_produk}">
+                            ${[1,2,3,4,5].map(star => `
+                                <svg xmlns="http://www.w3.org/2000/svg" data-val="${star}" onclick="setRating(${item.id_produk}, ${star})"
+                                    class="w-8 h-8 star-icon" 
+                                    fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                            `).join('')}
+                        </div>
+                        <input type="hidden" id="rating-${item.id_produk}" value="0">
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[11px] font-bold text-text-3 uppercase tracking-wider">Ulasan (Opsional)</label>
+                        <textarea id="komen-${item.id_produk}" rows="2" placeholder="Bagikan pendapatmu..."
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"></textarea>
+                    </div>
+                </div>
+                `;
+            });
+            document.getElementById('modal-review-body').innerHTML = html;
+        }
+
+        function setRating(id_produk, rating) {
+            document.getElementById('rating-' + id_produk).value = rating;
+            const container = document.querySelector(`.rating-container[data-id="${id_produk}"]`);
+            const stars = container.querySelectorAll('.star-icon');
+            
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function submitReview() {
+            const btn = document.getElementById('btn-submit-review');
+            const originalText = btn.innerHTML;
+            
+            let reviews = [];
+            let isValid = true;
+            
+            currentReviewItems.forEach(item => {
+                const rating = document.getElementById('rating-' + item.id_produk).value;
+                const komen = document.getElementById('komen-' + item.id_produk).value;
+                
+                if (rating == 0) {
+                    isValid = false;
+                }
+                
+                reviews.push({
+                    id_produk: item.id_produk,
+                    rating: rating,
+                    komentar: komen
+                });
+            });
+            
+            if (!isValid) {
+                alert("Harap berikan rating bintang untuk semua produk.");
+                return;
+            }
+            
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>`;
+            btn.disabled = true;
+            
+            fetch('proses_review.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_pesanan: currentOrderId,
+                    reviews: reviews
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    alert('Ulasan berhasil dikirim!');
+                    location.reload();
+                } else {
+                    alert(data.message || 'Gagal mengirim ulasan');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Terjadi kesalahan jaringan.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+    </script>
 </body>
 
 </html>

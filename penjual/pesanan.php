@@ -138,8 +138,10 @@ $sTotal = $hSelesai->num_rows;
                 $filter = isset($_GET['filter_status']) ? $_GET['filter_status'] : 'semua';
                 $where_status = ($filter !== 'semua') ? " AND p.status_pesanan = '$filter'" : "";
 
-                $query = "SELECT p.*, u.username FROM pesanan p 
+                $query = "SELECT p.*, u.username, pay.metode_bayar as metode_pembayaran, pay.bukti_bayar as bukti_pembayaran, pay.status_bayar 
+              FROM pesanan p 
               JOIN users u ON p.id_users = u.id_users 
+              LEFT JOIN pembayaran pay ON p.id_pesanan = pay.id_pesanan
               WHERE p.id_toko = '$id_toko' $where_status 
               ORDER BY p.tanggal_pesan DESC";
 

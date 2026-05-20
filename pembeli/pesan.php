@@ -2,10 +2,13 @@
 session_start();
 include '../config/koneksi.php';
 
-if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
+if(!isset($_SESSION['pembeli_id_users'])){
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $halaman = basename($_SERVER['PHP_SELF']);
 
@@ -60,13 +63,46 @@ if ($id_toko_selected) {
     <title>Pesan Menu</title>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .custom-hero-slider {
+            height: 150px;
+        }
+        .custom-store-banner-default {
+            height: 150px;
+        }
+        .custom-store-banner-image {
+            height: 170px;
+        }
+        @media (min-width: 640px) {
+            .custom-hero-slider {
+                height: 180px;
+            }
+            .custom-store-banner-default {
+                height: 180px;
+            }
+            .custom-store-banner-image {
+                height: 200px;
+            }
+        }
+        @media (min-width: 1024px) {
+            .custom-hero-slider {
+                height: 210px;
+            }
+            .custom-store-banner-default {
+                height: 210px;
+            }
+            .custom-store-banner-image {
+                height: 240px;
+            }
+        }
+    </style>
 </head>
 <body class="bg-background text-text-1 selection:bg-primary selection:text-white">
 <div class="flex min-h-screen relative">
 
     <?php include 'navbar.php'; ?>
 
-    <main class="lg:ml-80 flex-grow w-full px-3 sm:px-8 pb-8 pt-20 lg:pt-8">
+    <main class="lg:ml-80 flex-grow w-full px-3 sm:px-8 pt-20 lg:pt-8" style="padding-bottom: 7rem;">
         <div class="w-full max-w-5xl mx-auto flex flex-col gap-3 md:gap-6">
 
             <?php if (isset($_SESSION['pesan_error'])): ?>
@@ -151,46 +187,194 @@ if ($id_toko_selected) {
 
             <?php if (!$store_details): ?>
             <?php
-            $bannerUtamaSrc = "../assets/img/default_banner_app.jpg";
+            $slides = [];
+            // Slide 0: Banner Utama Awal
+            $slides[] = [
+                'type' => 'image',
+                'image' => '../assets/img/default_banner_app.jpg',
+                'badge' => '🔥 KANTIN PILIHAN',
+                'title' => 'Temukan Makanan<br>Favoritmu Hari Ini!',
+                'desc' => 'Berbagai pilihan kantin sekolah tersedia.',
+                'url' => 'pesan.php'
+            ];
+
+            // Tambahkan toko-toko sebagai slide berikutnya
+            $qSlides = $db_ekantin->query("SELECT * FROM toko LIMIT 5");
+            if ($qSlides && $qSlides->num_rows > 0) {
+                while ($tSlide = $qSlides->fetch_assoc()) {
+                    $banner = $tSlide['banner_toko'] ?? null;
+                    $bannerSrc = ($banner && file_exists("../assets/img_banner/$banner")) 
+                        ? "../assets/img_banner/$banner" 
+                        : '../assets/img/default_banner_app.jpg';
+                    
+                    $isOpen = isStoreOpen($tSlide);
+                    $slides[] = [
+                        'type' => 'image',
+                        'image' => $bannerSrc,
+                        'badge' => '🏪 KANTIN: ' . strtoupper($tSlide['nama_toko']),
+                        'title' => 'Nikmati Hidangan Lezat<br>di <span class="text-yellow-300">' . htmlspecialchars($tSlide['nama_toko']) . '</span>',
+                        'desc' => 'Lokasi: ' . htmlspecialchars($tSlide['lokasi'] ?? 'Kantin Sekolah') . ' | Status: ' . ($isOpen ? '🟢 Buka' : '🔴 Tutup'),
+                        'url' => 'pesan.php?id_toko=' . $tSlide['id_toko']
+                    ];
+                }
+            }
             ?>
-            <div class="opacity-0 animate-fadeInUp" style="animation-delay:0.2s;">
-                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-wrap w-full h-32 sm:h-40 md:h-48">
-
-                    <?php if ($bannerUtamaSrc): ?>
-                        <!-- Banner dari toko (image) -->
-                        <img src="<?= $bannerUtamaSrc ?>" alt="Banner Kantin"
-                             class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-                        <!-- Teks overlay -->
-                        <div class="absolute inset-0 flex items-center px-4 sm:px-8">
-                            <div class="relative z-10 max-w-[65%] sm:max-w-none">
-                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 sm:mb-3"
-                                      style="background:rgba(255,255,255,0.25);color:#fff;">🔥 Kantin Pilihan</span>
-                                <h3 class="text-white font-extrabold leading-tight banner-title drop-shadow-md">Temukan Makanan<br>Favoritmu Hari Ini!</h3>
-                                <p class="text-white/80 text-xs mt-1 drop-shadow-sm">Berbagai pilihan kantin sekolah tersedia.</p>
+            <div class="opacity-0 animate-fadeInUp" style="animation-delay: 0.2s;">
+                <div class="relative w-full overflow-hidden rounded-2xl shadow-md select-none group custom-hero-slider" id="hero-slider">
+                <!-- Slides Container -->
+                <div class="flex transition-transform duration-500 ease-out h-full w-full" id="slider-track">
+                    <?php foreach ($slides as $idx => $slide): ?>
+                        <div class="min-w-full h-full relative flex-shrink-0">
+                            <!-- Slide Gambar Toko -->
+                            <img src="<?= $slide['image'] ?>" class="absolute inset-0 w-full h-full object-cover object-center" alt="Banner">
+                            <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/35 to-transparent"></div>
+                            <div class="absolute inset-0 flex items-center px-6 sm:px-12">
+                                <div class="relative z-10 text-white max-w-[85%]">
+                                    <span class="inline-block text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-white/20 backdrop-blur-sm">
+                                        <?= $slide['badge'] ?>
+                                    </span>
+                                    <h3 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight drop-shadow-md">
+                                        <?= $slide['title'] ?>
+                                    </h3>
+                                    <p class="text-white/80 text-xs sm:text-sm mt-1 drop-shadow-sm font-medium">
+                                        <?= $slide['desc'] ?>
+                                    </p>
+                                    <a href="<?= $slide['url'] ?>" class="mt-3 inline-flex items-center gap-2 bg-white text-primary font-extrabold text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-yellow-50 hover:shadow-md transition-all">
+                                        Pesan Sekarang
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    <?php else: ?>
-                        <!-- Fallback gradient hijau -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-primary to-[#00a800]"></div>
-                        <div class="min-w-full h-full relative flex items-center px-4 sm:px-8">
-                            <div class="relative z-10 max-w-[65%] sm:max-w-none">
-                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 sm:mb-3"
-                                      style="background:rgba(255,255,255,0.2);color:#fff;">🔥 Kantin Pilihan</span>
-                                <h3 class="text-white font-extrabold leading-tight banner-title">Temukan Makanan<br>Favoritmu Hari Ini!</h3>
-                                <p class="text-green-200 text-xs mt-1">Berbagai pilihan kantin sekolah tersedia.</p>
-                            </div>
-                            <div class="absolute right-3 sm:right-6 bottom-0 opacity-30 leading-none banner-deco">🍱</div>
-                        </div>
-                    <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
 
+                <!-- Navigation Arrows -->
+                <button id="slide-prev" class="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                </button>
+                <button id="slide-next" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                </button>
+
+                <!-- Indicators -->
+                <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                    <?php foreach ($slides as $idx => $slide): ?>
+                        <span class="slide-dot w-2 h-2 rounded-full bg-white/40 hover:bg-white cursor-pointer transition-all duration-300 <?= $idx === 0 ? 'bg-white !w-5' : '' ?>" data-index="<?= $idx ?>"></span>
+                    <?php endforeach; ?>
                 </div>
             </div>
+            </div>
+
+            <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const track = document.getElementById('slider-track');
+                const prevBtn = document.getElementById('slide-prev');
+                const nextBtn = document.getElementById('slide-next');
+                const dots = document.querySelectorAll('.slide-dot');
+                const slider = document.getElementById('hero-slider');
+                
+                if (!track || !slider) return;
+
+                let index = 0;
+                const max = <?= count($slides) ?>;
+                let startX = 0;
+                let currentX = 0;
+                let isDragging = false;
+                let autoPlay = setInterval(nextSlide, 4000);
+
+                function updateSlider() {
+                    track.style.transform = `translateX(-${index * 100}%)`;
+                    dots.forEach((dot, i) => {
+                        if (i === index) {
+                            dot.classList.add('bg-white', '!w-5');
+                            dot.classList.remove('bg-white/40');
+                        } else {
+                            dot.classList.remove('bg-white', '!w-5');
+                            dot.classList.add('bg-white/40');
+                        }
+                    });
+                }
+
+                function nextSlide() {
+                    index = (index + 1) % max;
+                    updateSlider();
+                }
+
+                function prevSlide() {
+                    index = (index - 1 + max) % max;
+                    updateSlider();
+                }
+
+                if (prevBtn) prevBtn.addEventListener('click', () => { prevSlide(); resetTimer(); });
+                if (nextBtn) nextBtn.addEventListener('click', () => { nextSlide(); resetTimer(); });
+
+                dots.forEach(dot => {
+                    dot.addEventListener('click', (e) => {
+                        index = parseInt(e.target.dataset.index);
+                        updateSlider();
+                        resetTimer();
+                    });
+                });
+
+                function resetTimer() {
+                    clearInterval(autoPlay);
+                    autoPlay = setInterval(nextSlide, 4000);
+                }
+
+                // Touch and drag support
+                track.addEventListener('mousedown', dragStart);
+                track.addEventListener('touchstart', dragStart, { passive: true });
+                
+                window.addEventListener('mousemove', dragMove);
+                window.addEventListener('touchmove', dragMove, { passive: true });
+                
+                window.addEventListener('mouseup', dragEnd);
+                window.addEventListener('touchend', dragEnd);
+
+                function dragStart(e) {
+                    isDragging = true;
+                    startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                    clearInterval(autoPlay);
+                    track.style.transition = 'none';
+                }
+
+                function dragMove(e) {
+                    if (!isDragging) return;
+                    currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                    const diffX = currentX - startX;
+                    const percent = (diffX / slider.offsetWidth) * 100;
+                    track.style.transform = `translateX(calc(-${index * 100}% + ${percent}%))`;
+                }
+
+                function dragEnd(e) {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    track.style.transition = 'transform 0.5s ease-out';
+                    const diffX = currentX - startX;
+                    const threshold = slider.offsetWidth * 0.15;
+                    
+                    if (Math.abs(diffX) > threshold && diffX !== 0) {
+                        if (diffX > 0) {
+                            prevSlide();
+                        } else {
+                            nextSlide();
+                        }
+                    } else {
+                        updateSlider();
+                    }
+                    resetTimer();
+                }
+            });
+            </script>
 
             <!-- STORE GRID -->
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                 <?php
-                $sqlKantin = "SELECT t.*, (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko) as total_menu FROM toko t";
+                $sqlKantin = "SELECT t.*, (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko AND status_menu = 'aktif') as total_menu FROM toko t";
                 if ($keyword !== '') {
                     $sqlKantin .= " WHERE t.nama_toko LIKE '%$keyword%' OR t.lokasi LIKE '%$keyword%'";
                 }
@@ -275,7 +459,7 @@ if ($id_toko_selected) {
                                       : null;
                 
                 // Tinggi dinamis: Besar jika ada foto, sedang jika tidak ada (default)
-                $banner_height_class = $banner_detail_src ? 'h-40 sm:h-48 md:h-64' : 'h-32 sm:h-40 md:h-48';
+                $banner_height_class = $banner_detail_src ? 'custom-store-banner-image' : 'custom-store-banner-default';
                 ?>
                 <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full <?= $banner_height_class ?> transition-all duration-300">
 
@@ -314,7 +498,7 @@ if ($id_toko_selected) {
                 <!-- MENU GRID -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
                     <?php
-                    $sqlMenu = "SELECT * FROM produk_kantin WHERE id_toko = ?";
+                    $sqlMenu = "SELECT * FROM produk_kantin WHERE id_toko = ? AND status_menu = 'aktif'";
                     if ($keyword !== '') {
                         $sqlMenu .= " AND nama_menu LIKE ?";
                     }
@@ -425,7 +609,7 @@ if ($id_toko_selected) {
 
 <!-- Toast -->
 <div id="toast"
-     class="fixed bottom-[80px] sm:bottom-[90px] opacity-0 transition-all duration-300 bg-primary text-white text-xs sm:text-sm font-medium px-4 py-2.5 shadow-lg pointer-events-none z-50">
+     style="position:fixed; bottom:88px; left:50%; transform:translateX(-50%); opacity:0; transition:opacity 0.3s; background:#004900; color:white; font-size:0.85rem; font-weight:600; padding:10px 20px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.2); pointer-events:none; z-index:9999; white-space:nowrap;">
 </div>
 
 <script>
@@ -515,13 +699,11 @@ if ($id_toko_selected) {
     function showToast(msg) {
         const t = document.getElementById("toast");
         t.textContent = msg;
-        t.classList.remove("opacity-0");
-        t.classList.add("show-toast", "opacity-100");
+        t.style.opacity = "1";
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => {
-            t.classList.remove("show-toast", "opacity-100");
-            t.classList.add("opacity-0");
-        }, 1500);
+            t.style.opacity = "0";
+        }, 1800);
     }
 
     function simpanKeKeranjang() {

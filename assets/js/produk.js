@@ -1,4 +1,4 @@
-function tampilkanMode(id, nama, harga, stok, produk, foto) {
+function tampilkanMode(id, nama, harga, stok, produk, foto, status_menu) {
             document.getElementById('edit_harga').classList.remove('border-red-400');
             document.getElementById('edit_harga').classList.add('border-gray-200');
             document.getElementById('edit_stok').classList.remove('border-red-400');
@@ -30,6 +30,13 @@ function tampilkanMode(id, nama, harga, stok, produk, foto) {
                 document.getElementById('makanan_radio').checked = true;
             } else {
                 document.getElementById('minuman_radio').checked = true;
+            }
+
+            // Set radio status menu
+            if (status_menu === 'nonaktif') {
+                document.getElementById('nonaktif_radio').checked = true;
+            } else {
+                document.getElementById('aktif_radio').checked = true;
             }
 
             document.getElementById('modal-edit').classList.remove('hidden');

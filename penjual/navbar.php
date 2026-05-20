@@ -58,6 +58,14 @@
                 class="w-5 h-5 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Riwayat</span>
         </a>
+        <a href="ulasan.php"
+            class="<?= $halaman == 'ulasan.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
+            <!-- Reuse history or menuBook icon for Ulasan, or a star icon -->
+            <svg class="w-5 h-5 <?= $halaman == 'ulasan.php' ? 'text-white' : 'text-text-2 opacity-40' ?>" fill="<?= $halaman == 'ulasan.php' ? 'currentColor' : 'none' ?>" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            <span class="text-sm font-medium">Ulasan</span>
+        </a>
         <a href="profil.php"
             class="<?= $halaman == 'profil.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
             <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
@@ -101,6 +109,14 @@
         <img src="<?= $halaman == 'history.php' ? '../assets/img/history_white.png' : '../assets/img/history_black.png' ?>"
             class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'history.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Riwayat</span>
+    </a>
+
+    <a href="ulasan.php" class="<?= $halaman == 'ulasan.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <svg class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman == 'ulasan.php' ? 'text-white' : 'text-text-2 opacity-40' ?>" fill="<?= $halaman == 'ulasan.php' ? 'currentColor' : 'none' ?>" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+        </svg>
+        <span class="font-medium text-sm">Ulasan</span>
     </a>
 
     <a href="profil.php" class="<?= $halaman == 'profil.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?> 

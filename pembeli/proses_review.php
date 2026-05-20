@@ -20,8 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$id_pesanan = (int) ($_POST['id_pesanan'] ?? 0);
-$reviews    = $_POST['reviews'] ?? [];
+$inputJSON = file_get_contents('php://input');
+$input = json_decode($inputJSON, TRUE);
+
+$id_pesanan = (int) ($input['id_pesanan'] ?? 0);
+$reviews    = $input['reviews'] ?? [];
 
 if (!$id_pesanan || empty($reviews)) {
     echo json_encode(['status' => 'error', 'message' => 'Data review tidak lengkap.']);
@@ -78,7 +81,7 @@ try {
     }
 
     $db_ekantin->commit();
-    echo json_encode(['status' => 'ok', 'message' => 'Review berhasil disimpan!', 'count' => $inserted]);
+    echo json_encode(['status' => 'success', 'message' => 'Review berhasil disimpan!', 'count' => $inserted]);
 
 } catch (Exception $e) {
     $db_ekantin->rollback();

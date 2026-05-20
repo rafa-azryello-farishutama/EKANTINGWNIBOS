@@ -12,6 +12,7 @@ if (!isset($_SESSION['pembeli_id_users'])) {
 $_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
 $_SESSION['username'] = $_SESSION['pembeli_username'];
 $_SESSION['role']     = $_SESSION['pembeli_role'];
+session_write_close();
 
 $id_users = (int) $_SESSION['id_users'];
 $aksi     = $_POST['aksi'] ?? '';
