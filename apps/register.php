@@ -94,7 +94,7 @@ if($error_register != "") {
         <div class="absolute -top-[10%] -left-[5%] w-[40%] h-[60%] rounded-full bg-primary/5 blur-[100px]"></div>
     </div>
 
-    <div class="flex flex-col lg:flex-row w-full max-w-[1000px] h-[90vh] lg:h-[650px] bg-white rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden">
+    <div class="flex flex-col lg:flex-row w-full max-w-[1000px] h-[90vh] lg:h-[650px] lg:max-h-[90vh] bg-white rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden">
         
         <div class="hidden lg:flex w-[40%] bg-primary relative p-12 flex-col justify-between text-white shrink-0">
             <div class="absolute inset-0 bg-black/10"></div>
