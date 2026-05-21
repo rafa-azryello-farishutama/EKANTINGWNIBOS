@@ -92,12 +92,7 @@ if ($show_popup) {
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
-<body
-    class="bg-cover bg-center bg-no-repeat min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll"
-    style="background-image: url('assets/img/fotoBackground3.jpg');">
-
-    <!-- Overlay untuk membuat background tidak terlalu mencolok agar teks tetap terbaca -->
-    <div class="fixed inset-0 bg-white/60 backdrop-blur-sm z-0"></div>
+<body class="bg-background min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll">
 
     <div
         class="absolute top-4 left-1/2 mb-[20px] -translate-x-1/2 md:top-8 md:left-10 md:translate-x-0 lg:left-12 z-20">
