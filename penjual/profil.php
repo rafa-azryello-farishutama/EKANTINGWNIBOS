@@ -28,6 +28,9 @@ if(isset($_POST['simpan_profil'])){
     $deskripsi_baru = $db_ekantin->real_escape_string($_POST['edit_deskripsi']);
     $jam_buka_baru  = $db_ekantin->real_escape_string($_POST['edit_jam_buka']);
     $jam_tutup_baru = $db_ekantin->real_escape_string($_POST['edit_jam_tutup']);
+    $metode_pencairan_baru = $db_ekantin->real_escape_string($_POST['edit_metode_pencairan']);
+    $nomor_pencairan_baru  = $db_ekantin->real_escape_string($_POST['edit_nomor_pencairan']);
+    $nama_pencairan_baru   = $db_ekantin->real_escape_string($_POST['edit_nama_pencairan']);
 
     $detik_buka = strtotime($jam_buka_baru);
     $detik_tutup = strtotime($jam_tutup_baru);
@@ -47,7 +50,7 @@ if(isset($_POST['simpan_profil'])){
 
     if(!$error_profil){
         $db_ekantin->query("UPDATE users SET username='$username_baru', email='$email_baru', no_telepon='$telepon_baru' WHERE id_users='$id_users'");
-        $db_ekantin->query("UPDATE toko SET nama_toko='$nama_toko_baru', lokasi='$lokasi_baru', deskripsi='$deskripsi_baru', jam_buka='$jam_buka_baru', jam_tutup='$jam_tutup_baru' WHERE id_toko='$id_toko'");
+        $db_ekantin->query("UPDATE toko SET nama_toko='$nama_toko_baru', lokasi='$lokasi_baru', deskripsi='$deskripsi_baru', jam_buka='$jam_buka_baru', jam_tutup='$jam_tutup_baru', metode_pencairan='$metode_pencairan_baru', nomor_pencairan='$nomor_pencairan_baru', nama_pencairan='$nama_pencairan_baru' WHERE id_toko='$id_toko'");
         $_SESSION['nama_toko'] = $nama_toko_baru;
         $success_profil = "Profil berhasil diperbarui.";
     }
@@ -188,6 +191,24 @@ $total_produk = $produk['total'] ?? 0;
                     </div>
 
                     <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-text-1 text-base mb-5 pb-4 border-b border-gray-100">Informasi Pencairan Dana</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Metode / Bank</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['metode_pencairan'] ?: 'Belum diatur') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nomor Rekening / Akun</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['nomor_pencairan'] ?: 'Belum diatur') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1 md:col-span-2">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Atas Nama</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['nama_pencairan'] ?: 'Belum diatur') ?></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
                         <h4 class="font-bold text-text-1 text-base mb-5 pb-4 border-b border-gray-100">Statistik Toko</h4>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-green-50 border border-green-100 rounded-[15px] p-4 flex flex-col gap-1">
@@ -290,6 +311,38 @@ $total_produk = $produk['total'] ?? 0;
                         class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"><?= htmlspecialchars($toko['deskripsi'] ?? '') ?></textarea>
                 </div>
 
+                <p class="text-xs font-bold uppercase tracking-widest text-text-3 border-b pb-2 mt-2">Informasi Pencairan Dana</p>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Metode Pencairan</label>
+                    <select name="edit_metode_pencairan" class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Pilih Metode...</option>
+                        <option value="BCA" <?= ($toko['metode_pencairan'] ?? '') == 'BCA' ? 'selected' : '' ?>>Bank BCA</option>
+                        <option value="BRI" <?= ($toko['metode_pencairan'] ?? '') == 'BRI' ? 'selected' : '' ?>>Bank BRI</option>
+                        <option value="BNI" <?= ($toko['metode_pencairan'] ?? '') == 'BNI' ? 'selected' : '' ?>>Bank BNI</option>
+                        <option value="Mandiri" <?= ($toko['metode_pencairan'] ?? '') == 'Mandiri' ? 'selected' : '' ?>>Bank Mandiri</option>
+                        <option value="GoPay" <?= ($toko['metode_pencairan'] ?? '') == 'GoPay' ? 'selected' : '' ?>>GoPay</option>
+                        <option value="OVO" <?= ($toko['metode_pencairan'] ?? '') == 'OVO' ? 'selected' : '' ?>>OVO</option>
+                        <option value="DANA" <?= ($toko['metode_pencairan'] ?? '') == 'DANA' ? 'selected' : '' ?>>DANA</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nomor Rekening / Akun</label>
+                    <input type="text" name="edit_nomor_pencairan"
+                        value="<?= htmlspecialchars($toko['nomor_pencairan'] ?? '') ?>"
+                        placeholder="Contoh: 1234567890"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Atas Nama</label>
+                    <input type="text" name="edit_nama_pencairan"
+                        value="<?= htmlspecialchars($toko['nama_pencairan'] ?? '') ?>"
+                        placeholder="Contoh: Budi Santoso"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+
                 <button type="submit" name="simpan_profil"
                     class="w-full h-[48px] bg-submit rounded-[15px] text-white text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all">
                     Simpan Perubahan
@@ -310,6 +363,9 @@ $total_produk = $produk['total'] ?? 0;
         jam_buka:   <?= json_encode($toko['jam_buka'] ?? '') ?>,
         jam_tutup:  <?= json_encode($toko['jam_tutup'] ?? '') ?>,
         deskripsi:  <?= json_encode($toko['deskripsi'] ?? '') ?>,
+        metode_pencairan: <?= json_encode($toko['metode_pencairan'] ?? '') ?>,
+        nomor_pencairan: <?= json_encode($toko['nomor_pencairan'] ?? '') ?>,
+        nama_pencairan: <?= json_encode($toko['nama_pencairan'] ?? '') ?>,
     };
 
     function bukaEdit() {
@@ -328,6 +384,9 @@ $total_produk = $produk['total'] ?? 0;
         f.edit_jam_buka.value  = nilaiAwal.jam_buka;
         f.edit_jam_tutup.value = nilaiAwal.jam_tutup;
         f.edit_deskripsi.value = nilaiAwal.deskripsi;
+        f.edit_metode_pencairan.value = nilaiAwal.metode_pencairan;
+        f.edit_nomor_pencairan.value = nilaiAwal.nomor_pencairan;
+        f.edit_nama_pencairan.value = nilaiAwal.nama_pencairan;
 
         const errBox = document.getElementById('error-box');
         errBox.classList.add('hidden');

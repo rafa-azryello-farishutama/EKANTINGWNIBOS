@@ -142,12 +142,17 @@ if($show_popup){
 
             </div>
 
+            <!-- Link-link bawah -->
             <div class="mt-8 text-center flex flex-col gap-3">
                 <p class="text-text-1 font-medium text-sm">
                     Tidak punya Akun? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="apps/register.php">Daftar Sekarang</a>
                 </p>
                 <p class="text-text-1 font-medium text-sm">
                     Lupa Sandi? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="apps/lupaSandi.php">Ikuti Langkah berikut</a>
+                </p>
+                <!-- Tambahan: daftar sebagai penjual -->
+                <p class="text-text-1 font-medium text-sm">
+                    Ingin berjualan? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="apps/daftarPenjual.php">Daftar sebagai Penjual</a>
                 </p>
             </div>
 

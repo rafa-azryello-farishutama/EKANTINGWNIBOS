@@ -62,7 +62,7 @@ if (!isStoreOpenBackend($tokoVal)) {
 
 // Proses Upload Bukti Pembayaran
 $metode_pembayaran = $_POST['metode_pembayaran'] ?? 'transfer';
-$file_input_name = ($metode_pembayaran === 'qr') ? 'bukti_qr' : 'bukti_transfer';
+$file_input_name = 'bukti_bayar';
 $bukti_pembayaran = NULL;
 
 if (isset($_FILES[$file_input_name]) && $_FILES[$file_input_name]['error'] === UPLOAD_ERR_OK) {

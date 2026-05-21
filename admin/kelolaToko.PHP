@@ -12,55 +12,77 @@ if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
 }
 
 $error_toko = "";
+$sukses_toko = "";
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
-    $username = $_POST['nama'];
-    $namaToko = $_POST['nama_toko'];
-    $password = $_POST['password'];
-    $role = "penjual";
-    $email = $_POST['email'];
-    $telepon = $_POST['telepon'];
 
-    if(strlen($username) < 3 || strlen($username) > 20){
-        $error_toko = "Username harus antara 3-20 karakter.";
-    } else if(!preg_match('/^[a-zA-Z0-9_.]+$/', $username)){
-        $error_toko = "Username hanya boleh huruf, angka, underscore, dan titik.";
+    // ── Aktifkan Toko ──────────────────────────────────────
+    if(isset($_POST['aktifkan_toko']) && isset($_POST['id_user_target'])){
+        $id_target = intval($_POST['id_user_target']);
+        $db_ekantin->query("UPDATE users SET status='aktif' WHERE id_users='$id_target'");
+        header("Location: kelolaToko.php?sukses=aktif");
+        exit;
     }
 
-    if($error_toko == ""){
-        $cekUsername = $db_ekantin->query("SELECT id_users FROM users WHERE username='$username'");
-        if($cekUsername->num_rows > 0){
-            $error_toko = "Username sudah digunakan, silakan pilih yang lain.";
+    // ── Nonaktifkan Toko ───────────────────────────────────
+    if(isset($_POST['nonaktifkan_toko']) && isset($_POST['id_user_target'])){
+        $id_target = intval($_POST['id_user_target']);
+        $db_ekantin->query("UPDATE users SET status='nonaktif' WHERE id_users='$id_target'");
+        header("Location: kelolaToko.php?sukses=nonaktif");
+        exit;
+    }
+
+    // ── Tambah Toko ────────────────────────────────────────
+    if(isset($_POST['tambah_toko'])){
+        $username  = $_POST['nama'];
+        $namaToko  = $_POST['nama_toko'];
+        $password  = $_POST['password'];
+        $role      = "penjual";
+        $email     = $_POST['email'];
+        $telepon   = $_POST['telepon'];
+
+        if(strlen($username) < 3 || strlen($username) > 20){
+            $error_toko = "Username harus antara 3-20 karakter.";
+        } else if(!preg_match('/^[a-zA-Z0-9_.]+$/', $username)){
+            $error_toko = "Username hanya boleh huruf, angka, underscore, dan titik.";
         }
-    }
 
-    if($error_toko == ""){
-        $cekEmail = $db_ekantin->query("SELECT id_users FROM users WHERE email='$email'");
-        if($cekEmail->num_rows > 0){
-            $error_toko = "Email sudah terdaftar.";
+        if($error_toko == ""){
+            $cekUsername = $db_ekantin->query("SELECT id_users FROM users WHERE username='$username'");
+            if($cekUsername->num_rows > 0)
+                $error_toko = "Username sudah digunakan, silakan pilih yang lain.";
         }
-    }
 
-    if($error_toko == ""){
-        $hash_password = password_hash($password, PASSWORD_DEFAULT);
-        $jamBuka = $_POST['jam_buka'] ?? '07:00';
-        $jamTutup = $_POST['jam_tutup'] ?? '15:00';
-        $cek = "INSERT INTO users(username, password, role, no_telepon, email, status) 
-                    VALUES('$username','$hash_password','$role','$telepon','$email','aktif')";
+        if($error_toko == ""){
+            $cekEmail = $db_ekantin->query("SELECT id_users FROM users WHERE email='$email'");
+            if($cekEmail->num_rows > 0)
+                $error_toko = "Email sudah terdaftar.";
+        }
 
-        if($db_ekantin->query($cek)){
-            $id_user = $db_ekantin->insert_id;
-            $db_ekantin->query("INSERT INTO toko(id_users, nama_toko, jam_buka, jam_tutup)
-                            VALUES('$id_user','$namaToko', '$jamBuka', '$jamTutup')");
+        if($error_toko == ""){
+            $hash_password = password_hash($password, PASSWORD_DEFAULT);
+            $jamBuka  = $_POST['jam_buka']  ?? '07:00';
+            $jamTutup = $_POST['jam_tutup'] ?? '15:00';
+
+            $cek = "INSERT INTO users(username, password, role, no_telepon, email, status) 
+                        VALUES('$username','$hash_password','$role','$telepon','$email','aktif')";
+            if($db_ekantin->query($cek)){
+                $id_user = $db_ekantin->insert_id;
+                $db_ekantin->query("INSERT INTO toko(id_users, nama_toko, jam_buka, jam_tutup)
+                                VALUES('$id_user','$namaToko', '$jamBuka', '$jamTutup')");
+                header("Location: kelolaToko.php?sukses=tambah");
+                exit;
+            }
         }
     }
 }
 
-$sql = "SELECT COUNT(*) as total FROM toko t 
-        JOIN users u ON t.id_users = u.id_users 
-        WHERE u.status = 'aktif'";
-$hasil = $db_ekantin->query($sql);
-$row = $hasil->fetch_assoc();
+// ── Statistik ──────────────────────────────────────────────
+$sql    = "SELECT COUNT(*) as total FROM toko t 
+           JOIN users u ON t.id_users = u.id_users 
+           WHERE u.status = 'aktif'";
+$hasil  = $db_ekantin->query($sql);
+$row    = $hasil->fetch_assoc();
 $total_aktif = $row['total'];
 ?>
 
@@ -79,15 +101,15 @@ $total_aktif = $row['total'];
             darkMode: "class",
             theme: {
                 extend: {
-                    "colors": {
-                        "background": "#f7f8f9",
-                        "primary": "#004900",
+                    colors: {
+                        "background":     "#f7f8f9",
+                        "primary":        "#004900",
                         "second-primary": "#f9f9fb",
-                        "input": "#f3f3f5",
-                        "text-1": "#191c1c",
-                        "text-2": "#4e5a48",
-                        "text-3": "#5e6659",
-                        "submit": "#005300"
+                        "input":          "#f3f3f5",
+                        "text-1":         "#191c1c",
+                        "text-2":         "#4e5a48",
+                        "text-3":         "#5e6659",
+                        "submit":         "#005300"
                     }
                 }
             }
@@ -97,238 +119,405 @@ $total_aktif = $row['total'];
         .popup-enter { animation: popupIn 0.2s ease-out both; }
         @keyframes popupIn {
             from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+            to   { opacity: 1; transform: scale(1); }
         }
     </style>
 </head>
 <body class="bg-background text-text-1 selection:bg-primary selection:text-text-2">
-    <div class="flex min-h-screen relative">
-        <?php include 'navbar.php'; ?>
+<div class="flex min-h-screen relative">
+    <?php include 'navbar.php'; ?>
 
-        <main class="lg:ml-80 flex-grow p-4 md:p-8 bg-background pt-24 lg:pt-8">
-            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
-                <div>
-                    <h2 class="font-extrabold text-3xl md:text-4xl tracking-tight text-primary">Kelola Toko</h2>
-                    <p class="text-text-3 font-body mt-2">Silahkan masukkan ID user untuk mengelola toko</p>
-                </div>
-                
-                <button onclick="toggleModal(true)" class="bg-primary hover:bg-submit text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2">
+    <main class="lg:ml-80 flex-grow p-4 md:p-8 bg-background pt-24 lg:pt-8">
+
+        <!-- ── Header ─────────────────────────────────────── -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <div>
+                <h2 class="font-extrabold text-3xl md:text-4xl tracking-tight text-primary">Kelola Toko</h2>
+                <p class="text-text-3 font-body mt-2">Silahkan masukkan ID user untuk mengelola toko</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="toggleModalNonaktif(true)"
+                    class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                    Kelola Status Toko
+                </button>
+                <button onclick="toggleModal(true)"
+                    class="bg-primary hover:bg-submit text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
                     Tambah Toko
                 </button>
-            </header>
+            </div>
+        </header>
 
-            <div class="grid grid-cols-1 gap-4 md:gap-6">
-                <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden group">
+        <!-- ── Toast notifikasi sukses ────────────────────── -->
+        <?php if(isset($_GET['sukses'])): ?>
+        <div id="toast-sukses"
+             class="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl text-sm font-medium
+             <?= $_GET['sukses'] == 'nonaktif' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700' ?>">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <?php
+                if($_GET['sukses'] == 'aktif')    echo 'Toko berhasil diaktifkan.';
+                if($_GET['sukses'] == 'nonaktif') echo 'Toko berhasil dinonaktifkan.';
+                if($_GET['sukses'] == 'tambah')   echo 'Toko baru berhasil ditambahkan.';
+            ?>
+            <button onclick="document.getElementById('toast-sukses').remove()"
+                class="ml-auto font-bold text-lg leading-none opacity-60 hover:opacity-100">&times;</button>
+        </div>
+        <?php endif; ?>
+
+        <!-- ── Statistik ──────────────────────────────────── -->
+        <div class="grid grid-cols-1 gap-4 md:gap-6 mb-6">
+            <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden group">
                 <div class="relative gap-4 z-10">
                     <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Toko Aktif</p>
                     <p class="text-4xl font-extrabold text-primary"><?php echo $total_aktif; ?></p>
                     <p class="text-xs text-text-2">status aktif</p>
                 </div>
-
-                <img src="../assets/img/ikonstore.png" 
-                    alt="User Icon" 
+                <img src="../assets/img/ikonstore.png" alt="Store Icon"
                     class="absolute bottom-0 right-0 translate-y-9 w-[120px] md:w-[140px] opacity-10 pointer-events-none transition-transform duration-300 group-hover:scale-110">
             </div>
+        </div>
+
+        <!-- ── Tabel Toko ─────────────────────────────────── -->
+        <div class="w-full bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden">
+            <div class="grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] bg-primary px-6 py-4 gap-4">
+                <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">User</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Nama</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Toko</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Email</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Telepon</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Status</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Aksi</p>
             </div>
 
-            <div class="w-full bg-white rounded-[20px] mt-[20px] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] bg-primary px-6 py-4 gap-4">
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">User</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Nama</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Toko</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Email</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Telepon</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Status</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Aksi</p>
-                </div>
+            <div class="overflow-y-auto max-h-[400px]">
+                <?php 
+                $query  = "SELECT t.*, u.username, u.email, u.no_telepon, u.status 
+                           FROM toko t JOIN users u ON t.id_users = u.id_users";
+                $result = $db_ekantin->query($query);
 
-                <div class="overflow-y-auto max-h-[400px]">
-                    <?php 
-                    $query = "SELECT t.*, u.username, u.email, u.no_telepon, u.status 
-                              FROM toko t
-                              JOIN users u ON t.id_users = u.id_users";
-                    $result = $db_ekantin->query($query);
+                if($result && $result->num_rows > 0){
+                    while($data = $result->fetch_assoc()){
+                        $id_toko   = $data['id_toko'];
+                        $id_user   = $data['id_users'];
+                        $username  = htmlspecialchars($data['username'], ENT_QUOTES);
+                        $toko      = htmlspecialchars($data['nama_toko'], ENT_QUOTES);
+                        $status    = $data['status'];
+                        $lokasi    = htmlspecialchars($data['lokasi']    ?? 'Belum diatur',         ENT_QUOTES);
+                        $deskripsi = htmlspecialchars($data['deskripsi'] ?? 'Tidak ada deskripsi',  ENT_QUOTES);
+                        $jam_buka  = $data['jam_buka']  ?? '--:--';
+                        $jam_tutup = $data['jam_tutup'] ?? '--:--';
 
-                    if($result && $result->num_rows > 0){
-                        while($data = $result->fetch_assoc()){
-                            $id_toko  = $data['id_toko'];
-                            $id_user  = $data['id_users'];
-                            $username = htmlspecialchars($data['username'], ENT_QUOTES);    
-                            $toko     = htmlspecialchars($data['nama_toko'], ENT_QUOTES);   
-                            $status   = $data['status'];
-                            $lokasi   = htmlspecialchars($data['lokasi'] ?? 'Belum diatur', ENT_QUOTES);
-                            $deskripsi = htmlspecialchars($data['deskripsi'] ?? 'Tidak ada deskripsi', ENT_QUOTES);
-                            $jam_buka  = $data['jam_buka'] ?? '--:--';
-                            $jam_tutup = $data['jam_tutup'] ?? '--:--';
+                        $tulisanStatus = ($status == 'aktif')
+                            ? "<span class='text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full'>Aktif</span>"
+                            : "<span class='text-xs font-semibold text-red-500   bg-red-100   px-3 py-1 rounded-full'>Nonaktif</span>";
 
-                            $tulisanStatus = ($status == 'aktif') 
-                                ? "<span class='text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full w-fit'>Aktif</span>"
-                                : "<span class='text-xs font-semibold text-red-500 bg-red-100 px-3 py-1 rounded-full w-fit'>Nonaktif</span>";
-
-                            echo "
-                            <div class='grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'>
-                                <p class='text-sm text-text-2'>$id_toko</p>
-                                <p class='text-sm text-text-2'>$id_user</p>
-                                <p class='text-sm font-medium text-text-1 truncate'>$username</p>
-                                <p class='text-sm font-medium text-text-1 truncate'>$toko</p>
-                                <p class='text-sm text-text-2 truncate'>".htmlspecialchars($data['email'])."</p>
-                                <p class='text-sm text-text-2 truncate'>".htmlspecialchars($data['no_telepon'])."</p>
-                                $tulisanStatus
-                                <button onclick=\"showDetail('$toko', '$lokasi', '$deskripsi', '$jam_buka', '$jam_tutup')\" class='text-primary hover:text-submit font-bold text-xs uppercase tracking-wider'>Detail</button>
-                            </div>";
-                        }
-                    } else {
-                        echo "<div class='px-6 py-8 text-center text-text-3 text-sm'>Belum ada data toko.</div>";
+                        echo "
+                        <div class='row-toko grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'
+                             data-iduser='$id_user' data-status='$status'>
+                            <p class='text-sm text-text-2'>$id_toko</p>
+                            <p class='text-sm text-text-2'>$id_user</p>
+                            <p class='text-sm font-medium text-text-1 truncate'>$username</p>
+                            <p class='text-sm font-medium text-text-1 truncate'>$toko</p>
+                            <p class='text-sm text-text-2 truncate'>" . htmlspecialchars($data['email'])       . "</p>
+                            <p class='text-sm text-text-2 truncate'>" . htmlspecialchars($data['no_telepon']) . "</p>
+                            $tulisanStatus
+                            <button onclick=\"showDetail('$toko','$lokasi','$deskripsi','$jam_buka','$jam_tutup')\"
+                                class='text-primary hover:text-submit font-bold text-xs uppercase tracking-wider'>Detail</button>
+                        </div>";
                     }
-                    ?>
-                </div>
+                } else {
+                    echo "<div class='px-6 py-8 text-center text-text-3 text-sm'>Belum ada data toko.</div>";
+                }
+                ?>
             </div>
-        </main>
-    </div>
-
-    <div id="modalTambah" class="hidden fixed inset-0 bg-black/50 z-[99] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-[24px] shadow-2xl overflow-hidden popup-enter">
-            <div class="bg-primary p-6 flex justify-between items-center text-white">
-                <h3 class="font-bold text-xl">Tambah Toko Baru</h3>
-                <button onclick="toggleModal(false)" class="hover:bg-white/20 p-1 rounded-full transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <form method="POST" class="p-8 flex flex-col gap-4">
-
-                <?php if($error_toko != ""): ?>
-                <div class="px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium">
-                    <?php echo $error_toko; ?>
-                </div>
-                <?php endif; ?>
-
-                <div class="flex flex-col gap-1">
-                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>
-                    <input type="text" name="nama" oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')" maxlength="20"
-                        value="<?= isset($_POST['nama']) && $error_toko != '' ? htmlspecialchars($_POST['nama']) : '' ?>"
-                        placeholder="Masukkan username pemilik" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Password</label>
-                    <input type="password" name="password" placeholder="Masukkan password" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Toko</label>
-                    <input type="text" name="nama_toko"
-                        value="<?= isset($_POST['nama_toko']) && $error_toko != '' ? htmlspecialchars($_POST['nama_toko']) : '' ?>"
-                        placeholder="Masukkan nama toko" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Email</label>
-                    <input type="email" name="email"
-                        value="<?= isset($_POST['email']) && $error_toko != '' ? htmlspecialchars($_POST['email']) : '' ?>"
-                        placeholder="contoh@mail.com" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                </div>
-
-                <div class="flex flex-col gap-1">
-                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">No. Telepon</label>
-                    <input type="tel" name="telepon"
-                        value="<?= isset($_POST['telepon']) && $error_toko != '' ? htmlspecialchars($_POST['telepon']) : '' ?>"
-                        placeholder="0812xxxx" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
-                        <input type="time" name="jam_buka"
-                            value="<?= isset($_POST['jam_buka']) && $error_toko != '' ? htmlspecialchars($_POST['jam_buka']) : '07:00' ?>"
-                            class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Tutup</label>
-                        <input type="time" name="jam_tutup"
-                            value="<?= isset($_POST['jam_tutup']) && $error_toko != '' ? htmlspecialchars($_POST['jam_tutup']) : '15:00' ?>"
-                            class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-submit text-white font-bold py-4 rounded-[15px] mt-2 shadow-lg shadow-submit/20 hover:opacity-90 active:scale-[0.98] transition-all">
-                    Simpan Data Toko
-                </button>
-            </form>
         </div>
-    </div>
 
-    <div id="modalDetail" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden popup-enter">
-            <div class="bg-primary p-6 flex justify-between items-center text-white">
-                <h3 id="detailNamaToko" class="font-bold text-xl">Detail Toko</h3>
-                <button onclick="closeDetail()" class="hover:bg-white/20 p-1 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+    </main>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     MODAL TAMBAH TOKO
+════════════════════════════════════════════════════ -->
+<div id="modalTambah" class="hidden fixed inset-0 bg-black/50 z-[99] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-md rounded-[24px] shadow-2xl overflow-hidden popup-enter max-h-[90vh] flex flex-col">
+        <div class="bg-primary p-6 flex justify-between items-center text-white shrink-0">
+            <h3 class="font-bold text-xl">Tambah Toko Baru</h3>
+            <button onclick="toggleModal(false)" class="hover:bg-white/20 p-1 rounded-full transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <form method="POST" class="p-8 flex flex-col gap-4 overflow-y-auto">
+            <input type="hidden" name="tambah_toko" value="1">
+
+            <?php if($error_toko != ""): ?>
+            <div class="px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium">
+                <?php echo $error_toko; ?>
             </div>
-            <div class="p-8 space-y-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Jam Operasional</p>
-                        <p id="detailJam" class="text-sm font-semibold text-text-1 mt-1"></p>
-                    </div>
-                    <div>
-                        <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Lokasi</p>
-                        <p id="detailLokasi" class="text-sm text-text-1 mt-1"></p>
-                    </div>
+            <?php endif; ?>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>
+                <input type="text" name="nama"
+                    oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')" maxlength="20"
+                    value="<?= isset($_POST['nama']) && $error_toko != '' ? htmlspecialchars($_POST['nama']) : '' ?>"
+                    placeholder="Masukkan username pemilik"
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Password</label>
+                <input type="password" name="password" placeholder="Masukkan password"
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Nama Toko</label>
+                <input type="text" name="nama_toko"
+                    value="<?= isset($_POST['nama_toko']) && $error_toko != '' ? htmlspecialchars($_POST['nama_toko']) : '' ?>"
+                    placeholder="Masukkan nama toko"
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Email</label>
+                <input type="email" name="email"
+                    value="<?= isset($_POST['email']) && $error_toko != '' ? htmlspecialchars($_POST['email']) : '' ?>"
+                    placeholder="contoh@mail.com"
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">No. Telepon</label>
+                <input type="tel" name="telepon"
+                    value="<?= isset($_POST['telepon']) && $error_toko != '' ? htmlspecialchars($_POST['telepon']) : '' ?>"
+                    placeholder="0812xxxx"
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
+                    <input type="time" name="jam_buka"
+                        value="<?= isset($_POST['jam_buka']) && $error_toko != '' ? htmlspecialchars($_POST['jam_buka']) : '07:00' ?>"
+                        class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
                 </div>
-                <hr class="border-gray-100">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Tutup</label>
+                    <input type="time" name="jam_tutup"
+                        value="<?= isset($_POST['jam_tutup']) && $error_toko != '' ? htmlspecialchars($_POST['jam_tutup']) : '15:00' ?>"
+                        class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                </div>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-submit text-white font-bold py-4 rounded-[15px] mt-2 shrink-0 shadow-lg shadow-submit/20 hover:opacity-90 active:scale-[0.98] transition-all">
+                Simpan Data Toko
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     MODAL DETAIL TOKO
+════════════════════════════════════════════════════ -->
+<div id="modalDetail" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-lg rounded-[24px] shadow-2xl overflow-hidden popup-enter">
+        <div class="bg-primary p-6 flex justify-between items-center text-white">
+            <h3 id="detailNamaToko" class="font-bold text-xl">Detail Toko</h3>
+            <button onclick="closeDetail()" class="hover:bg-white/20 p-1 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="p-8 space-y-6">
+            <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Deskripsi Toko</p>
-                    <p id="detailDeskripsi" class="text-sm text-text-2 mt-2 leading-relaxed italic"></p>
+                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Jam Operasional</p>
+                    <p id="detailJam" class="text-sm font-semibold text-text-1 mt-1"></p>
                 </div>
-                <button onclick="closeDetail()" class="w-full bg-input text-text-1 font-bold py-3 rounded-[15px] hover:bg-gray-200 transition-all">Tutup</button>
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Lokasi</p>
+                    <p id="detailLokasi" class="text-sm text-text-1 mt-1"></p>
+                </div>
             </div>
+            <hr class="border-gray-100">
+            <div>
+                <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Deskripsi Toko</p>
+                <p id="detailDeskripsi" class="text-sm text-text-2 mt-2 leading-relaxed italic"></p>
+            </div>
+            <button onclick="closeDetail()"
+                class="w-full bg-input text-text-1 font-bold py-3 rounded-[15px] hover:bg-gray-200 transition-all">Tutup</button>
         </div>
     </div>
+</div>
 
-    <?php if($error_toko != ""): ?>
-    <script>
-        window.onload = function(){ toggleModal(true); }
-    </script>
-    <?php endif; ?>
+<!-- ════════════════════════════════════════════════════
+     MODAL KELOLA STATUS TOKO
+════════════════════════════════════════════════════ -->
+<div id="modalNonaktif" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden popup-enter">
+        <div class="bg-red-500 p-6 flex justify-between items-center text-white">
+            <h3 class="font-bold text-xl">Kelola Status Toko</h3>
+            <button onclick="toggleModalNonaktif(false)" class="hover:bg-white/20 p-1 rounded-full transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <form method="POST" class="p-8 flex flex-col gap-4">
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">ID User Toko</label>
+                <input type="number" id="inputIdStatus" name="id_user_target"
+                    placeholder="Masukkan ID User Toko"
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-red-500/20" required>
+                <p class="text-xs text-text-3 mt-1">Lihat ID User pada tabel daftar toko.</p>
 
-    <script>
-        function toggleModal(show) {
-            const modal = document.getElementById('modalTambah');
-            if (show) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
+                <!-- Notif ID tidak ditemukan -->
+                <div id="statusError"
+                     class="hidden flex items-center gap-2 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    ID User tidak ditemukan di daftar toko!
+                </div>
+
+                <!-- Info status toko ditemukan -->
+                <div id="statusInfo"
+                     class="hidden flex items-center gap-2 mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="statusInfoText"></span>
+                </div>
+            </div>
+
+            <!-- Tombol aksi — hanya muncul sesuai status -->
+            <div id="statusButtonsContainer" class="flex flex-col gap-3 mt-2">
+                <!-- Tombol Aktifkan: muncul kalau toko sedang nonaktif -->
+                <button type="submit" id="btnAktifkan" name="aktifkan_toko"
+                    onclick="return confirm('Aktifkan toko ini?')"
+                    class="hidden w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-[15px] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Aktifkan Toko
+                </button>
+                <!-- Tombol Nonaktifkan: muncul kalau toko sedang aktif -->
+                <button type="submit" id="btnNonaktifkan" name="nonaktifkan_toko"
+                    onclick="return confirm('Nonaktifkan toko ini?')"
+                    class="hidden w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-[15px] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    Nonaktifkan Toko
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<?php if($error_toko != ""): ?>
+<script>window.onload = function(){ toggleModal(true); }</script>
+<?php endif; ?>
+
+<script>
+    /* ── Modal Tambah ─────────────────────────── */
+    function toggleModal(show) {
+        document.getElementById('modalTambah').classList.toggle('hidden', !show);
+    }
+
+    /* ── Modal Kelola Status ──────────────────── */
+    function toggleModalNonaktif(show) {
+        const modal = document.getElementById('modalNonaktif');
+        modal.classList.toggle('hidden', !show);
+        if (!show) resetStatusModal();
+    }
+
+    function resetStatusModal() {
+        document.getElementById('inputIdStatus').value = '';
+        document.getElementById('statusError').classList.add('hidden');
+        document.getElementById('statusInfo').classList.add('hidden');
+        document.getElementById('btnAktifkan').classList.add('hidden');
+        document.getElementById('btnNonaktifkan').classList.add('hidden');
+    }
+
+    /* ── Modal Detail ─────────────────────────── */
+    function showDetail(nama, lokasi, deskripsi, buka, tutup) {
+        document.getElementById('detailNamaToko').innerText  = nama;
+        document.getElementById('detailLokasi').innerText    = lokasi;
+        document.getElementById('detailDeskripsi').innerText = deskripsi;
+        document.getElementById('detailJam').innerText       = buka + " – " + tutup;
+        document.getElementById('modalDetail').classList.remove('hidden');
+    }
+    function closeDetail() {
+        document.getElementById('modalDetail').classList.add('hidden');
+    }
+
+    /* ── Klik backdrop untuk tutup modal ─────── */
+    window.addEventListener('click', function(e) {
+        if (e.target === document.getElementById('modalTambah'))   toggleModal(false);
+        if (e.target === document.getElementById('modalDetail'))   closeDetail();
+        if (e.target === document.getElementById('modalNonaktif')) toggleModalNonaktif(false);
+    });
+
+    /* ── Logika input ID User ─────────────────── */
+    document.getElementById('inputIdStatus').addEventListener('input', function() {
+        const id            = this.value.trim();
+        const statusError   = document.getElementById('statusError');
+        const statusInfo    = document.getElementById('statusInfo');
+        const statusInfoTxt = document.getElementById('statusInfoText');
+        const btnAktifkan   = document.getElementById('btnAktifkan');
+        const btnNonaktifkan= document.getElementById('btnNonaktifkan');
+
+        // Reset semua
+        statusError.classList.add('hidden');
+        statusInfo.classList.add('hidden');
+        btnAktifkan.classList.add('hidden');
+        btnNonaktifkan.classList.add('hidden');
+
+        if (!id) return; // Input kosong → tidak perlu cek
+
+        const row = document.querySelector(`.row-toko[data-iduser="${id}"]`);
+
+        if (!row) {
+            // ID tidak ditemukan
+            statusError.classList.remove('hidden');
+            return;
         }
 
-        function showDetail(nama, lokasi, deskripsi, buka, tutup) {
-            document.getElementById('detailNamaToko').innerText = nama;
-            document.getElementById('detailLokasi').innerText = lokasi;
-            document.getElementById('detailDeskripsi').innerText = deskripsi;
-            document.getElementById('detailJam').innerText = buka + " - " + tutup;
-            document.getElementById('modalDetail').classList.remove('hidden');
-        }
+        // ID ditemukan — baca status
+        const status = row.getAttribute('data-status');
+        const namaToko = row.querySelector('.text-text-1.truncate:nth-child(4)')?.innerText || 'toko ini';
 
-        function closeDetail() {
-            document.getElementById('modalDetail').classList.add('hidden');
+        if (status === 'aktif') {
+            // Toko aktif → hanya tampilkan tombol Nonaktifkan
+            statusInfoTxt.innerText = `Toko ditemukan · Status saat ini: Aktif`;
+            statusInfo.classList.remove('hidden');
+            statusInfo.className = statusInfo.className.replace('bg-blue-50 border-blue-200 text-blue-700', '');
+            statusInfo.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+            btnNonaktifkan.classList.remove('hidden');
+        } else {
+            // Toko nonaktif → hanya tampilkan tombol Aktifkan
+            statusInfoTxt.innerText = `Toko ditemukan · Status saat ini: Nonaktif`;
+            statusInfo.classList.remove('hidden');
+            statusInfo.className = statusInfo.className.replace('bg-green-50 border-green-200 text-green-700', '');
+            statusInfo.classList.add('bg-orange-50', 'border-orange-200', 'text-orange-700');
+            btnAktifkan.classList.remove('hidden');
         }
+    });
+</script>
 
-        window.onclick = function(event) {
-            const modalTambah = document.getElementById('modalTambah');
-            const modalDetail = document.getElementById('modalDetail');
-            if (event.target == modalTambah) toggleModal(false);
-            if (event.target == modalDetail) closeDetail();
-        }
-    </script>
 </body>
 </html>

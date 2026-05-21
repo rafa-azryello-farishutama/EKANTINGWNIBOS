@@ -103,17 +103,9 @@ if (isset($_POST['tambah_menu'])) {
     $harga_menu = $db_ekantin->real_escape_string($_POST['tambah_harga']);
     $stok_menu  = $db_ekantin->real_escape_string($_POST['tambah_stok']);
     $id_toko    = $_SESSION['id_toko'];
-
-    $result_user = $db_ekantin->query("SELECT id_users FROM toko WHERE id_toko='$id_toko'");
-    $row_user    = $result_user->fetch_assoc();
-    $id_user     = $row_user['id_users'];
-
-    $result_toko = $db_ekantin->query("SELECT username FROM users WHERE id_users='$id_user'");
-    $row_toko    = $result_toko->fetch_assoc();
-    $nama_toko   = $row_toko['username'];
     $tipe_produk = $_POST['tipe_pesanan'];
 
-    $nama_baru = null;
+    $nama_baru = null; // Default: tidak ada foto
 
     if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
         $nama_file     = $_FILES['foto_produk']['name'];
@@ -131,9 +123,9 @@ if (isset($_POST['tambah_menu'])) {
             header("Location: produk.php?error=format");
             exit;
         } else {
-            $nama_filter = preg_replace('/[^a-zA-Z0-9\s]/', '', $nama_menu);
-            $nama_bersih = str_replace(' ', '_', $nama_filter);
-            $nama_baru   = $id_toko . '_' . $nama_bersih . '_' . $nama_toko . '.' . $ekstensi_file;
+            // Gunakan id_toko + nama menu + timestamp + random untuk mencegah nama file sama
+            $nama_filter = preg_replace('/[^a-zA-Z0-9]/', '', $nama_menu);
+            $nama_baru   = $id_toko . '_' . $nama_filter . '_' . time() . '_' . rand(100, 999) . '.' . $ekstensi_file;
             $upload_path = $folder . $nama_baru;
 
             if (!move_uploaded_file($tmp_name, $upload_path)) {
@@ -142,10 +134,15 @@ if (isset($_POST['tambah_menu'])) {
             }
         }
     }
-
-    $nama_foto_baru = $db_ekantin->real_escape_string($nama_baru);
-    $sql = "INSERT INTO produk_kantin (id_toko, nama_menu, harga, stok, file_foto, tipe_produk)
-            VALUES ('$id_toko', '$nama_menu', '$harga_menu', '$stok_menu', '$nama_foto_baru', '$tipe_produk')";
+    // Jika tidak ada foto, file_foto disimpan sebagai NULL
+    if ($nama_baru !== null) {
+        $nama_foto_baru = $db_ekantin->real_escape_string($nama_baru);
+        $sql = "INSERT INTO produk_kantin (id_toko, nama_menu, harga, stok, file_foto, tipe_produk)
+                VALUES ('$id_toko', '$nama_menu', '$harga_menu', '$stok_menu', '$nama_foto_baru', '$tipe_produk')";
+    } else {
+        $sql = "INSERT INTO produk_kantin (id_toko, nama_menu, harga, stok, file_foto, tipe_produk)
+                VALUES ('$id_toko', '$nama_menu', '$harga_menu', '$stok_menu', NULL, '$tipe_produk')";
+    }
 
     $db_ekantin->query($sql);
     header("Location: produk.php");

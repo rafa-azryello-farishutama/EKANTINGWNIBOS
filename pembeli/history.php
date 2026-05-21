@@ -13,6 +13,11 @@ $_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $id_users = (int) $_SESSION['id_users'];
 
+// Update notifikasi pesanan terakhir dilihat
+$q_hash = $db_ekantin->query("SELECT GROUP_CONCAT(CONCAT(id_pesanan, '-', status_pesanan)) as hash FROM pesanan WHERE id_users='$id_users'");
+if ($q_hash) {
+    $_SESSION['last_seen_orders_hash'] = md5($q_hash->fetch_assoc()['hash'] ?? '');
+}
 // Proses pembatalan pesanan jika ada
 if (isset($_POST['batalkan_pesanan'])) {
     $id_batal = (int) $_POST['id_pesanan'];
@@ -309,12 +314,12 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <!-- Modal Review -->
-    <div id="modal-review" class="fixed inset-0 z-50 hidden">
+    <div id="modal-review" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-0">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="tutupModalReview()"></div>
         
         <!-- Modal Content -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="relative w-full max-w-md sm:max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-white flex-shrink-0">
                 <div>
                     <h2 class="text-text-1 font-extrabold text-xl">Beri Ulasan</h2>
@@ -353,6 +358,7 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
         function bukaModalReview(id_pesanan) {
             currentOrderId = id_pesanan;
             document.getElementById('modal-review').classList.remove('hidden');
+            document.getElementById('modal-review').classList.add('flex');
             document.getElementById('modal-review-body').innerHTML = `
                 <div class="flex justify-center p-8">
                     <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -377,6 +383,7 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
 
         function tutupModalReview() {
             document.getElementById('modal-review').classList.add('hidden');
+            document.getElementById('modal-review').classList.remove('flex');
             currentReviewItems = [];
             currentOrderId = null;
         }
