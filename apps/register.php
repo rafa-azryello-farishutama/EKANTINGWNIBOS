@@ -20,24 +20,29 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         $telepon = $_POST['phone'];
         $email = $_POST['email'];
 
-        $cekUsername = $db_ekantin->query("SELECT id_users FROM users WHERE username='$username'");
-            if($cekUsername->num_rows > 0){
-                $error_register = "Username sudah digunakan, silakan pilih yang lain.";
-                }
+        $stmtCekUser = $db_ekantin->prepare("SELECT id_users FROM users WHERE username = ?");
+        $stmtCekUser->bind_param("s", $username);
+        $stmtCekUser->execute();
+        $cekUsername = $stmtCekUser->get_result();
+        if($cekUsername->num_rows > 0){
+            $error_register = "Username sudah digunakan, silakan pilih yang lain.";
+        }
         
-        $cekEmail = $db_ekantin->query("SELECT id_users FROM users WHERE email='$email'");
-            if($cekEmail->num_rows > 0){
-                $error_register = "Email sudah terdaftar, silakan gunakan email lain.";
-                }
-
+        $stmtCekEmail = $db_ekantin->prepare("SELECT id_users FROM users WHERE email = ?");
+        $stmtCekEmail->bind_param("s", $email);
+        $stmtCekEmail->execute();
+        $cekEmail = $stmtCekEmail->get_result();
+        if($cekEmail->num_rows > 0){
+            $error_register = "Email sudah terdaftar, silakan gunakan email lain.";
+        }
 
         if($error_register == ""){
-        $hash_password = password_hash($password, PASSWORD_DEFAULT);
+            $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
-        $cek = "INSERT INTO users(username, password, role, no_telepon, email) 
-                VALUES('$username','$hash_password','$role','$telepon','$email')";
+            $stmtInsert = $db_ekantin->prepare("INSERT INTO users(username, password, role, no_telepon, email) VALUES(?, ?, ?, ?, ?)");
+            $stmtInsert->bind_param("sssss", $username, $hash_password, $role, $telepon, $email);
 
-            if($db_ekantin->query($cek)){
+            if($stmtInsert->execute()){
                 $show_popup = true;
             }
         }

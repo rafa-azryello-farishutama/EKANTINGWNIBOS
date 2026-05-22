@@ -103,17 +103,9 @@ if (isset($_POST['tambah_menu'])) {
     $harga_menu = $db_ekantin->real_escape_string($_POST['tambah_harga']);
     $stok_menu  = $db_ekantin->real_escape_string($_POST['tambah_stok']);
     $id_toko    = $_SESSION['id_toko'];
-
-    $result_user = $db_ekantin->query("SELECT id_users FROM toko WHERE id_toko='$id_toko'");
-    $row_user    = $result_user->fetch_assoc();
-    $id_user     = $row_user['id_users'];
-
-    $result_toko = $db_ekantin->query("SELECT username FROM users WHERE id_users='$id_user'");
-    $row_toko    = $result_toko->fetch_assoc();
-    $nama_toko   = $row_toko['username'];
     $tipe_produk = $_POST['tipe_pesanan'];
 
-    $nama_baru = null;
+    $nama_baru = null; // Default: tidak ada foto
 
     if (isset($_FILES['foto_produk']) && $_FILES['foto_produk']['error'] === UPLOAD_ERR_OK) {
         $nama_file     = $_FILES['foto_produk']['name'];
@@ -131,9 +123,9 @@ if (isset($_POST['tambah_menu'])) {
             header("Location: produk.php?error=format");
             exit;
         } else {
-            $nama_filter = preg_replace('/[^a-zA-Z0-9\s]/', '', $nama_menu);
-            $nama_bersih = str_replace(' ', '_', $nama_filter);
-            $nama_baru   = $id_toko . '_' . $nama_bersih . '_' . $nama_toko . '.' . $ekstensi_file;
+            // Gunakan id_toko + nama menu + timestamp + random untuk mencegah nama file sama
+            $nama_filter = preg_replace('/[^a-zA-Z0-9]/', '', $nama_menu);
+            $nama_baru   = $id_toko . '_' . $nama_filter . '_' . time() . '_' . rand(100, 999) . '.' . $ekstensi_file;
             $upload_path = $folder . $nama_baru;
 
             if (!move_uploaded_file($tmp_name, $upload_path)) {
@@ -142,10 +134,15 @@ if (isset($_POST['tambah_menu'])) {
             }
         }
     }
-
-    $nama_foto_baru = $db_ekantin->real_escape_string($nama_baru);
-    $sql = "INSERT INTO produk_kantin (id_toko, nama_menu, harga, stok, file_foto, tipe_produk)
-            VALUES ('$id_toko', '$nama_menu', '$harga_menu', '$stok_menu', '$nama_foto_baru', '$tipe_produk')";
+    // Jika tidak ada foto, file_foto disimpan sebagai NULL
+    if ($nama_baru !== null) {
+        $nama_foto_baru = $db_ekantin->real_escape_string($nama_baru);
+        $sql = "INSERT INTO produk_kantin (id_toko, nama_menu, harga, stok, file_foto, tipe_produk)
+                VALUES ('$id_toko', '$nama_menu', '$harga_menu', '$stok_menu', '$nama_foto_baru', '$tipe_produk')";
+    } else {
+        $sql = "INSERT INTO produk_kantin (id_toko, nama_menu, harga, stok, file_foto, tipe_produk)
+                VALUES ('$id_toko', '$nama_menu', '$harga_menu', '$stok_menu', NULL, '$tipe_produk')";
+    }
 
     $db_ekantin->query($sql);
     header("Location: produk.php");
@@ -365,18 +362,20 @@ $nama_toko_display = htmlspecialchars($data_toko['nama_toko'] ?? 'Toko Saya');
                         $file_foto_js = addslashes($row['file_foto']);
                         $pesan        = $tipe_produk == 'makanan' ? 'porsi' : 'gelas';
                         $foto_src     = $file_foto ? "../assets/img_produk/$file_foto" : "../assets/img/no-image.png";
+                        $status_menu  = $row['status_menu'];
 
                         echo "
                         <div class='bg-second-primary rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group'>
-                            <div class='h-[140px] bg-gray-200 w-full overflow-hidden'>
+                            <div class='h-[140px] bg-gray-200 w-full overflow-hidden relative'>
                                 <img src='$foto_src' alt='$nama' class='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'>
+                                " . ($status_menu === 'nonaktif' ? "<span class='absolute top-2 left-2 text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded shadow-sm z-10'>Nonaktif</span>" : "") . "
                             </div>
                             <div class='p-3 sm:p-4 flex flex-col gap-1 flex-1'>
                                 <h3 class='font-bold text-text-1 text-sm sm:text-base line-clamp-1'>$nama</h3>
                                 <p class='text-primary font-bold text-sm sm:text-base'>Rp $harga</p>
                                 <p class='text-text-3 text-xs font-medium'>Stok: $stok $pesan</p>
                                 <div class='mt-auto pt-3'>
-                                    <button onclick='tampilkanMode($id_produk,&quot;$nama_js&quot;,$harga_asli,$stok,&quot;$tipe_js&quot;,&quot;$file_foto_js&quot;)'
+                                    <button onclick='tampilkanMode($id_produk,&quot;$nama_js&quot;,$harga_asli,$stok,&quot;$tipe_js&quot;,&quot;$file_foto_js&quot;,&quot;$status_menu&quot;)'
                                         class='w-full bg-input text-submit border border-submit rounded-xl py-2 text-xs sm:text-sm font-bold hover:bg-submit hover:text-white transition-colors'>
                                         Edit Menu
                                     </button>

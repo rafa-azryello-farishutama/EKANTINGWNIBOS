@@ -62,13 +62,21 @@ if (!isStoreOpenBackend($tokoVal)) {
 
 // Proses Upload Bukti Pembayaran
 $metode_pembayaran = $_POST['metode_pembayaran'] ?? 'transfer';
-$file_input_name = ($metode_pembayaran === 'qr') ? 'bukti_qr' : 'bukti_transfer';
+$file_input_name = 'bukti_bayar';
 $bukti_pembayaran = NULL;
 
 if (isset($_FILES[$file_input_name]) && $_FILES[$file_input_name]['error'] === UPLOAD_ERR_OK) {
     $fileTmpPath = $_FILES[$file_input_name]['tmp_name'];
     $fileName = $_FILES[$file_input_name]['name'];
     $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    
+    // Validasi ekstensi bukti pembayaran
+    $ekstensi_valid = ['jpg', 'jpeg', 'png', 'webp'];
+    if (!in_array($fileExtension, $ekstensi_valid)) {
+        $_SESSION['pesan_error'] = "Format bukti pembayaran salah! Hanya diperbolehkan JPG, JPEG, PNG, atau WEBP.";
+        header("Location: pesan.php?id_toko=" . $id_toko);
+        exit;
+    }
     
     // Generate nama file yang unik untuk menghindari tabrakan nama file
     $newFileName = time() . '_' . md5(uniqid()) . '.' . $fileExtension;
@@ -97,22 +105,55 @@ if (isset($_FILES[$file_input_name]) && $_FILES[$file_input_name]['error'] === U
 $db_ekantin->begin_transaction();
 
 try {
+    // A. Validasi Harga & Kecukupan Stok Sisi Server (dengan penguncian data / lock)
+    $calculated_total = 0;
+    $stmtCekProduk = $db_ekantin->prepare("SELECT nama_menu, harga, stok FROM produk_kantin WHERE id_produk = ? AND id_toko = ? FOR UPDATE");
+    
+    foreach ($cart_data as $item) {
+        $id_produk = (int) $item['id'];
+        $jumlah    = (int) $item['qty'];
+
+        $stmtCekProduk->bind_param("ii", $id_produk, $id_toko);
+        $stmtCekProduk->execute();
+        $resProduk = $stmtCekProduk->get_result();
+        
+        if ($resProduk->num_rows === 0) {
+            throw new Exception("Salah satu produk tidak ditemukan di toko ini.");
+        }
+        
+        $produk = $resProduk->fetch_assoc();
+        
+        // Validasi Stok
+        if ($produk['stok'] < $jumlah) {
+            throw new Exception("Stok untuk produk '" . $produk['nama_menu'] . "' tidak cukup! Tersisa: " . $produk['stok']);
+        }
+        
+        // Akumulasi harga
+        $calculated_total += (int) $produk['harga'] * $jumlah;
+    }
+
+    // Validasi Total Harga
+    if ($calculated_total !== $total_harga) {
+        throw new Exception("Total harga pembayaran tidak cocok dengan rincian keranjang belanja.");
+    }
+
     // 1. Simpan ke tabel pesanan
     $status_awal = 'pending';
     // Gunakan prepared statement untuk keamanan dari SQL injection
-    $stmtPesanan = $db_ekantin->prepare("INSERT INTO pesanan (id_users, id_toko, total_harga, status_pesanan, catatan, metode_pembayaran, bukti_pembayaran) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmtPesanan->bind_param("iiissss", $id_users, $id_toko, $total_harga, $status_awal, $catatan, $metode_pembayaran, $bukti_pembayaran);
+    $stmtPesanan = $db_ekantin->prepare("INSERT INTO pesanan (id_users, id_toko, total_harga, status_pesanan, catatan) VALUES (?, ?, ?, ?, ?)");
+    $stmtPesanan->bind_param("iiiss", $id_users, $id_toko, $total_harga, $status_awal, $catatan);
     $stmtPesanan->execute();
     
     // Dapatkan ID pesanan yang baru saja dibuat
     $id_pesanan = $db_ekantin->insert_id;
 
+    // Simpan data pembayaran ke tabel pembayaran
+    $status_bayar = 'sudah_bayar'; // Pembeli mengunggah bukti
+    $stmtPembayaran = $db_ekantin->prepare("INSERT INTO pembayaran (id_pesanan, id_toko, metode_bayar, jumlah_bayar, bukti_bayar, status_bayar) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmtPembayaran->bind_param("iisdss", $id_pesanan, $id_toko, $metode_pembayaran, $total_harga, $bukti_pembayaran, $status_bayar);
+    $stmtPembayaran->execute();
+
     // 2. Simpan setiap item ke tabel detail_pesanan
-    // (Diasumsikan tabel detail_pesanan minimal butuh: id_pesanan, id_produk, jumlah)
-    // Harga per item biasanya diambil dari tabel produk_kantin, tapi karena total_harga
-    // sudah disimpan, kita simpan jumlahnya saja. 
-    // Kita kurangi juga stok kantin (opsional, tapi disarankan).
-    
     $stmtDetail = $db_ekantin->prepare("INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah) VALUES (?, ?, ?)");
     $stmtKurangiStok = $db_ekantin->prepare("UPDATE produk_kantin SET stok = stok - ? WHERE id_produk = ?");
     $stmtHapusKeranjang = $db_ekantin->prepare("DELETE FROM keranjang WHERE id_users = ? AND id_produk = ?");
@@ -145,6 +186,14 @@ try {
 } catch (Exception $e) {
     // Rollback jika ada yang gagal
     $db_ekantin->rollback();
-    die("Terjadi kesalahan sistem: " . $e->getMessage());
+    
+    // Hapus file bukti pembayaran yang telanjur diunggah
+    if ($bukti_pembayaran && isset($uploadFileDir) && file_exists($uploadFileDir . $bukti_pembayaran)) {
+        unlink($uploadFileDir . $bukti_pembayaran);
+    }
+    
+    $_SESSION['pesan_error'] = "Gagal memproses pesanan: " . $e->getMessage();
+    header("Location: pesan.php?id_toko=" . $id_toko);
+    exit;
 }
 ?>

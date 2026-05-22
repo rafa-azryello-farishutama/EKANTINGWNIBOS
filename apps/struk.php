@@ -15,10 +15,11 @@ if ($id_pesanan <= 0) {
 }
 
 // Ambil data pesanan
-$query = "SELECT p.*, t.nama_toko, u.username AS nama_pelanggan
+$query = "SELECT p.*, t.nama_toko, u.username AS nama_pelanggan, pay.metode_bayar as metode_pembayaran
           FROM pesanan p
           JOIN toko t ON p.id_toko = t.id_toko
           JOIN users u ON p.id_users = u.id_users
+          LEFT JOIN pembayaran pay ON p.id_pesanan = pay.id_pesanan
           WHERE p.id_pesanan = ?";
 $stmt = $db_ekantin->prepare($query);
 $stmt->bind_param("i", $id_pesanan);

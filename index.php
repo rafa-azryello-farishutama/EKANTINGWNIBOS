@@ -9,8 +9,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    $sql = "SELECT * FROM users WHERE username='$username'";
-    $cek = $db_ekantin->query($sql);
+    $stmt = $db_ekantin->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $cek = $stmt->get_result();
 
     if ($cek->num_rows > 0) {
         $data = $cek->fetch_assoc();
@@ -92,7 +94,12 @@ if ($show_popup) {
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
-<body class="bg-background min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll">
+<body
+    class="bg-cover bg-center bg-no-repeat min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll"
+    style="background-image: url('assets/img/fotoBackground3.jpg');">
+
+    <!-- Overlay untuk membuat background tidak terlalu mencolok agar teks tetap terbaca -->
+    <div class="fixed inset-0 bg-white/60 backdrop-blur-sm z-0"></div>
 
     <div
         class="absolute top-4 left-1/2 mb-[20px] -translate-x-1/2 md:top-8 md:left-10 md:translate-x-0 lg:left-12 z-20">
@@ -153,6 +160,7 @@ if ($show_popup) {
 
             </div>
 
+            <!-- Link-link bawah -->
             <div class="mt-8 text-center flex flex-col gap-3">
                 <p class="text-text-1 font-medium text-sm">
                     Tidak punya Akun? <a
@@ -162,6 +170,12 @@ if ($show_popup) {
                 <p class="text-text-1 font-medium text-sm">
                     Lupa Sandi? <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2"
                         href="apps/lupaSandi.php">Ikuti Langkah berikut</a>
+                </p>
+                <!-- Tambahan: daftar sebagai penjual -->
+                <p class="text-text-1 font-medium text-sm">
+                    Ingin berjualan? <a
+                        class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2"
+                        href="apps/daftarPenjual.php">Daftar sebagai Penjual</a>
                 </p>
             </div>
 

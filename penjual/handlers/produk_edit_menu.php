@@ -37,8 +37,8 @@ if (isset($_FILES['foto_produk_edit']) && $_FILES['foto_produk_edit']['error'] =
     $id_toko   = $row_info['id_toko'];
     $nama_toko = $row_info['username'];
 
-    $nama_bersih    = str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/', '', $nama_produk));
-    $nama_foto_baru = $id_toko . '_' . $nama_bersih . '_' . $nama_toko . '.' . $ekstensi_file;
+    $nama_bersih    = preg_replace('/[^a-zA-Z0-9]/', '', $nama_produk);
+    $nama_foto_baru = $id_toko . '_' . $nama_bersih . '_' . time() . '_' . rand(100, 999) . '.' . $ekstensi_file;
 
     if (!move_uploaded_file($tmp_name, $folder . $nama_foto_baru)) {
         header("Location: produk.php?error=upload$params");
@@ -52,12 +52,15 @@ if (isset($_FILES['foto_produk_edit']) && $_FILES['foto_produk_edit']['error'] =
     $nama_foto_simpan = $nama_foto_baru;
 }
 
+$status_menu  = isset($_POST['edit_status']) ? $db_ekantin->real_escape_string($_POST['edit_status']) : 'aktif';
+
 $nama_foto_escaped = $db_ekantin->real_escape_string($nama_foto_simpan);
 $db_ekantin->query("UPDATE produk_kantin 
                     SET nama_menu   = '$nama_produk',
                         harga       = '$harga_produk',
                         stok        = '$stok_produk',
                         tipe_produk = '$tipe_produk',
+                        status_menu = '$status_menu',
                         file_foto   = '$nama_foto_escaped'
                     WHERE id_produk = '$id_produk'");
 

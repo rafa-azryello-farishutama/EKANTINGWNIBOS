@@ -2,10 +2,13 @@
 session_start();
 include '../config/koneksi.php';
 
-if(!isset($_SESSION['id_users']) || $_SESSION['role'] != 'pembeli'){
+if(!isset($_SESSION['pembeli_id_users'])){
     header("Location: ../index.php");
     exit;
 }
+$_SESSION['id_users'] = $_SESSION['pembeli_id_users'];
+$_SESSION['username'] = $_SESSION['pembeli_username'];
+$_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $halaman = basename($_SERVER['PHP_SELF']);
 
@@ -14,6 +17,12 @@ if (isset($_POST['cari_pembeli']) && isset($_POST['keyword'])) {
     $keyword = $db_ekantin->real_escape_string(trim($_POST['keyword']));
 } elseif (isset($_GET['keyword'])) {
     $keyword = $db_ekantin->real_escape_string(trim($_GET['keyword']));
+}
+
+// Filter tipe menu (makanan/minuman) — DITAMBAHKAN
+$filter_tipe = '';
+if (isset($_GET['tipe']) && in_array($_GET['tipe'], ['makanan', 'minuman'])) {
+    $filter_tipe = $_GET['tipe'];
 }
 
 function isStoreOpen($toko) {
@@ -34,7 +43,6 @@ function isStoreOpen($toko) {
     }
 }
 
-// Periksa apakah kantin tertentu dipilih
 $id_toko_selected = isset($_GET['id_toko']) ? (int)$_GET['id_toko'] : null;
 $store_details    = null;
 
@@ -60,13 +68,34 @@ if ($id_toko_selected) {
     <title>Pesan Menu</title>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .custom-hero-slider {
+            height: 150px;
+        }
+        .custom-store-banner-default {
+            height: 150px;
+        }
+        .custom-store-banner-image {
+            height: 170px;
+        }
+        @media (min-width: 640px) {
+            .custom-hero-slider { height: 180px; }
+            .custom-store-banner-default { height: 180px; }
+            .custom-store-banner-image { height: 200px; }
+        }
+        @media (min-width: 1024px) {
+            .custom-hero-slider { height: 210px; }
+            .custom-store-banner-default { height: 210px; }
+            .custom-store-banner-image { height: 240px; }
+        }
+    </style>
 </head>
 <body class="bg-background text-text-1 selection:bg-primary selection:text-white">
 <div class="flex min-h-screen relative">
 
     <?php include 'navbar.php'; ?>
 
-    <main class="lg:ml-80 flex-grow w-full px-3 sm:px-8 pb-8 pt-20 lg:pt-8">
+    <main class="lg:ml-80 flex-grow w-full px-3 sm:px-8 pt-20 lg:pt-8" style="padding-bottom: 7rem;">
         <div class="w-full max-w-5xl mx-auto flex flex-col gap-3 md:gap-6">
 
             <?php if (isset($_SESSION['pesan_error'])): ?>
@@ -127,7 +156,7 @@ if ($id_toko_selected) {
 
             <!-- Search Bar -->
             <div class="w-full animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.15s;">
-                <form method="POST" action="pesan.php<?= $id_toko_selected ? '?id_toko=' . $id_toko_selected : '' ?>" class="flex gap-3">
+                <form method="POST" action="pesan.php<?= $id_toko_selected ? '?id_toko=' . $id_toko_selected . ($filter_tipe ? '&tipe=' . $filter_tipe : '') : '' ?>" class="flex gap-3">
                     <div class="flex flex-1 items-center gap-3 bg-input rounded-xl px-4 h-12 focus-within:ring-2 focus-within:ring-primary transition-all">
                         <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -138,7 +167,7 @@ if ($id_toko_selected) {
                                value="<?= htmlspecialchars($keyword) ?>"
                                class="w-full h-12 bg-transparent border-none outline-none text-text-1 placeholder-gray-500 text-sm focus:ring-0 p-0">
                         <?php if ($keyword !== ''): ?>
-                            <a href="pesan.php<?= $id_toko_selected ? '?id_toko=' . $id_toko_selected : '' ?>"
+                            <a href="pesan.php<?= $id_toko_selected ? '?id_toko=' . $id_toko_selected . ($filter_tipe ? '&tipe=' . $filter_tipe : '') : '' ?>"
                                class="text-text-3 hover:text-text-1 text-sm font-medium pr-1">Reset</a>
                         <?php endif; ?>
                     </div>
@@ -151,46 +180,136 @@ if ($id_toko_selected) {
 
             <?php if (!$store_details): ?>
             <?php
-            $bannerUtamaSrc = "../assets/img/default_banner_app.jpg";
+            $slides = [];
+            $slides[] = [
+                'type'  => 'image',
+                'image' => '../assets/img/default_banner_app.jpg',
+                'badge' => '🔥 KANTIN PILIHAN',
+                'title' => 'Temukan Makanan<br>Favoritmu Hari Ini!',
+                'desc'  => 'Berbagai pilihan kantin sekolah tersedia.',
+                'url'   => 'pesan.php'
+            ];
+
+            $qSlides = $db_ekantin->query("SELECT * FROM toko LIMIT 5");
+            if ($qSlides && $qSlides->num_rows > 0) {
+                while ($tSlide = $qSlides->fetch_assoc()) {
+                    $banner    = $tSlide['banner_toko'] ?? null;
+                    $bannerSrc = ($banner && file_exists("../assets/img_banner/$banner"))
+                        ? "../assets/img_banner/$banner"
+                        : '../assets/img/default_banner_app.jpg';
+                    $isOpen  = isStoreOpen($tSlide);
+                    $slides[] = [
+                        'type'  => 'image',
+                        'image' => $bannerSrc,
+                        'badge' => '🏪 KANTIN: ' . strtoupper($tSlide['nama_toko']),
+                        'title' => 'Nikmati Hidangan Lezat<br>di <span class="text-yellow-300">' . htmlspecialchars($tSlide['nama_toko']) . '</span>',
+                        'desc'  => 'Lokasi: ' . htmlspecialchars($tSlide['lokasi'] ?? 'Kantin Sekolah') . ' | Status: ' . ($isOpen ? '🟢 Buka' : '🔴 Tutup'),
+                        'url'   => 'pesan.php?id_toko=' . $tSlide['id_toko']
+                    ];
+                }
+            }
             ?>
-            <div class="opacity-0 animate-fadeInUp" style="animation-delay:0.2s;">
-                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-wrap w-full h-32 sm:h-40 md:h-48">
-
-                    <?php if ($bannerUtamaSrc): ?>
-                        <!-- Banner dari toko (image) -->
-                        <img src="<?= $bannerUtamaSrc ?>" alt="Banner Kantin"
-                             class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-                        <!-- Teks overlay -->
-                        <div class="absolute inset-0 flex items-center px-4 sm:px-8">
-                            <div class="relative z-10 max-w-[65%] sm:max-w-none">
-                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 sm:mb-3"
-                                      style="background:rgba(255,255,255,0.25);color:#fff;">🔥 Kantin Pilihan</span>
-                                <h3 class="text-white font-extrabold leading-tight banner-title drop-shadow-md">Temukan Makanan<br>Favoritmu Hari Ini!</h3>
-                                <p class="text-white/80 text-xs mt-1 drop-shadow-sm">Berbagai pilihan kantin sekolah tersedia.</p>
+            <div class="opacity-0 animate-fadeInUp" style="animation-delay: 0.2s;">
+                <div class="relative w-full overflow-hidden rounded-2xl shadow-md select-none group custom-hero-slider" id="hero-slider">
+                    <div class="flex transition-transform duration-500 ease-out h-full w-full" id="slider-track">
+                        <?php foreach ($slides as $idx => $slide): ?>
+                            <div class="min-w-full h-full relative flex-shrink-0">
+                                <img src="<?= $slide['image'] ?>" class="absolute inset-0 w-full h-full object-cover object-center" alt="Banner">
+                                <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/35 to-transparent"></div>
+                                <div class="absolute inset-0 flex items-center px-6 sm:px-12">
+                                    <div class="relative z-10 text-white max-w-[85%]">
+                                        <span class="inline-block text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-white/20 backdrop-blur-sm">
+                                            <?= $slide['badge'] ?>
+                                        </span>
+                                        <h3 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight drop-shadow-md">
+                                            <?= $slide['title'] ?>
+                                        </h3>
+                                        <p class="text-white/80 text-xs sm:text-sm mt-1 drop-shadow-sm font-medium">
+                                            <?= $slide['desc'] ?>
+                                        </p>
+                                        <a href="<?= $slide['url'] ?>" class="mt-3 inline-flex items-center gap-2 bg-white text-primary font-extrabold text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-yellow-50 hover:shadow-md transition-all">
+                                            Pesan Sekarang
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    <?php else: ?>
-                        <!-- Fallback gradient hijau -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-primary to-[#00a800]"></div>
-                        <div class="min-w-full h-full relative flex items-center px-4 sm:px-8">
-                            <div class="relative z-10 max-w-[65%] sm:max-w-none">
-                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1.5 sm:mb-3"
-                                      style="background:rgba(255,255,255,0.2);color:#fff;">🔥 Kantin Pilihan</span>
-                                <h3 class="text-white font-extrabold leading-tight banner-title">Temukan Makanan<br>Favoritmu Hari Ini!</h3>
-                                <p class="text-green-200 text-xs mt-1">Berbagai pilihan kantin sekolah tersedia.</p>
-                            </div>
-                            <div class="absolute right-3 sm:right-6 bottom-0 opacity-30 leading-none banner-deco">🍱</div>
-                        </div>
-                    <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
 
+                    <button id="slide-prev" class="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <button id="slide-next" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 backdrop-blur-sm text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+
+                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                        <?php foreach ($slides as $idx => $slide): ?>
+                            <span class="slide-dot w-2 h-2 rounded-full bg-white/40 hover:bg-white cursor-pointer transition-all duration-300 <?= $idx === 0 ? 'bg-white !w-5' : '' ?>" data-index="<?= $idx ?>"></span>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
+
+            <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const track  = document.getElementById('slider-track');
+                const prevBtn = document.getElementById('slide-prev');
+                const nextBtn = document.getElementById('slide-next');
+                const dots   = document.querySelectorAll('.slide-dot');
+                const slider = document.getElementById('hero-slider');
+                if (!track || !slider) return;
+
+                let index = 0;
+                const max = <?= count($slides) ?>;
+                let startX = 0, currentX = 0, isDragging = false;
+                let autoPlay = setInterval(nextSlide, 4000);
+
+                function updateSlider() {
+                    track.style.transform = `translateX(-${index * 100}%)`;
+                    dots.forEach((dot, i) => {
+                        if (i === index) { dot.classList.add('bg-white', '!w-5'); dot.classList.remove('bg-white/40'); }
+                        else             { dot.classList.remove('bg-white', '!w-5'); dot.classList.add('bg-white/40'); }
+                    });
+                }
+                function nextSlide() { index = (index + 1) % max; updateSlider(); }
+                function prevSlide() { index = (index - 1 + max) % max; updateSlider(); }
+                function resetTimer() { clearInterval(autoPlay); autoPlay = setInterval(nextSlide, 4000); }
+
+                if (prevBtn) prevBtn.addEventListener('click', () => { prevSlide(); resetTimer(); });
+                if (nextBtn) nextBtn.addEventListener('click', () => { nextSlide(); resetTimer(); });
+                dots.forEach(dot => dot.addEventListener('click', e => { index = parseInt(e.target.dataset.index); updateSlider(); resetTimer(); }));
+
+                track.addEventListener('mousedown', dragStart);
+                track.addEventListener('touchstart', dragStart, { passive: true });
+                window.addEventListener('mousemove', dragMove);
+                window.addEventListener('touchmove', dragMove, { passive: true });
+                window.addEventListener('mouseup', dragEnd);
+                window.addEventListener('touchend', dragEnd);
+
+                function dragStart(e) { isDragging = true; startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX; clearInterval(autoPlay); track.style.transition = 'none'; }
+                function dragMove(e)  { if (!isDragging) return; currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX; const p = ((currentX - startX) / slider.offsetWidth) * 100; track.style.transform = `translateX(calc(-${index * 100}% + ${p}%))`; }
+                function dragEnd(e)   {
+                    if (!isDragging) return; isDragging = false;
+                    track.style.transition = 'transform 0.5s ease-out';
+                    const diffX = currentX - startX;
+                    if (Math.abs(diffX) > slider.offsetWidth * 0.15 && diffX !== 0) { diffX > 0 ? prevSlide() : nextSlide(); }
+                    else { updateSlider(); }
+                    resetTimer();
+                }
+            });
+            </script>
 
             <!-- STORE GRID -->
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                 <?php
-                $sqlKantin = "SELECT t.*, (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko) as total_menu FROM toko t";
+                $sqlKantin = "SELECT t.*, 
+                    (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko AND status_menu = 'aktif') as total_menu
+                    FROM toko t";
                 if ($keyword !== '') {
                     $sqlKantin .= " WHERE t.nama_toko LIKE '%$keyword%' OR t.lokasi LIKE '%$keyword%'";
                 }
@@ -210,9 +329,7 @@ if ($id_toko_selected) {
                     style="animation-delay:<?= 0.15 + ($i * 0.05) ?>s;">
                     <div class="store-icon w-full h-28 sm:h-32 flex-shrink-0 bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 relative overflow-hidden">
                         <?php if ($banner_src && file_exists($banner_src)): ?>
-                            <img src="<?= htmlspecialchars($banner_src) ?>"
-                                 alt="Banner"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                            <img src="<?= htmlspecialchars($banner_src) ?>" alt="Banner" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                         <?php else: ?>
                             <span class="text-primary font-bold text-3xl"><?= $initial ?></span>
                         <?php endif; ?>
@@ -246,11 +363,8 @@ if ($id_toko_selected) {
                 <?php endif; ?>
             </div>
 
-
             <?php else: ?>
-            <!-- ═══════════════════════════════════════════ -->
-            <!--  VIEW 2: Produk Toko                        -->
-            <!-- ═══════════════════════════════════════════ -->
+            <!-- VIEW 2: Produk Toko -->
             <div class="flex flex-col gap-3 md:gap-6">
                 <?php
                 $is_open = isStoreOpen($store_details);
@@ -266,65 +380,83 @@ if ($id_toko_selected) {
                 </div>
                 <?php endif; ?>
 
-                <!-- BANNER TOKO
-                     Prioritas: banner_toko dari toko ini → fallback gradient coklat default -->
+                <!-- BANNER TOKO -->
                 <?php
                 $banner_toko_detail = $store_details['banner_toko'] ?? null;
-                $banner_detail_src  = $banner_toko_detail
-                                      ? "../assets/img_banner/" . htmlspecialchars($banner_toko_detail)
-                                      : null;
-                
-                // Tinggi dinamis: Besar jika ada foto, sedang jika tidak ada (default)
-                $banner_height_class = $banner_detail_src ? 'h-40 sm:h-48 md:h-64' : 'h-32 sm:h-40 md:h-48';
+                $banner_detail_src  = $banner_toko_detail ? "../assets/img_banner/" . htmlspecialchars($banner_toko_detail) : null;
+                $banner_height_class = $banner_detail_src ? 'custom-store-banner-image' : 'custom-store-banner-default';
                 ?>
                 <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full <?= $banner_height_class ?> transition-all duration-300">
-
                     <?php if ($banner_detail_src): ?>
-                        <!-- Banner custom dari penjual (image) -->
-                        <img src="<?= $banner_detail_src ?>" alt="Banner <?= htmlspecialchars($store_details['nama_toko']) ?>"
-                             class="w-full h-full object-cover">
+                        <img src="<?= $banner_detail_src ?>" alt="Banner <?= htmlspecialchars($store_details['nama_toko']) ?>" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-                        <!-- Teks overlay -->
                         <div class="absolute inset-0 flex items-center px-4 sm:px-7 overflow-hidden">
                             <div class="relative z-10 max-w-[70%] sm:max-w-none">
-                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1"
-                                      style="background:rgba(255,255,255,0.25);color:#fff;">✨ Menu Spesial</span>
-                                <h3 class="text-white font-extrabold leading-tight banner-store-title drop-shadow-md">
-                                    <?= htmlspecialchars($store_details['nama_toko']) ?>
-                                </h3>
+                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1" style="background:rgba(255,255,255,0.25);color:#fff;">✨ Menu Spesial</span>
+                                <h3 class="text-white font-extrabold leading-tight banner-store-title drop-shadow-md"><?= htmlspecialchars($store_details['nama_toko']) ?></h3>
                                 <p class="text-white/80 text-xs mt-1 drop-shadow-sm">Lihat dan pilih menu favoritmu di bawah.</p>
                             </div>
                         </div>
                     <?php else: ?>
-                        <!-- Fallback: gradient coklat default -->
                         <div class="absolute inset-0 bg-gradient-to-br from-[#4a2800] to-[#b86600]"></div>
                         <div class="min-w-full h-full relative flex items-center px-4 sm:px-7 overflow-hidden">
                             <div class="relative z-10 max-w-[70%] sm:max-w-none">
-                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1"
-                                      style="background:rgba(255,255,255,0.2);color:#fff;">✨ Menu Spesial</span>
+                                <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1" style="background:rgba(255,255,255,0.2);color:#fff;">✨ Menu Spesial</span>
                                 <h3 class="text-white font-extrabold leading-tight banner-store-title">Pesan Makanan<br>Dari Kantin Ini</h3>
                                 <p class="text-white/70 text-xs mt-1">Lihat dan pilih menu favoritmu di bawah.</p>
                             </div>
                             <div class="absolute right-3 sm:right-5 bottom-0 opacity-25 leading-none banner-store-deco">🍽️</div>
                         </div>
                     <?php endif; ?>
+                </div>
 
+                <!-- FILTER MAKANAN/MINUMAN — tampil di semua ukuran layar -->
+                <?php
+                $base_url    = "pesan.php?id_toko=$id_toko_selected";
+                $url_semua   = $base_url . ($keyword ? '&keyword=' . urlencode($keyword) : '');
+                $url_makanan = $base_url . '&tipe=makanan' . ($keyword ? '&keyword=' . urlencode($keyword) : '');
+                $url_minuman = $base_url . '&tipe=minuman' . ($keyword ? '&keyword=' . urlencode($keyword) : '');
+
+                $cls_aktif    = 'flex-1 py-2 rounded-full text-xs font-bold bg-primary text-white shadow-md transition-all text-center';
+                $cls_nonaktif = 'flex-1 py-2 rounded-full text-xs font-bold bg-input text-text-3 hover:bg-gray-200 transition-all text-center';
+                ?>
+                <div class="flex gap-2 w-full animate-[fadeInUp_0.4s_ease-out_forwards] opacity-0" style="animation-delay:0.22s;">
+                    <a href="<?= $url_semua ?>"   class="<?= $filter_tipe == ''        ? $cls_aktif : $cls_nonaktif ?>">Semua</a>
+                    <a href="<?= $url_makanan ?>" class="<?= $filter_tipe == 'makanan' ? $cls_aktif : $cls_nonaktif ?>">🍽️ Makanan</a>
+                    <a href="<?= $url_minuman ?>" class="<?= $filter_tipe == 'minuman' ? $cls_aktif : $cls_nonaktif ?>">🥤 Minuman</a>
                 </div>
 
                 <!-- MENU GRID -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
                     <?php
-                    $sqlMenu = "SELECT * FROM produk_kantin WHERE id_toko = ?";
-                    if ($keyword !== '') {
-                        $sqlMenu .= " AND nama_menu LIKE ?";
+                    $sqlMenu = "SELECT pk.*,
+                                COALESCE(AVG(r.rating), 0) as avg_rating,
+                                COUNT(r.id_review) as total_review
+                                FROM produk_kantin pk
+                                LEFT JOIN review r ON pk.id_produk = r.id_produk
+                                WHERE pk.id_toko = ? AND pk.status_menu = 'aktif'";
+                    if ($filter_tipe !== '') {
+                        $sqlMenu .= " AND pk.tipe_produk = ?";
                     }
-                    $qMenu = $db_ekantin->prepare($sqlMenu);
                     if ($keyword !== '') {
+                        $sqlMenu .= " AND pk.nama_menu LIKE ?";
+                    }
+                    $sqlMenu .= " GROUP BY pk.id_produk";
+
+                    $qMenu = $db_ekantin->prepare($sqlMenu);
+
+                    if ($filter_tipe !== '' && $keyword !== '') {
+                        $search_param = "%$keyword%";
+                        $qMenu->bind_param("iss", $id_toko_selected, $filter_tipe, $search_param);
+                    } elseif ($filter_tipe !== '') {
+                        $qMenu->bind_param("is", $id_toko_selected, $filter_tipe);
+                    } elseif ($keyword !== '') {
                         $search_param = "%$keyword%";
                         $qMenu->bind_param("is", $id_toko_selected, $search_param);
                     } else {
                         $qMenu->bind_param("i", $id_toko_selected);
                     }
+
                     $qMenu->execute();
                     $resMenu = $qMenu->get_result();
                     $j = 0;
@@ -332,7 +464,7 @@ if ($id_toko_selected) {
                     if ($resMenu->num_rows > 0):
                         while ($menu = $resMenu->fetch_assoc()):
                             $j++;
-                            $foto_produk  = $menu['file_foto'] ?? null;
+                            $foto_produk   = $menu['file_foto'] ?? null;
                             $foto_menu_src = $foto_produk ? "../assets/img_produk/$foto_produk" : null;
                     ?>
                         <div class="opacity-0 bg-white rounded-xl border border-gray-100 overflow-hidden
@@ -347,6 +479,15 @@ if ($id_toko_selected) {
                             </div>
                             <div class="p-2 sm:p-3 flex flex-col flex-grow">
                                 <p class="menu-name font-semibold text-text-1 leading-snug"><?= htmlspecialchars($menu['nama_menu']) ?></p>
+                                <?php if ($menu['total_review'] > 0): ?>
+                                <div class="flex items-center gap-1 mt-0.5">
+                                    <span class="text-yellow-400 text-xs">★</span>
+                                    <span class="text-xs font-semibold text-text-2"><?= number_format($menu['avg_rating'], 1) ?></span>
+                                    <span class="text-[10px] text-text-3">(<?= $menu['total_review'] ?>)</span>
+                                </div>
+                                <?php else: ?>
+                                <p class="text-[10px] text-text-3 mt-0.5">Belum ada review</p>
+                                <?php endif; ?>
                                 <p class="menu-desc text-text-3 mt-1 leading-relaxed flex-grow line-clamp-2">
                                     Stok: <?= $menu['stok'] ?> <?= $menu['tipe_produk'] == 'makanan' ? 'porsi' : 'gelas' ?>
                                 </p>
@@ -377,7 +518,17 @@ if ($id_toko_selected) {
                     else:
                     ?>
                         <div class="col-span-full bg-white rounded-xl border border-gray-100 p-8 text-center text-text-3 text-sm">
-                            <?= $keyword !== '' ? 'Tidak ada menu yang cocok dengan pencarian "' . htmlspecialchars($keyword) . '".' : 'Menu belum tersedia di kantin ini.' ?>
+                            <?php
+                                if ($filter_tipe !== '' && $keyword !== '') {
+                                    echo 'Tidak ada ' . $filter_tipe . ' yang cocok dengan "' . htmlspecialchars($keyword) . '".';
+                                } elseif ($filter_tipe !== '') {
+                                    echo 'Tidak ada menu ' . $filter_tipe . ' di kantin ini.';
+                                } elseif ($keyword !== '') {
+                                    echo 'Tidak ada menu yang cocok dengan "' . htmlspecialchars($keyword) . '".';
+                                } else {
+                                    echo 'Menu belum tersedia di kantin ini.';
+                                }
+                            ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -423,44 +574,54 @@ if ($id_toko_selected) {
 </div>
 <?php endif; ?>
 
-<!-- Toast -->
+<!-- Toast — tengah bawah, selalu di atas sticky cart -->
 <div id="toast"
-     class="fixed bottom-[80px] sm:bottom-[90px] opacity-0 transition-all duration-300 bg-primary text-white text-xs sm:text-sm font-medium px-4 py-2.5 shadow-lg pointer-events-none z-50">
+     style="position:fixed; bottom:88px; left:50%; transform:translateX(-50%) translateY(0);
+            opacity:0; transition:opacity 0.25s ease, transform 0.25s ease;
+            background:#004900; color:white; font-size:0.85rem; font-weight:600;
+            padding:10px 20px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.2);
+            pointer-events:none; z-index:9999; white-space:nowrap;">
 </div>
 
 <script>
     let cart = {};
     const fmt = n => "Rp " + n.toLocaleString("id-ID");
 
+    // Ambil tinggi sticky cart dan sesuaikan padding-bottom main secara dinamis
+    function adjustMainPadding(cartVisible) {
+        const main     = document.querySelector('main');
+        const cartBar  = document.getElementById('sticky-cart');
+        const toast    = document.getElementById('toast');
+        if (!main) return;
+        if (cartVisible && cartBar) {
+            const cartH = cartBar.offsetHeight || 72;
+            main.style.paddingBottom = (cartH + 24) + 'px';
+            if (toast) toast.style.bottom = (cartH + 16) + 'px';
+        } else {
+            main.style.paddingBottom = '7rem';
+            if (toast) toast.style.bottom = '88px';
+        }
+    }
+
     function addToCart(id, name, price) {
         let btnGroup   = document.getElementById("btn-group-" + id);
         let stok       = parseInt(btnGroup.getAttribute("data-stok"));
         let currentQty = cart[id] ? cart[id].qty : 0;
 
-        if (currentQty >= stok) {
-            showToast("Stok " + name + " tidak cukup ⚠️");
-            return;
-        }
-        if (!cart[id]) {
-            cart[id] = { id: id, name: name, price: price, qty: 1 };
-        } else {
-            cart[id].qty += 1;
-        }
+        if (currentQty >= stok) { showToast("Stok " + name + " tidak cukup ⚠️"); return; }
+        if (!cart[id]) { cart[id] = { id: id, name: name, price: price, qty: 1 }; }
+        else           { cart[id].qty += 1; }
         updateCartUI();
         showToast(name + " ditambahkan 🛒");
     }
 
     function removeFromCart(id) {
-        if (cart[id]) {
-            cart[id].qty -= 1;
-            if (cart[id].qty <= 0) delete cart[id];
-        }
+        if (cart[id]) { cart[id].qty -= 1; if (cart[id].qty <= 0) delete cart[id]; }
         updateCartUI();
     }
 
     function updateCartUI() {
-        let totalItems = 0;
-        let totalPrice = 0;
+        let totalItems = 0, totalPrice = 0;
 
         Object.keys(cart).forEach(id => {
             let item = cart[id];
@@ -476,10 +637,7 @@ if ($id_toko_selected) {
                 `;
                 let stok    = parseInt(btnGroup.getAttribute("data-stok"));
                 let btnPlus = btnGroup.querySelector("button:last-child");
-                if (item.qty >= stok) {
-                    btnPlus.disabled = true;
-                    btnPlus.classList.add("opacity-40", "cursor-not-allowed");
-                }
+                if (item.qty >= stok) { btnPlus.disabled = true; btnPlus.classList.add("opacity-40", "cursor-not-allowed"); }
                 let card = btnGroup.closest('.bg-white');
                 if (card) card.classList.add('border-primary', 'ring-1', 'ring-primary/30');
             }
@@ -505,9 +663,12 @@ if ($id_toko_selected) {
             elTotalItems.textContent = totalItems + " item";
             elTotalPrice.textContent = fmt(totalPrice);
             cartInput.value = JSON.stringify(cart);
+            // Tunggu animasi slide-up selesai baru ukur tinggi
+            setTimeout(() => adjustMainPadding(true), 320);
         } else {
             stickyCart.classList.add("translate-y-full");
             cartInput.value = "";
+            adjustMainPadding(false);
         }
     }
 
@@ -515,13 +676,19 @@ if ($id_toko_selected) {
     function showToast(msg) {
         const t = document.getElementById("toast");
         t.textContent = msg;
-        t.classList.remove("opacity-0");
-        t.classList.add("show-toast", "opacity-100");
         clearTimeout(toastTimer);
+        t.style.transition = "none";
+        t.style.opacity    = "0";
+        t.style.transform  = "translateX(-50%) translateY(10px)";
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            t.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+            t.style.opacity    = "1";
+            t.style.transform  = "translateX(-50%) translateY(0)";
+        }));
         toastTimer = setTimeout(() => {
-            t.classList.remove("show-toast", "opacity-100");
-            t.classList.add("opacity-0");
-        }, 1500);
+            t.style.opacity   = "0";
+            t.style.transform = "translateX(-50%) translateY(10px)";
+        }, 1800);
     }
 
     function simpanKeKeranjang() {
@@ -530,16 +697,9 @@ if ($id_toko_selected) {
         formData.append("cart_data", JSON.stringify(cart));
         formData.append("id_toko", document.querySelector('#checkout-form input[name="id_toko"]').value);
         formData.append("aksi", "simpan_cart");
-
         fetch("ajax_keranjang.php", { method: "POST", body: formData })
             .then(res => res.json())
-            .then(data => {
-                if (data.status === "ok") {
-                    showToast("Disimpan ke Keranjang! 🔖");
-                } else {
-                    showToast("Gagal menyimpan, coba lagi.");
-                }
-            });
+            .then(data => showToast(data.status === "ok" ? "Disimpan ke Keranjang! 🔖" : "Gagal menyimpan, coba lagi."));
     }
 </script>
 </body>

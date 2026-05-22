@@ -62,6 +62,7 @@ function isStoreOpen($toko) {
                 <p class="text-text-3 mt-1 text-sm">Temukan menu favoritmu dan pesan langsung dari sini.</p>
             </header>
 
+
             <!-- Hero Banner -->
             <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0 relative overflow-hidden rounded-[24px] bg-gradient-to-r from-primary to-[#006800] px-8 py-10 text-white shadow-lg" style="animation-delay: 0.2s;">
                 <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/5 rounded-full"></div>
@@ -76,6 +77,9 @@ function isStoreOpen($toko) {
                     Pesan Sekarang
                 </a>
             </div>
+
+            <!-- Status Pesanan (Table Layout) -->
+        
 
             <!-- Menu Navigasi Cepat -->
             <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.3s;">
@@ -134,7 +138,7 @@ function isStoreOpen($toko) {
             </div>
 
             <!-- Pilihan Kantin -->
-            <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.4s;">
+            <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0 mb-8" style="animation-delay: 0.4s;">
                 <div class="flex items-center justify-between mb-3">
                     <div>
                         <h3 class="font-bold text-text-1 text-base">Pilihan Kantin</h3>
@@ -143,94 +147,193 @@ function isStoreOpen($toko) {
                     <a href="pesan.php" class="text-xs font-bold text-primary hover:underline underline-offset-4">Lihat Semua</a>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                     <?php
-                    $qKantin = $db_ekantin->query("SELECT t.*, COUNT(pk.id_produk) as total_menu FROM toko t LEFT JOIN produk_kantin pk ON t.id_toko = pk.id_toko GROUP BY t.id_toko LIMIT 6");
+                    $qKantin = $db_ekantin->query("SELECT t.*, COUNT(pk.id_produk) as total_menu FROM toko t JOIN users u ON t.id_users = u.id_users LEFT JOIN produk_kantin pk ON t.id_toko = pk.id_toko AND pk.status_menu = 'aktif' WHERE u.status = 'aktif' GROUP BY t.id_toko LIMIT 6");
+                    $i = 0;
                     if ($qKantin && $qKantin->num_rows > 0):
                         while ($kantin = $qKantin->fetch_assoc()):
-                            $nama       = htmlspecialchars($kantin['nama_toko']);
-                            $lokasi     = htmlspecialchars($kantin['lokasi'] ?? 'Kantin Sekolah');
-                            $jam_buka   = htmlspecialchars($kantin['jam_buka'] ?? '--:--');
-                            $jam_tutup  = htmlspecialchars($kantin['jam_tutup'] ?? '--:--');
-                            $total_menu = $kantin['total_menu'];
-                            $foto_toko  = $kantin['foto_toko'] ?? null;
-                            $foto_src   = $foto_toko ? "../assets/img_toko/$foto_toko" : null;
-                            $initial    = strtoupper(substr($nama, 0, 1));
+                            $i++;
+                            $banner_toko = $kantin['banner_toko'] ?? null;
+                            $banner_src  = $banner_toko ? "../assets/img_banner/$banner_toko" : null;
+                            $initial     = strtoupper(substr($kantin['nama_toko'], 0, 1));
                     ?>
                     <a href="pesan.php?id_toko=<?= $kantin['id_toko'] ?>"
-                        class="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-lg hover:shadow-green-100/50 hover:border-green-100 transition-all duration-300 group">
-
-                        <!-- Area Gambar -->
-                        <div class="h-[140px] w-full overflow-hidden relative bg-gradient-to-br from-primary/5 to-green-100/60 flex-shrink-0">
-                            <?php if ($foto_src): ?>
-                                <img src="<?= $foto_src ?>" alt="<?= $nama ?>"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        class="store-card opacity-0 animate-fadeInUp text-left bg-white rounded-xl border border-gray-100
+                               hover:border-primary/40 hover:shadow-md active:scale-[0.98]
+                               transition-all duration-200 flex flex-col group overflow-hidden h-full"
+                        style="animation-delay:<?= 0.15 + ($i * 0.05) ?>s;">
+                        <div class="store-icon w-full h-28 sm:h-32 flex-shrink-0 bg-input flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-200 relative overflow-hidden">
+                            <?php if ($banner_src && file_exists($banner_src)): ?>
+                                <img src="<?= htmlspecialchars($banner_src) ?>"
+                                     alt="Banner"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                             <?php else: ?>
-                                <div class="w-full h-full flex items-center justify-center">
-                                    <div class="w-16 h-16 rounded-2xl bg-white/80 shadow-sm flex items-center justify-center">
-                                        <span class="text-primary font-extrabold text-3xl"><?= $initial ?></span>
+                                <img src="../assets/img/default_banner_app.jpg" alt="Default Kantin"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80">
+                                <div class="absolute inset-0 bg-black/10 flex items-center justify-center">
+                                    <div class="w-14 h-14 rounded-2xl bg-white/90 shadow-sm flex items-center justify-center backdrop-blur-sm">
+                                        <span class="text-primary font-extrabold text-2xl"><?= $initial ?></span>
                                     </div>
                                 </div>
                             <?php endif; ?>
-                            
-                            <?php 
-                            $is_open = isStoreOpen($kantin);
-                            if ($is_open): ?>
-                                <span class="absolute top-3 left-3 text-[10px] font-bold bg-green-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
-                                    Buka
-                                </span>
+                            <?php $is_open_card = isStoreOpen($kantin); ?>
+                            <?php if ($is_open_card): ?>
+                                <span class="absolute top-2 left-2 text-[9px] font-bold bg-green-500 text-white px-2 py-0.5 rounded shadow-sm z-10">Buka</span>
                             <?php else: ?>
-                                <span class="absolute top-3 left-3 text-[10px] font-bold bg-red-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
-                                    Tutup
-                                </span>
+                                <span class="absolute top-2 left-2 text-[9px] font-bold bg-red-500 text-white px-2 py-0.5 rounded shadow-sm z-10">Tutup</span>
                             <?php endif; ?>
-                            
-                            <span class="absolute top-3 right-3 text-[10px] font-bold bg-white/90 backdrop-blur-sm text-green-700 px-2 py-1 rounded-full shadow-sm">
-                                <?= $total_menu ?> menu
-                            </span>
                         </div>
-
-                        <!-- Info Kantin -->
-                        <div class="p-4 flex flex-col gap-1 flex-1">
-                            <h4 class="font-bold text-text-1 text-sm leading-tight line-clamp-1"><?= $nama ?></h4>
-                            <p class="text-xs text-text-3 flex items-center gap-1 mt-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                </svg>
-                                <span class="truncate"><?= $lokasi ?></span>
+                        <div class="p-3 flex flex-col flex-grow min-w-0">
+                            <p class="store-name font-semibold text-text-1 text-sm sm:text-base leading-snug truncate"><?= htmlspecialchars($kantin['nama_toko']) ?></p>
+                            <span class="store-tag inline-block mt-1.5 px-2 py-0.5 rounded-full bg-input text-text-3 text-[10px] sm:text-xs font-medium self-start">
+                                <?= $kantin['total_menu'] ?> Menu
+                            </span>
+                            <p class="store-desc text-[11px] sm:text-xs text-text-3 mt-2 leading-relaxed line-clamp-2 flex-grow">
+                                <?= htmlspecialchars($kantin['lokasi'] ?? 'Berbagai macam makanan dan minuman.') ?>
                             </p>
-                             <p class="text-[11px] text-text-3 flex items-center gap-1">
-                                <?php if ($is_open): ?>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span class="truncate font-semibold text-green-600"><?= $jam_buka ?> - <?= $jam_tutup ?> WIB (Buka)</span>
-                                <?php else: ?>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span class="truncate font-semibold text-red-600"><?= $jam_buka ?> - <?= $jam_tutup ?> WIB (Tutup)</span>
-                                <?php endif; ?>
-                             </p>
-                            <div class="mt-auto pt-3">
-                                <span class="inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:gap-2 transition-all duration-300">
-                                    Lihat Menu
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                    </svg>
-                                </span>
-                            </div>
+                            <p class="text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 mt-3 pt-2 border-t border-gray-50 <?= $is_open_card ? 'text-green-600' : 'text-red-600' ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <?= htmlspecialchars($kantin['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($kantin['jam_tutup'] ?? '--:--') ?> WIB
+                            </p>
                         </div>
                     </a>
                     <?php endwhile; else: ?>
-                    <div class="col-span-3 bg-white rounded-[20px] px-6 py-10 text-center text-sm text-text-3 border border-gray-100">
-                        Belum ada kantin terdaftar.
+                    <div class="col-span-full text-center text-text-3 py-10 text-sm border border-gray-100 rounded-xl">
+                        Belum ada kantin yang terdaftar.
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
 
+            <!-- Menu Trending -->
+            <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0 mb-8" style="animation-delay: 0.5s;">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="font-bold text-text-1 text-base flex items-center gap-2">
+                            Menu Trending
+                            <span class="text-orange-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z" />
+                                </svg>
+                            </span>
+                        </h3>
+                        <p class="text-xs text-text-3">Paling banyak dipesan</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <?php
+                    $qTrending = $db_ekantin->query("
+                        SELECT p.*, t.nama_toko, IFNULL(SUM(dp.jumlah), 0) as total_terjual
+                        FROM produk_kantin p
+                        LEFT JOIN detail_pesanan dp ON p.id_produk = dp.id_produk
+                        LEFT JOIN toko t ON p.id_toko = t.id_toko
+                        WHERE p.stok > 0
+                        GROUP BY p.id_produk
+                        ORDER BY total_terjual DESC, p.id_produk DESC
+                        LIMIT 3
+                    ");
+                    if ($qTrending && $qTrending->num_rows > 0):
+                        while ($menu = $qTrending->fetch_assoc()):
+                            $nama_menu  = htmlspecialchars($menu['nama_menu']);
+                            $harga      = number_format($menu['harga'], 0, ',', '.');
+                            $nama_toko  = htmlspecialchars($menu['nama_toko']);
+                            $foto_menu  = $menu['file_foto'] ? "../assets/img_produk/" . $menu['file_foto'] : "../assets/img/Garpusendok.png";
+                            $terjual    = $menu['total_terjual'];
+                    ?>
+                    <a href="pesan.php?id_toko=<?= $menu['id_toko'] ?>" class="bg-white rounded-[20px] shadow-sm border border-orange-50 overflow-hidden flex flex-col hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-100/50 hover:border-orange-100 transition-all duration-300 group">
+                        <div class="h-32 w-full overflow-hidden relative bg-orange-50/50 flex-shrink-0">
+                            <img src="<?= $foto_menu ?>" alt="<?= $nama_menu ?>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <span class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-orange-600 text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                                </svg>
+                                <?= $terjual ?>
+                            </span>
+                        </div>
+                        <div class="p-3 flex flex-col gap-1 flex-1 justify-between">
+                            <div>
+                                <h4 class="font-bold text-text-1 text-sm leading-tight line-clamp-1"><?= $nama_menu ?></h4>
+                                <p class="text-[10px] text-text-3 font-medium mt-0.5"><?= $nama_toko ?></p>
+                            </div>
+                            <p class="font-extrabold text-primary text-sm mt-2">Rp <?= $harga ?></p>
+                        </div>
+                    </a>
+                    <?php endwhile; endif; ?>
+                </div>
+            </div>
+
+            <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.25s;">
+                <div class="bg-white rounded-t-[15px] rounded-b-[15px] shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr style="background-color: #004e17; color: white;" class="text-[10px] md:text-xs tracking-wider font-bold">
+                                    <th class="py-3 px-4 uppercase">ID</th>
+                                    <th class="py-3 px-4 uppercase">Kantin</th>
+                                    <th class="py-3 px-4 uppercase">Tanggal</th>
+                                    <th class="py-3 px-4 uppercase">Total</th>
+                                    <th class="py-3 px-4 uppercase">Status</th>
+                                    <th class="py-3 px-4 uppercase text-center">Kelola</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-xs md:text-sm text-gray-700">
+                                <?php
+                                $qPesananTable = $db_ekantin->query("
+                                    SELECT p.id_pesanan, t.nama_toko, p.total_harga, p.tanggal_pesan, p.status_pesanan 
+                                    FROM pesanan p 
+                                    LEFT JOIN toko t ON p.id_toko = t.id_toko 
+                                    WHERE p.id_users = '$id_users' 
+                                    ORDER BY p.tanggal_pesan DESC 
+                                    LIMIT 3
+                                ");
+                                if ($qPesananTable && $qPesananTable->num_rows > 0):
+                                    $row_idx = 0;
+                                    while ($pRow = $qPesananTable->fetch_assoc()):
+                                        $row_idx++;
+                                        $bg_class = ($row_idx % 2 == 0) ? 'bg-[#fcfcfc]' : 'bg-white';
+                                        
+                                        // Badge styling
+                                        $status = strtolower($pRow['status_pesanan']);
+                                        if ($status == 'pending') {
+                                            $badge = '<span class="bg-[#fef3c7] text-[#92400e] px-3 py-1 rounded-full font-bold text-[10px]">Pending</span>';
+                                        } elseif ($status == 'diproses') {
+                                            $badge = '<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold text-[10px]">Diproses</span>';
+                                        } elseif ($status == 'selesai') {
+                                            $badge = '<span class="bg-[#dcfce7] text-[#166534] px-3 py-1 rounded-full font-bold text-[10px]">Selesai</span>';
+                                        } else {
+                                            $badge = '<span class="bg-[#fee2e2] text-[#991b1b] px-3 py-1 rounded-full font-bold text-[10px]">Batal</span>';
+                                        }
+                                ?>
+                                <tr class="<?= $bg_class ?> border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                    <td class="py-3 px-4 font-semibold text-gray-900"><?= $pRow['id_pesanan'] ?></td>
+                                    <td class="py-3 px-4 font-bold"><?= htmlspecialchars($pRow['nama_toko'] ?? 'Toko Dihapus') ?></td>
+                                    <td class="py-3 px-4 text-gray-500"><?= date('d/m/Y', strtotime($pRow['tanggal_pesan'])) ?></td>
+                                    <td class="py-3 px-4 font-semibold">Rp <?= number_format($pRow['total_harga'], 0, ',', '.') ?></td>
+                                    <td class="py-3 px-4"><?= $badge ?></td>
+                                    <td class="py-3 px-4 text-center">
+                                        <a href="history.php" class="inline-block bg-[#fef3c7] text-[#92400e] hover:bg-[#fde68a] font-bold px-4 py-1.5 rounded-lg text-[10px] md:text-xs transition-colors shadow-sm">
+                                            Detail
+                                        </a>
+                                    </td>
+                                </tr>
+                                <?php endwhile; else: ?>
+                                <tr>
+                                    <td colspan="6" class="py-6 text-center text-gray-500 font-medium">Belum ada pesanan.</td>
+                                </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-5 py-3 border-t border-gray-100 bg-gray-50 flex justify-end">
+                        <a href="history.php" class="text-xs font-bold text-[#004e17] hover:underline flex items-center gap-1">Lihat Semua Pesanan &rarr;</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 </div>

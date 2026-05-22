@@ -2,8 +2,12 @@
 koneksi.php
 
 # File upload user
-uploads/foto_menu/*
-uploads/foto_profil/*
+assets/uploads_bukti/*
+!assets/uploads_bukti/.gitkeep
+assets/img_produk/*
+!assets/img_produk/.gitkeep
+assets/img_banner/*
+!assets/img_banner/.gitkeep
 
 # File sistem
 .DS_Store

@@ -28,11 +28,12 @@ if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
 // Ambil data pesanan
-$sql_pesanan = "SELECT p.id_pesanan, p.tanggal_pesan, p.total_harga, p.status_pesanan, p.catatan, p.alasan_tolak, p.metode_pembayaran, p.bukti_pembayaran, 
+$sql_pesanan = "SELECT p.id_pesanan, p.tanggal_pesan, p.total_harga, p.status_pesanan, p.catatan, p.alasan_tolak, pay.metode_bayar as metode_pembayaran, pay.bukti_bayar as bukti_pembayaran, 
                        t.nama_toko, u.username as nama_pelanggan 
                 FROM pesanan p 
                 JOIN toko t ON p.id_toko = t.id_toko 
                 JOIN users u ON p.id_users = u.id_users
+                LEFT JOIN pembayaran pay ON p.id_pesanan = pay.id_pesanan
                 $where_status
                 ORDER BY p.tanggal_pesan DESC
                 LIMIT $limit OFFSET $offset";

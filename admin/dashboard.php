@@ -153,7 +153,7 @@ $total_pendapatan = $data_pendapatan['total'] ??
           </p>
         </div>
         <!-- Tombol Lihat Semua merujuk ke halaman kelola_pesanan.php -->
-        <a href="kelola_pesanan.php"
+        <a href="history.php"
           class="text-xs font-bold bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-[10px] transition-all">
           Lihat Semua →
         </a>
