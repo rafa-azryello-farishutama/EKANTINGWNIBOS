@@ -178,7 +178,7 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                             $id_pesanan = $pesanan['id_pesanan'];
                             
                             // Ambil detail item
-                            $sql_detail = "SELECT dp.jumlah, pk.nama_menu, pk.harga 
+                            $sql_detail = "SELECT dp.jumlah, pk.nama_menu, IF(dp.harga_satuan > 0, dp.harga_satuan, pk.harga) AS harga 
                                            FROM detail_pesanan dp 
                                            JOIN produk_kantin pk ON dp.id_produk = pk.id_produk 
                                            WHERE dp.id_pesanan = ?";

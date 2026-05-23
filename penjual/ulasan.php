@@ -23,7 +23,7 @@ if ($rating_filter > 0 && $rating_filter <= 5) {
 }
 
 // Ambil ulasan produk untuk toko ini
-$sql = "SELECT r.*, pk.nama_menu, pk.file_foto, u.username, p.tanggal_pesan 
+$sql = "SELECT r.*, pk.nama_menu, pk.file_foto, u.username, u.foto_profil, p.tanggal_pesan 
         FROM review r
         JOIN produk_kantin pk ON r.id_produk = pk.id_produk
         JOIN users u ON r.id_users = u.id_users
@@ -131,7 +131,19 @@ $avg_rating = number_format($stats['avg_rating'] ?? 0, 1);
                             </div>
                             <div class="flex flex-col flex-grow justify-center">
                                 <h3 class="font-bold text-text-1"><?= htmlspecialchars($rev['nama_menu']) ?></h3>
-                                <p class="text-xs text-text-3 mt-0.5">Oleh: <span class="font-semibold text-text-1"><?= htmlspecialchars($rev['username']) ?></span></p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <p class="text-xs text-text-3">Oleh:</p>
+                                    <div class="flex items-center gap-1.5">
+                                        <?php if(!empty($rev['foto_profil'])): ?>
+                                            <img src="../assets/img/profil/<?= htmlspecialchars($rev['foto_profil']) ?>" class="w-5 h-5 rounded-full object-cover border border-gray-200">
+                                        <?php else: ?>
+                                            <div class="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                                <span class="text-[10px] font-bold text-primary"><?= strtoupper(substr($rev['username'], 0, 1)) ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <span class="font-semibold text-text-1 text-xs"><?= htmlspecialchars($rev['username']) ?></span>
+                                    </div>
+                                </div>
                                 <div class="flex items-center mt-2">
                                     <?php for($i=1; $i<=5; $i++): ?>
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 <?= $i <= $rev['rating'] ? 'text-yellow-400' : 'text-gray-200' ?>" viewBox="0 0 20 20" fill="currentColor">

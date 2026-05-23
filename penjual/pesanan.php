@@ -37,15 +37,20 @@ if (isset($_POST['update_status'])) {
     exit;
 }
 
-$qTotal = "SELECT * FROM pesanan WHERE id_toko = '$id_toko'";
+$today = date('Y-m-d'); // Asia/Jakarta sudah di-set di atas
+
+// Pesanan yang masuk HARI INI saja
+$qTotal = "SELECT * FROM pesanan WHERE id_toko = '$id_toko' AND DATE(tanggal_pesan) = '$today'";
 $hasil = $db_ekantin->query($qTotal);
 $jTotal = $hasil->num_rows;
 
+// Semua pesanan yang masih PENDING (backlog keseluruhan)
 $qPending = "SELECT * FROM pesanan WHERE status_pesanan = 'pending' AND id_toko = '$id_toko'";
 $hTotal = $db_ekantin->query($qPending);
 $pTotal = $hTotal->num_rows;
 
-$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan =  'selesai' AND id_toko = '$id_toko'";
+// Pesanan yang SELESAI HARI INI saja
+$qSelesai = "SELECT * FROM pesanan WHERE status_pesanan = 'selesai' AND id_toko = '$id_toko' AND DATE(tanggal_pesan) = '$today'";
 $hSelesai = $db_ekantin->query($qSelesai);
 $sTotal = $hSelesai->num_rows;
 ?>
@@ -73,7 +78,7 @@ $sTotal = $hSelesai->num_rows;
                 <p class="text-text-3 mt-1">Berikut seluruh status pemesanan</p>
             </header>
 
-            <div class="grid grid-cols-2 gap-4 md:gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
 
                 <div
                     class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-blue-50 flex flex-col gap-2 group hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100/50 transition-all">
@@ -98,7 +103,7 @@ $sTotal = $hSelesai->num_rows;
                 </div>
 
                 <div
-                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-green-50 flex flex-col gap-2 group col-span-2 md:col-span-1 md:col-start-1 md:translate-x-1/2 hover:-translate-y-1 hover:shadow-md hover:shadow-green-100/50 transition-all">
+                    class="bg-white rounded-[20px] relative overflow-hidden p-6 shadow-sm border border-green-50 flex flex-col gap-2 group hover:-translate-y-1 hover:shadow-md hover:shadow-green-100/50 transition-all">
                     <div class="relative z-10">
                         <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Selesai Hari Ini</p>
                         <p class="text-4xl font-extrabold text-green-600"><?php echo $sTotal; ?></p>

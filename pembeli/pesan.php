@@ -47,7 +47,7 @@ $id_toko_selected = isset($_GET['id_toko']) ? (int)$_GET['id_toko'] : null;
 $store_details    = null;
 
 if ($id_toko_selected) {
-    $qStore = $db_ekantin->prepare("SELECT * FROM toko WHERE id_toko = ?");
+    $qStore = $db_ekantin->prepare("SELECT t.*, rk.nomor_ruang FROM toko t LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko WHERE t.id_toko = ?");
     $qStore->bind_param("i", $id_toko_selected);
     $qStore->execute();
     $resStore = $qStore->get_result();
@@ -137,9 +137,14 @@ if ($id_toko_selected) {
                         <h2 class="font-extrabold text-xl sm:text-3xl md:text-4xl tracking-tight text-primary leading-tight truncate">
                             <?= $store_details ? htmlspecialchars($store_details['nama_toko']) : 'Pesan Menu' ?>
                         </h2>
-                        <p class="text-text-3 mt-0.5 text-xs sm:text-sm truncate">
-                            <?= $store_details ? htmlspecialchars($store_details['lokasi'] ?? 'Kantin Sekolah') : 'Pilih kantin dan menu favoritmu' ?>
-                        </p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <p class="text-text-3 text-xs sm:text-sm truncate">
+                                <?= $store_details ? htmlspecialchars($store_details['lokasi'] ?? 'Kantin Sekolah') : 'Pilih kantin dan menu favoritmu' ?>
+                            </p>
+                            <?php if ($store_details && !empty($store_details['nomor_ruang'])): ?>
+                            <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] sm:text-xs font-bold">Ruang <?= $store_details['nomor_ruang'] ?></span>
+                            <?php endif; ?>
+                        </div>
                         <?php if ($store_details):
                             $is_open_header = isStoreOpen($store_details); ?>
                         <p class="text-[11px] sm:text-xs font-semibold mt-1 flex items-center gap-1 <?= $is_open_header ? 'text-green-600' : 'text-red-600' ?>">

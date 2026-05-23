@@ -16,6 +16,18 @@ $_SESSION['nama_toko'] = $_SESSION['penjual_nama_toko'];
 $id_users = $_SESSION['id_users'];
 $id_toko  = $_SESSION['id_toko'];
 
+$qUser = $db_ekantin->query("SELECT * FROM users WHERE id_users='$id_users'");
+$user  = $qUser->fetch_assoc();
+
+$qToko = $db_ekantin->query("SELECT t.*, rk.nomor_ruang FROM toko t LEFT JOIN ruang_kantin rk ON t.id_toko = rk.id_toko WHERE t.id_toko='$id_toko'");
+$toko  = $qToko->fetch_assoc();
+
+if(!$user || !$toko) {
+    session_destroy();
+    header("Location: ../index.php");
+    exit;
+}
+
 $error_profil   = null;
 $success_profil = null;
 
@@ -49,10 +61,57 @@ if(isset($_POST['simpan_profil'])){
     }
 
     if(!$error_profil){
-        $db_ekantin->query("UPDATE users SET username='$username_baru', email='$email_baru', no_telepon='$telepon_baru' WHERE id_users='$id_users'");
-        $db_ekantin->query("UPDATE toko SET nama_toko='$nama_toko_baru', lokasi='$lokasi_baru', deskripsi='$deskripsi_baru', jam_buka='$jam_buka_baru', jam_tutup='$jam_tutup_baru', metode_pencairan='$metode_pencairan_baru', nomor_pencairan='$nomor_pencairan_baru', nama_pencairan='$nama_pencairan_baru' WHERE id_toko='$id_toko'");
-        $_SESSION['nama_toko'] = $nama_toko_baru;
-        $success_profil = "Profil berhasil diperbarui.";
+        $foto_profil_baru = $user['foto_profil'] ?? null; // default old
+
+        if (isset($_POST['hapus_foto']) && $_POST['hapus_foto'] == '1') {
+            if (!empty($user['foto_profil']) && file_exists('../assets/img/profil/' . $user['foto_profil'])) {
+                unlink('../assets/img/profil/' . $user['foto_profil']);
+            }
+            $foto_profil_baru = null;
+        } else if (isset($_FILES['edit_foto_profil']) && $_FILES['edit_foto_profil']['error'] == 0) {
+            $allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
+            $file_name = $_FILES['edit_foto_profil']['name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            $file_size = $_FILES['edit_foto_profil']['size'];
+            $file_tmp = $_FILES['edit_foto_profil']['tmp_name'];
+
+            if (in_array($file_ext, $allowed_ext)) {
+                if ($file_size <= 2000000) { // 2MB max
+                    $new_file_name = 'profil_' . $id_users . '_' . time() . '.' . $file_ext;
+                    $upload_path = '../assets/img/profil/' . $new_file_name;
+                    
+                    if (!is_dir('../assets/img/profil/')) {
+                        mkdir('../assets/img/profil/', 0777, true);
+                    }
+                    
+                    if (move_uploaded_file($file_tmp, $upload_path)) {
+                        $foto_profil_baru = $new_file_name;
+                        
+                        if (!empty($user['foto_profil']) && file_exists('../assets/img/profil/' . $user['foto_profil'])) {
+                            unlink('../assets/img/profil/' . $user['foto_profil']);
+                        }
+                    } else {
+                        $error_profil = "Gagal mengupload foto profil.";
+                    }
+                } else {
+                    $error_profil = "Ukuran foto profil maksimal 2MB.";
+                }
+            } else {
+                $error_profil = "Ekstensi file foto profil tidak diizinkan.";
+            }
+        }
+
+        if (!$error_profil) {
+            $db_ekantin->query("UPDATE users SET username='$username_baru', email='$email_baru', no_telepon='$telepon_baru', foto_profil='$foto_profil_baru' WHERE id_users='$id_users'");
+            $db_ekantin->query("UPDATE toko SET nama_toko='$nama_toko_baru', lokasi='$lokasi_baru', deskripsi='$deskripsi_baru', jam_buka='$jam_buka_baru', jam_tutup='$jam_tutup_baru', metode_pencairan='$metode_pencairan_baru', nomor_pencairan='$nomor_pencairan_baru', nama_pencairan='$nama_pencairan_baru' WHERE id_toko='$id_toko'");
+            $_SESSION['nama_toko'] = $nama_toko_baru;
+            $success_profil = "Profil berhasil diperbarui.";
+            // Update local variables
+            $user['foto_profil'] = $foto_profil_baru;
+            $user['username'] = $username_baru;
+            $user['email'] = $email_baru;
+            $user['no_telepon'] = $telepon_baru;
+        }
     }
 }
 
@@ -61,12 +120,6 @@ if(isset($_POST['logout'])){
     header("Location: ../index.php");
     exit;
 }
-
-$qUser = $db_ekantin->query("SELECT * FROM users WHERE id_users='$id_users'");
-$user  = $qUser->fetch_assoc();
-
-$qToko = $db_ekantin->query("SELECT * FROM toko WHERE id_toko='$id_toko'");
-$toko  = $qToko->fetch_assoc();
 
 $qStatistik = $db_ekantin->query("SELECT COUNT(*) as total FROM pesanan WHERE id_toko='$id_toko' AND status_pesanan='selesai'");
 $statistik  = $qStatistik->fetch_assoc();
@@ -119,10 +172,10 @@ $total_produk = $produk['total'] ?? 0;
                     <div class="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col items-center text-center relative pb-6">
                         <div class="w-full h-20 bg-gradient-to-r from-primary to-[#006800]"></div>
                         <div class="w-20 h-20 rounded-full border-4 border-white bg-primary/10 flex items-center justify-center -mt-10 relative z-10 overflow-hidden">
-                            <?php if($toko['foto_toko']): ?>
-                            <img src="../assets/img_toko/<?= htmlspecialchars($toko['foto_toko']) ?>" class="w-full h-full object-cover">
+                            <?php if(!empty($user['foto_profil'])): ?>
+                            <img src="../assets/img/profil/<?= htmlspecialchars($user['foto_profil']) ?>" class="w-full h-full object-cover">
                             <?php else: ?>
-                            <span class="text-primary font-bold text-2xl"><?= strtoupper(substr($toko['nama_toko'], 0, 1)) ?></span>
+                            <span class="text-primary font-bold text-2xl"><?= strtoupper(substr($user['username'], 0, 1)) ?></span>
                             <?php endif; ?>
                         </div>
                         <h3 class="font-bold text-text-1 text-lg mt-3"><?= htmlspecialchars($toko['nama_toko']) ?></h3>
@@ -174,6 +227,10 @@ $total_produk = $produk['total'] ?? 0;
                             <div class="flex flex-col gap-1">
                                 <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Lokasi</label>
                                 <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['lokasi'] ?? '-') ?></p>
+                            </div>
+                            <div class="flex flex-col gap-1 md:col-span-2">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Ruang Kantin</label>
+                                <p class="text-sm font-medium text-text-1 bg-input rounded-[10px] px-4 py-3"><?= htmlspecialchars($toko['nomor_ruang'] ? 'Ruang ' . $toko['nomor_ruang'] : 'Belum diatur') ?></p>
                             </div>
                             <div class="flex flex-col gap-1">
                                 <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
@@ -244,9 +301,24 @@ $total_produk = $produk['total'] ?? 0;
 
             <div id="error-box" class="hidden px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium"></div>
 
-            <form method="POST" id="form-edit" class="flex flex-col gap-4">
+            <form method="POST" id="form-edit" class="flex flex-col gap-4" enctype="multipart/form-data">
 
                 <p class="text-xs font-bold uppercase tracking-widest text-text-3 border-b pb-2">Informasi Akun</p>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3" for="edit_foto_profil">
+                        Foto Profil User (Opsional)
+                    </label>
+                    <input type="file" id="edit_foto_profil" name="edit_foto_profil" accept="image/png, image/jpeg, image/jpg, image/gif"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <span class="text-[11px] text-text-3">Format: JPG, JPEG, PNG, GIF. Maksimal 2MB.</span>
+                    <?php if (!empty($user['foto_profil'])): ?>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="checkbox" id="hapus_foto" name="hapus_foto" value="1" class="w-4 h-4 text-primary rounded focus:ring-primary border-gray-300">
+                        <label for="hapus_foto" class="text-xs text-text-2 font-medium">Hapus foto profil saat ini</label>
+                    </div>
+                    <?php endif; ?>
+                </div>
 
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>

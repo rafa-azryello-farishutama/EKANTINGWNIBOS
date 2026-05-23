@@ -144,7 +144,7 @@ $total_pages = ceil($total_items / $limit);
                           <p class="text-xs font-bold uppercase tracking-wider text-text-3 mb-2">Item Pesanan:</p>
                           <?php
                           $id_p = $pesanan['id_pesanan'];
-                          $sql_detail = "SELECT dp.jumlah, pk.nama_menu, pk.harga 
+                          $sql_detail = "SELECT dp.jumlah, pk.nama_menu, IF(dp.harga_satuan > 0, dp.harga_satuan, pk.harga) AS harga 
                                          FROM detail_pesanan dp 
                                          JOIN produk_kantin pk ON dp.id_produk = pk.id_produk 
                                          WHERE dp.id_pesanan = ?";

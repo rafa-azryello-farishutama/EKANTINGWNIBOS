@@ -17,6 +17,22 @@ $error_profil   = null;
 $success_profil = null;
 
 /* ──────────────────────────────────────────
+   AMBIL DATA USER
+────────────────────────────────────────── */
+$stmt  = $db_ekantin->prepare("SELECT * FROM users WHERE id_users = ?");
+$stmt->bind_param("i", $id_users);
+$stmt->execute();
+$result = $stmt->get_result();
+$user   = $result->fetch_assoc();
+$stmt->close();
+
+if (!$user) {
+    session_destroy();
+    header("Location: ../index.php");
+    exit;
+}
+
+/* ──────────────────────────────────────────
    SIMPAN PROFIL
 ────────────────────────────────────────── */
 if (isset($_POST['simpan_profil'])) {
@@ -55,14 +71,62 @@ if (isset($_POST['simpan_profil'])) {
 
     // Update — PERBAIKAN: pakai prepared statement
     if (!$error_profil) {
-        $stmt = $db_ekantin->prepare("UPDATE users SET username = ?, email = ?, no_telepon = ? WHERE id_users = ?");
-        $stmt->bind_param("sssi", $username_baru, $email_baru, $telepon_baru, $id_users);
-        if ($stmt->execute()) {
-            $success_profil = "Profil berhasil diperbarui.";
-        } else {
-            $error_profil = "Gagal menyimpan perubahan. Coba lagi.";
+        $foto_profil_baru = $user['foto_profil'] ?? null; // default old
+
+        if (isset($_POST['hapus_foto']) && $_POST['hapus_foto'] == '1') {
+            if (!empty($user['foto_profil']) && file_exists('../assets/img/profil/' . $user['foto_profil'])) {
+                unlink('../assets/img/profil/' . $user['foto_profil']);
+            }
+            $foto_profil_baru = null;
+        } else if (isset($_FILES['edit_foto_profil']) && $_FILES['edit_foto_profil']['error'] == 0) {
+            $allowed_ext = ['jpg', 'jpeg', 'png', 'gif'];
+            $file_name = $_FILES['edit_foto_profil']['name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            $file_size = $_FILES['edit_foto_profil']['size'];
+            $file_tmp = $_FILES['edit_foto_profil']['tmp_name'];
+
+            if (in_array($file_ext, $allowed_ext)) {
+                if ($file_size <= 2000000) { // 2MB max
+                    $new_file_name = 'profil_' . $id_users . '_' . time() . '.' . $file_ext;
+                    $upload_path = '../assets/img/profil/' . $new_file_name;
+                    
+                    if (!is_dir('../assets/img/profil/')) {
+                        mkdir('../assets/img/profil/', 0777, true);
+                    }
+                    
+                    if (move_uploaded_file($file_tmp, $upload_path)) {
+                        $foto_profil_baru = $new_file_name;
+                        
+                        // Hapus foto lama jika ada
+                        if (!empty($user['foto_profil']) && file_exists('../assets/img/profil/' . $user['foto_profil'])) {
+                            unlink('../assets/img/profil/' . $user['foto_profil']);
+                        }
+                    } else {
+                        $error_profil = "Gagal mengupload foto profil.";
+                    }
+                } else {
+                    $error_profil = "Ukuran foto profil maksimal 2MB.";
+                }
+            } else {
+                $error_profil = "Ekstensi file foto profil tidak diizinkan.";
+            }
         }
-        $stmt->close();
+
+        if (!$error_profil) {
+            $stmt = $db_ekantin->prepare("UPDATE users SET username = ?, email = ?, no_telepon = ?, foto_profil = ? WHERE id_users = ?");
+            $stmt->bind_param("ssssi", $username_baru, $email_baru, $telepon_baru, $foto_profil_baru, $id_users);
+            if ($stmt->execute()) {
+                $success_profil = "Profil berhasil diperbarui.";
+                // update local variable to reflect immediately without redirect
+                $user['foto_profil'] = $foto_profil_baru; 
+                $user['username'] = $username_baru;
+                $user['email'] = $email_baru;
+                $user['no_telepon'] = $telepon_baru;
+            } else {
+                $error_profil = "Gagal menyimpan perubahan. Coba lagi.";
+            }
+            $stmt->close();
+        }
     }
 }
 
@@ -75,24 +139,7 @@ if (isset($_POST['logout'])) {
     exit;
 }
 
-/* ──────────────────────────────────────────
-   AMBIL DATA USER — PERBAIKAN: prepared statement + null guard
-────────────────────────────────────────── */
-$stmt  = $db_ekantin->prepare("SELECT * FROM users WHERE id_users = ?");
-$stmt->bind_param("i", $id_users);
-$stmt->execute();
-$result = $stmt->get_result();
-$user   = $result->fetch_assoc();
-$stmt->close();
-
-// PERBAIKAN: guard jika user tidak ditemukan
-if (!$user) {
-    session_destroy();
-    header("Location: ../index.php");
-    exit;
-}
-
-$halaman = basename($_SERVER['PHP_SELF']); // dipindah ke sini, tidak mengganggu session_start
+$halaman = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -141,10 +188,14 @@ $halaman = basename($_SERVER['PHP_SELF']); // dipindah ke sini, tidak mengganggu
                 <div class="lg:col-span-1 flex flex-col gap-4">
                     <div class="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col items-center text-center relative pb-6">
                         <div class="w-full h-20 bg-gradient-to-r from-primary to-[#006800]"></div>
-                        <div class="w-20 h-20 rounded-full border-4 border-white bg-primary/10 flex items-center justify-center -mt-10 relative z-10">
-                            <span class="text-primary font-bold text-2xl">
-                                <?= htmlspecialchars(strtoupper(mb_substr($user['username'], 0, 1))) ?>
-                            </span>
+                        <div class="w-20 h-20 rounded-full border-4 border-white bg-primary/10 flex items-center justify-center -mt-10 relative z-10 overflow-hidden">
+                            <?php if (!empty($user['foto_profil'])): ?>
+                                <img src="../assets/img/profil/<?= htmlspecialchars($user['foto_profil']) ?>" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <span class="text-primary font-bold text-2xl">
+                                    <?= htmlspecialchars(strtoupper(mb_substr($user['username'], 0, 1))) ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
                         <h3 class="font-bold text-text-1 text-lg mt-3"><?= htmlspecialchars($user['username']) ?></h3>
                         <p class="text-xs text-text-3"><?= htmlspecialchars($user['email'] ?? '-') ?></p>
@@ -232,7 +283,22 @@ $halaman = basename($_SERVER['PHP_SELF']); // dipindah ke sini, tidak mengganggu
                 <?= htmlspecialchars($error_profil ?? '') ?>
             </div>
 
-            <form method="POST" id="form-edit" class="flex flex-col gap-4">
+            <form method="POST" id="form-edit" class="flex flex-col gap-4" enctype="multipart/form-data">
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-text-3" for="edit_foto_profil">
+                        Foto Profil (Opsional)
+                    </label>
+                    <input type="file" id="edit_foto_profil" name="edit_foto_profil" accept="image/png, image/jpeg, image/jpg, image/gif"
+                        class="border border-gray-200 rounded-[12px] p-3 text-sm bg-input focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <span class="text-[11px] text-text-3">Format: JPG, JPEG, PNG, GIF. Maksimal 2MB.</span>
+                    <?php if (!empty($user['foto_profil'])): ?>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="checkbox" id="hapus_foto" name="hapus_foto" value="1" class="w-4 h-4 text-primary rounded focus:ring-primary border-gray-300">
+                        <label for="hapus_foto" class="text-xs text-text-2 font-medium">Hapus foto profil saat ini</label>
+                    </div>
+                    <?php endif; ?>
+                </div>
 
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-bold uppercase tracking-widest text-text-3" for="edit_username">
