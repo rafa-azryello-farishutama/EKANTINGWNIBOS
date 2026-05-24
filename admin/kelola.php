@@ -8,6 +8,40 @@ if (!isset($_SESSION['id_users']) || $_SESSION['role'] != 'admin') {
     exit();
 }
 
+// 0. PROSES NAIKKAN KELAS
+if (isset($_POST['naikkan_kelas'])) {
+    // Kelas 12 → soft delete: set tipe='lulus', status='nonaktif', catat tanggal_lulus
+    $db_ekantin->query("UPDATE users SET tipe='lulus', status='nonaktif', tanggal_lulus=NOW() WHERE tipe='kelas12' AND role='pembeli'");
+    // Naikkan kelas11 → kelas12
+    $db_ekantin->query("UPDATE users SET tipe='kelas12' WHERE tipe='kelas11' AND role='pembeli'");
+    // Naikkan kelas10 → kelas11
+    $db_ekantin->query("UPDATE users SET tipe='kelas11' WHERE tipe='kelas10' AND role='pembeli'");
+
+    header("Location: kelola.php?naik=1");
+    exit;
+}
+
+// AUTO-CLEANUP: Hapus user 'lulus' yang sudah >1 tahun beserta seluruh datanya
+$resLulus = $db_ekantin->query("SELECT id_users FROM users WHERE tipe='lulus' AND tanggal_lulus IS NOT NULL AND tanggal_lulus < DATE_SUB(NOW(), INTERVAL 1 YEAR)");
+if ($resLulus && $resLulus->num_rows > 0) {
+    while ($rowL = $resLulus->fetch_assoc()) {
+        $idL = $rowL['id_users'];
+        $db_ekantin->query("DELETE FROM keranjang WHERE id_users = '$idL'");
+        $resPL = $db_ekantin->query("SELECT id_pesanan FROM pesanan WHERE id_users = '$idL'");
+        if ($resPL && $resPL->num_rows > 0) {
+            while ($rowPL = $resPL->fetch_assoc()) {
+                $idPesananL = $rowPL['id_pesanan'];
+                $db_ekantin->query("DELETE FROM detail_pesanan WHERE id_pesanan = '$idPesananL'");
+                $db_ekantin->query("DELETE FROM pembayaran WHERE id_pesanan = '$idPesananL'");
+            }
+        }
+        $db_ekantin->query("DELETE FROM pesanan WHERE id_users = '$idL'");
+        $db_ekantin->query("DELETE FROM users WHERE id_users = '$idL'");
+    }
+}
+
+
+
 // 1. PROSES EDIT INFORMASI USER
 if(isset($_POST['edit_user'])){
     $id_edit      = $_POST['edit_id'];
@@ -116,6 +150,25 @@ $total_nonaktif = $db_ekantin->query("SELECT id_users FROM users WHERE status = 
                 </div>
             <?php endif; ?>
 
+            <?php if(isset($_GET['naik']) && $_GET['naik'] == '1'): ?>
+                <div id="notif-naik" class="mb-6 px-5 py-4 bg-green-50 border border-green-200 rounded-[15px] flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-green-700">Kelas berhasil dinaikkan! 🎓</p>
+                        <p class="text-xs text-green-600">Kelas 10→11, Kelas 11→12. Siswa kelas 12 ditandai <strong>Lulus</strong> — data akan terhapus otomatis setelah 1 tahun.</p>
+                    </div>
+                    <button onclick="document.getElementById('notif-naik').remove()" class="ml-auto text-green-400 hover:text-green-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            <?php endif; ?>
+
             <div class="grid grid-cols-2 gap-4 md:gap-6">
                 <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden group">
                     <div class="relative z-10">
@@ -138,7 +191,7 @@ $total_nonaktif = $db_ekantin->query("SELECT id_users FROM users WHERE status = 
                     <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white">Nama</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white">Role</p>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white">Email</p>
+                    <p class="text-xs font-bold uppercase tracking-widest text-white">Tipe</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white">Telepon</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white">Status</p>
                     <p class="text-xs font-bold uppercase tracking-widest text-white text-center">Aksi</p>
@@ -148,16 +201,33 @@ $total_nonaktif = $db_ekantin->query("SELECT id_users FROM users WHERE status = 
                     <?php 
                     // PERBAIKAN URUTAN: Menggunakan ASC agar ID terkecil (ID Pertama) muncul paling atas
                     $result = $db_ekantin->query("SELECT * FROM users WHERE role != 'admin' ORDER BY id_users ASC");
-                    while($data = $result->fetch_assoc()): 
-                        $status_badge = $data['status'] == 'aktif' 
+                    while($data = $result->fetch_assoc()):
+                        $status_badge = $data['status'] == 'aktif'
                             ? "<span class='text-[10px] font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full uppercase'>Aktif</span>"
                             : "<span class='text-[10px] font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full uppercase'>Nonaktif</span>";
+                        $tipe_val = $data['tipe'] ?? '-';
+                        $tipe_colors = [
+                            'kelas10' => 'bg-blue-100 text-blue-700',
+                            'kelas11' => 'bg-purple-100 text-purple-700',
+                            'kelas12' => 'bg-green-100 text-green-700',
+                            'guru'    => 'bg-amber-100 text-amber-700',
+                            'lulus'   => 'bg-gray-100 text-gray-500',
+                        ];
+                        $tipe_labels = [
+                            'kelas10' => 'Kelas 10',
+                            'kelas11' => 'Kelas 11',
+                            'kelas12' => 'Kelas 12',
+                            'guru'    => 'Guru',
+                            'lulus'   => 'Lulus',
+                        ];
+                        $tipe_css   = $tipe_colors[$tipe_val] ?? 'bg-gray-100 text-gray-500';
+                        $tipe_label = $tipe_labels[$tipe_val] ?? htmlspecialchars($tipe_val);
                     ?>
                         <div class="grid grid-cols-[50px_1fr_100px_150px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors">
                             <p class="text-sm text-text-2 truncate"><?= $data['id_users'] ?></p>
                             <p class="text-sm font-medium text-text-1 truncate"><?= htmlspecialchars($data['username']) ?></p>
                             <p class="text-sm text-text-2 italic truncate"><?= $data['role'] ?></p>
-                            <p class="text-sm text-text-2 truncate"><?= htmlspecialchars($data['email']) ?></p>
+                            <div class="truncate"><span class="text-[10px] font-bold px-2 py-1 rounded-full uppercase <?= $tipe_css ?>"><?= $tipe_label ?></span></div>
                             <p class="text-sm text-text-2 truncate"><?= htmlspecialchars($data['no_telepon']) ?></p>
                             <div class="truncate"><?= $status_badge ?></div>
                             <button onclick="bukaModalEdit('<?= $data['id_users'] ?>', '<?= addslashes($data['username']) ?>', '<?= addslashes($data['email']) ?>', '<?= addslashes($data['no_telepon']) ?>', '<?= $data['status'] ?>')" 

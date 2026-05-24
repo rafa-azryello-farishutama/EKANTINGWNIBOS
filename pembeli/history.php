@@ -268,9 +268,11 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                             <div class="px-5 pb-4 pt-3 flex items-center justify-between border-t border-gray-50">
                                 <span class="text-xs text-text-3"><?= $total_qty ?> item</span>
                                 <div class="flex items-center gap-3">
+                                    <?php if ($status === 'selesai'): ?>
                                     <a href="../apps/struk.php?id_pesanan=<?= $id_pesanan ?>" class="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                         📄 Struk
                                     </a>
+                                    <?php endif; ?>
                                     
                                     <?php if ($status === 'selesai' && $pesanan['is_reviewed'] == 0): ?>
                                     <button type="button" onclick="bukaModalReview(<?= $id_pesanan ?>)" class="text-xs font-bold text-yellow-600 bg-yellow-100 hover:bg-yellow-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">

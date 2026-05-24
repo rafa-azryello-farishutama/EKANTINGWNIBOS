@@ -135,6 +135,15 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
                             🔵 DANA
                         </span>
                     </label>
+
+                    <!-- Option 6: Uang Tunai -->
+                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-tunai">
+                        <input type="radio" name="metode_pembayaran" value="tunai" class="sr-only" onchange="togglePaymentMethod('tunai')">
+                        <span class="text-xs text-text-3 font-semibold">Langsung</span>
+                        <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
+                            💵 Uang Tunai
+                        </span>
+                    </label>
                 </div>
 
                 <!-- Info Box: Payment Details -->
@@ -153,7 +162,7 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
                         <p class="text-center text-xs text-text-3 mb-3">Silakan scan kode QR di atas untuk melakukan pembayaran.</p>
                     </div>
 
-                    <div class="mt-3 border-t border-gray-200/50 pt-3">
+                    <div class="mt-3 border-t border-gray-200/50 pt-3" id="bukti-wrapper">
                         <label for="bukti_bayar" class="block text-xs font-bold text-text-3 mb-1.5">Upload Bukti Pembayaran (Wajib)</label>
                         <input type="file" id="bukti_bayar" name="bukti_bayar" accept="image/*" class="w-full text-xs text-text-3 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-submit file:cursor-pointer">
                     </div>
@@ -173,7 +182,7 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
 </div>
 
 <script>
-    const paymentMethods = ['transfer', 'qr', 'gopay', 'ovo', 'dana'];
+    const paymentMethods = ['transfer', 'qr', 'gopay', 'ovo', 'dana', 'tunai'];
 
     function togglePaymentMethod(method) {
         paymentMethods.forEach(m => {
@@ -189,40 +198,57 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
             }
         });
         
-        const title = document.getElementById('payment-title');
+        const infoBox  = document.getElementById('info-payment');
+        const title    = document.getElementById('payment-title');
         const textWrap = document.getElementById('payment-text-wrapper');
-        const qrWrap = document.getElementById('payment-qr-wrapper');
-        const desc = document.getElementById('payment-desc');
-        const name = document.getElementById('payment-name');
+        const qrWrap   = document.getElementById('payment-qr-wrapper');
+        const desc     = document.getElementById('payment-desc');
+        const name     = document.getElementById('payment-name');
+        const buktiWrapper = document.getElementById('bukti-wrapper');
         
-        if (method === 'qr') {
-            title.innerText = '📱 Scan QRIS';
-            textWrap.classList.add('hidden');
-            qrWrap.classList.remove('hidden');
+        if (method === 'tunai') {
+            // Uang tunai: sembunyikan info box & upload bukti
+            infoBox.classList.add('hidden');
+            buktiWrapper.classList.add('hidden');
+            document.getElementById('bukti_bayar').removeAttribute('required');
         } else {
-            textWrap.classList.remove('hidden');
-            qrWrap.classList.add('hidden');
-            if (method === 'transfer') {
-                title.innerText = '🏦 Detail Rekening';
-                desc.innerHTML = 'Bank BCA: <span class="font-bold select-all">869-214-5561</span>';
-                name.innerText = 'a/n E-Kantin SMEA';
-            } else if (method === 'gopay') {
-                title.innerText = '🟢 Instruksi GoPay';
-                desc.innerHTML = 'Nomor GoPay: <span class="font-bold select-all">0812-3456-7890</span>';
-                name.innerText = 'a/n E-Kantin SMEA';
-            } else if (method === 'ovo') {
-                title.innerText = '🟣 Instruksi OVO';
-                desc.innerHTML = 'Nomor OVO: <span class="font-bold select-all">0812-3456-7890</span>';
-                name.innerText = 'a/n E-Kantin SMEA';
-            } else if (method === 'dana') {
-                title.innerText = '🔵 Instruksi DANA';
-                desc.innerHTML = 'Nomor DANA: <span class="font-bold select-all">0812-3456-7890</span>';
-                name.innerText = 'a/n E-Kantin SMEA';
+            infoBox.classList.remove('hidden');
+            buktiWrapper.classList.remove('hidden');
+            document.getElementById('bukti_bayar').setAttribute('required', '');
+
+            if (method === 'qr') {
+                title.innerText = '📱 Scan QRIS';
+                textWrap.classList.add('hidden');
+                qrWrap.classList.remove('hidden');
+            } else {
+                textWrap.classList.remove('hidden');
+                qrWrap.classList.add('hidden');
+                if (method === 'transfer') {
+                    title.innerText = '🏦 Detail Rekening';
+                    desc.innerHTML = 'Bank BCA: <span class="font-bold select-all">869-214-5561</span>';
+                    name.innerText = 'a/n E-Kantin SMEA';
+                } else if (method === 'gopay') {
+                    title.innerText = '🟢 Instruksi GoPay';
+                    desc.innerHTML = 'Nomor GoPay: <span class="font-bold select-all">0812-3456-7890</span>';
+                    name.innerText = 'a/n E-Kantin SMEA';
+                } else if (method === 'ovo') {
+                    title.innerText = '🟣 Instruksi OVO';
+                    desc.innerHTML = 'Nomor OVO: <span class="font-bold select-all">0812-3456-7890</span>';
+                    name.innerText = 'a/n E-Kantin SMEA';
+                } else if (method === 'dana') {
+                    title.innerText = '🔵 Instruksi DANA';
+                    desc.innerHTML = 'Nomor DANA: <span class="font-bold select-all">0812-3456-7890</span>';
+                    name.innerText = 'a/n E-Kantin SMEA';
+                }
             }
         }
     }
 
     function validateCheckoutForm() {
+        const metodeTerpilih = document.querySelector('input[name="metode_pembayaran"]:checked');
+        if (metodeTerpilih && metodeTerpilih.value === 'tunai') {
+            return true; // Tunai tidak butuh bukti
+        }
         const file = document.getElementById('bukti_bayar').files[0];
         if (!file) {
             alert('Silakan upload bukti pembayaran Anda terlebih dahulu!');

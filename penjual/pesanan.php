@@ -201,9 +201,9 @@ $sTotal = $hSelesai->num_rows;
                             default => 'border-gray-100 hover:border-primary/30'
                         };
                         if ($status == 'pending') {
-                            $tombolAksi = "<button class='text-sm font-bold bg-green-100 text-green-700 px-6 py-2 rounded-xl hover:bg-green-200 transition-all'>Proses</button>";
+                            $tombolAksi = "<span class='text-xs font-bold bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl'>⏳ Pending</span>";
                         } else if ($status == 'diproses') {
-                            $tombolAksi = "<button class='text-sm font-bold bg-blue-100 text-blue-700 px-6 py-2 rounded-xl hover:bg-blue-200 transition-all'>Selesai</button>";
+                            $tombolAksi = "<span class='text-xs font-bold bg-blue-100 text-blue-700 px-4 py-2 rounded-xl'>🔄 Diproses</span>";
                         } else {
                             $tombolAksi = "";
                         }
@@ -301,7 +301,8 @@ $sTotal = $hSelesai->num_rows;
                         <a id="popup-bukti-link" href="#" target="_blank" class="text-[11px] font-bold bg-primary text-white hover:bg-submit px-3 py-1.5 rounded-lg transition-all shadow-sm">
                             Lihat Bukti Bayar
                         </a>
-                        <a id="popup-struk-link" href="#" target="_blank" class="text-[11px] font-bold bg-blue-600 text-white hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                        <!-- Struk hanya ditampilkan saat selesai via JS -->
+                        <a id="popup-struk-link" href="#" target="_blank" class="hidden text-[11px] font-bold bg-blue-600 text-white hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-all shadow-sm">
                             📄 Struk
                         </a>
                     </div>
@@ -375,7 +376,7 @@ $sTotal = $hSelesai->num_rows;
                 <textarea name="alasan_tolak" id="alasan-tolak-input" rows="2" placeholder="Sebutkan alasan penolakan..." class="w-full border-gray-200 bg-input focus:bg-white focus:ring-primary focus:border-primary text-sm rounded-xl resize-none"></textarea>
             </div>
 
-            <button type="submit" id="btn-proses" class="w-full h-[46px] bg-green-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+            <button type="submit" id="btn-proses" style="background:#2563eb;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
                 Proses Pesanan
             </button>
             <button type="button" id="btn-tolak-init" onclick="showTolakSection()" class="w-full h-[46px] bg-red-50 text-red-600 border border-red-200 rounded-[12px] text-sm font-bold hover:bg-red-100 transition-all">
@@ -392,14 +393,24 @@ $sTotal = $hSelesai->num_rows;
         <form method="POST">
             <input type="hidden" name="id_pesanan" value="${id_pesanan}">
             <input type="hidden" name="status_baru" value="selesai">
-            <button type="submit" name="update_status" class="w-full h-[46px] bg-blue-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+            <button type="submit" name="update_status" style="background:#16a34a;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
                 Tandai Selesai
             </button>
         </form>`,
-                selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">Pesanan Selesai</div>`
+                selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">✅ Pesanan Selesai</div>`
             };
 
-            document.getElementById('popup-aksi').innerHTML = aksiMap[status];
+            document.getElementById('popup-aksi').innerHTML = aksiMap[status] || '';
+
+            // Struk hanya tampil jika status diproses atau selesai
+            const strukEl = document.getElementById('popup-struk-link');
+            if (status === 'diproses' || status === 'selesai') {
+                strukEl.href = "../apps/struk.php?id_pesanan=" + id_pesanan;
+                strukEl.classList.remove('hidden');
+            } else {
+                strukEl.classList.add('hidden');
+            }
+
             document.getElementById('overlay-popup').classList.remove('hidden');
         }
 

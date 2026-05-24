@@ -115,6 +115,41 @@ if(isset($_POST['simpan_profil'])){
     }
 }
 
+/* ──────────────────────────────────────────
+   GANTI PASSWORD
+────────────────────────────────────────── */
+$error_password = false;
+$success_password = false;
+$notif_password = "";
+
+if (isset($_POST['ganti_password'])) {
+    $password_lama = $_POST['password_lama'] ?? '';
+    $password_baru = $_POST['password_baru'] ?? '';
+    $konfirmasi    = $_POST['konfirmasi'] ?? '';
+
+    if (!password_verify($password_lama, $user['password'])) {
+        $notif_password = "Password lama salah!";
+        $error_password = true;
+    } elseif ($password_baru !== $konfirmasi) {
+        $notif_password = "Konfirmasi password tidak cocok!";
+        $error_password = true;
+    } else {
+        $passwordHashBaru = password_hash($password_baru, PASSWORD_DEFAULT);
+        
+        $stmt = $db_ekantin->prepare("UPDATE users SET password = ? WHERE id_users = ?");
+        $stmt->bind_param("si", $passwordHashBaru, $id_users);
+        if ($stmt->execute()) {
+            $notif_password = "Password berhasil diubah!";
+            $success_password = true;
+            $user['password'] = $passwordHashBaru;
+        } else {
+            $notif_password = "Gagal mengupdate database.";
+            $error_password = true;
+        }
+        $stmt->close();
+    }
+}
+
 if(isset($_POST['logout'])){
     session_destroy();
     header("Location: ../index.php");
@@ -277,6 +312,50 @@ $total_produk = $produk['total'] ?? 0;
                                 <p class="text-3xl font-extrabold text-blue-600"><?= $total_produk ?></p>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Ganti Password -->
+                    <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 mt-4">
+                        <div class="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                            <h4 class="font-bold text-text-1 text-base">Ganti Password</h4>
+                        </div>
+
+                        <?php if($error_password): ?>
+                            <div class="mb-6 px-4 py-3 bg-red-50 border border-red-100 rounded-[15px] text-sm text-red-500 font-medium">
+                            <?php echo $notif_password; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if($success_password): ?>
+                            <div class="mb-6 px-4 py-3 bg-green-50 border border-green-100 rounded-[15px] text-sm text-green-500 font-medium">
+                            <?php echo $notif_password; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="POST" class="flex flex-col gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Password Lama</label>
+                                <input type="password" name="password_lama" placeholder="Masukkan password lama" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Password Baru</label>
+                                <input type="password" name="password_baru" placeholder="Masukkan password baru" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Konfirmasi Password Baru</label>
+                                <input type="password" name="konfirmasi" placeholder="Konfirmasi password baru" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                            </div>
+
+                            <p class="text-xs text-text-3 mt-1 italic">
+                                * Lupa password lama? Silakan hubungi admin sekolah untuk mereset password Anda.
+                            </p>
+
+                            <button type="submit" name="ganti_password" class="w-full bg-submit text-white font-bold py-3 rounded-[15px] mt-2 shadow-lg shadow-submit/20 hover:opacity-90 active:scale-[0.98] transition-all">
+                                Ubah Password
+                            </button>
+                        </form>
                     </div>
 
                 </div>

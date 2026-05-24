@@ -345,6 +345,7 @@ $nama_toko_display = htmlspecialchars($data_toko['nama_toko'] ?? 'Toko Saya');
                 if ($filter_tipe !== '') {
                     $sql .= " AND tipe_produk = '$filter_tipe'";
                 }
+                $sql .= " ORDER BY FIELD(status_menu, 'aktif', 'nonaktif'), id_produk ASC";
 
                 $result = $db_ekantin->query($sql);
 
