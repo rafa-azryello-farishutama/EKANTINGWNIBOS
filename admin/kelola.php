@@ -202,15 +202,9 @@ $total_nonaktif = $db_ekantin->query("SELECT id_users FROM users WHERE status = 
                     // PERBAIKAN URUTAN: Menggunakan ASC agar ID terkecil (ID Pertama) muncul paling atas
                     $result = $db_ekantin->query("SELECT * FROM users WHERE role != 'admin' ORDER BY id_users ASC");
                     while($data = $result->fetch_assoc()):
-                        if ($data['status'] == 'aktif') {
-                            $status_badge = "<span class='text-[10px] font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full uppercase'>Aktif</span>";
-                        } else {
-                            if (isset($data['tipe']) && $data['tipe'] == 'lulus') {
-                                $status_badge = "<span class='text-[10px] font-bold px-2 py-1 rounded-full uppercase' style='background-color: #f3f4f6; color: #6b7280;'>Lulus</span>";
-                            } else {
-                                $status_badge = "<span class='text-[10px] font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full uppercase'>Nonaktif</span>";
-                            }
-                        }
+                        $status_badge = $data['status'] == 'aktif'
+                            ? "<span class='text-[10px] font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full uppercase'>Aktif</span>"
+                            : "<span class='text-[10px] font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full uppercase'>Nonaktif</span>";
                         $tipe_val = $data['tipe'] ?? '-';
                         $tipe_colors = [
                             'kelas10' => 'bg-blue-100 text-blue-700',

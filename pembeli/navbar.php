@@ -147,7 +147,7 @@ if ($current_hash != '') { // Only notify if there are actual orders
                 rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
         <img src="<?= $halaman == 'profil.php' ? '../assets/img/akun_white.png' : '../assets/img/akun_black.png' ?>"
             class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'profil.php' ? 'opacity-40' : '' ?>">
-        <span class="font-medium text-sm">Profil</span>
+        <span class="font-medium text-sm">Akun</span>
     </a>
 </nav>
 
