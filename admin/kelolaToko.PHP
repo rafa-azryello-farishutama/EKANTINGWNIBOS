@@ -19,7 +19,35 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     // ── Aktifkan Toko ──────────────────────────────────────
     if(isset($_POST['aktifkan_toko']) && isset($_POST['id_user_target'])){
         $id_target = intval($_POST['id_user_target']);
-        $db_ekantin->query("UPDATE users SET status='aktif' WHERE id_users='$id_target'");
+
+        // Cek apakah ada ruang kantin yang tersisa
+        $cekRuang = $db_ekantin->query("SELECT id_ruang FROM ruang_kantin WHERE id_toko IS NULL LIMIT 1");
+        if($cekRuang->num_rows == 0){
+            // Tidak ada ruang kosong
+            header("Location: kelolaToko.php?error=ruang_penuh");
+            exit;
+        }
+
+        // Ambil nomor ruang yang dipilih
+        $ruang_dipilih = intval($_POST['ruang_aktif'] ?? 0);
+        if($ruang_dipilih <= 0){
+            header("Location: kelolaToko.php?error=pilih_ruang");
+            exit;
+        }
+
+        // Ambil id_toko dari id_users
+        $qTokoCek = $db_ekantin->query("SELECT t.id_toko FROM toko t JOIN users u ON u.id_users = t.id_users WHERE u.id_users = '$id_target'");
+        if($qTokoCek->num_rows > 0){
+            $tokoData = $qTokoCek->fetch_assoc();
+            $id_toko_target = $tokoData['id_toko'];
+
+            // Validasi ruang benar-benar kosong
+            $cekRuangDipilih = $db_ekantin->query("SELECT id_ruang FROM ruang_kantin WHERE nomor_ruang='$ruang_dipilih' AND id_toko IS NULL");
+            if($cekRuangDipilih->num_rows > 0){
+                $db_ekantin->query("UPDATE users SET status='aktif' WHERE id_users='$id_target'");
+                $db_ekantin->query("UPDATE ruang_kantin SET id_toko='$id_toko_target' WHERE nomor_ruang='$ruang_dipilih'");
+            }
+        }
         header("Location: kelolaToko.php?sukses=aktif");
         exit;
     }
@@ -27,7 +55,14 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     // ── Nonaktifkan Toko ───────────────────────────────────
     if(isset($_POST['nonaktifkan_toko']) && isset($_POST['id_user_target'])){
         $id_target = intval($_POST['id_user_target']);
-        $db_ekantin->query("UPDATE users SET status='nonaktif' WHERE id_users='$id_target'");
+        $qTokoCek = $db_ekantin->query("SELECT t.id_toko FROM toko t JOIN users u ON u.id_users = t.id_users WHERE u.id_users = '$id_target'");
+        if($qTokoCek->num_rows > 0){
+            $tokoData = $qTokoCek->fetch_assoc();
+            $id_toko_target = $tokoData['id_toko'];
+            $db_ekantin->query("UPDATE users SET status='nonaktif' WHERE id_users='$id_target'");
+            // Kosongkan ruang kantin secara otomatis
+            $db_ekantin->query("UPDATE ruang_kantin SET id_toko=NULL WHERE id_toko='$id_toko_target'");
+        }
         header("Location: kelolaToko.php?sukses=nonaktif");
         exit;
     }
@@ -40,11 +75,23 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         $role      = "penjual";
         $email     = $_POST['email'];
         $telepon   = $_POST['telepon'];
+        $nomor_ruang_baru = intval($_POST['nomor_ruang'] ?? 0);
 
         if(strlen($username) < 3 || strlen($username) > 20){
             $error_toko = "Username harus antara 3-20 karakter.";
         } else if(!preg_match('/^[a-zA-Z0-9_.]+$/', $username)){
             $error_toko = "Username hanya boleh huruf, angka, underscore, dan titik.";
+        }
+
+        if($error_toko == "" && $nomor_ruang_baru <= 0){
+            $error_toko = "Pilih ruang kantin terlebih dahulu.";
+        }
+
+        if($error_toko == ""){
+            // Validasi ruang benar-benar kosong
+            $cekRuangBaru = $db_ekantin->query("SELECT id_ruang FROM ruang_kantin WHERE nomor_ruang='$nomor_ruang_baru' AND id_toko IS NULL");
+            if($cekRuangBaru->num_rows == 0)
+                $error_toko = "Ruang kantin tersebut sudah terisi atau tidak valid.";
         }
 
         if($error_toko == ""){
@@ -64,12 +111,15 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             $jamBuka  = $_POST['jam_buka']  ?? '07:00';
             $jamTutup = $_POST['jam_tutup'] ?? '15:00';
 
-            $cek = "INSERT INTO users(username, password, role, no_telepon, email, status) 
+            $cek = "INSERT INTO users(username, password, role, no_telepon, email, status)
                         VALUES('$username','$hash_password','$role','$telepon','$email','aktif')";
             if($db_ekantin->query($cek)){
                 $id_user = $db_ekantin->insert_id;
                 $db_ekantin->query("INSERT INTO toko(id_users, nama_toko, jam_buka, jam_tutup)
                                 VALUES('$id_user','$namaToko', '$jamBuka', '$jamTutup')");
+                $id_toko_baru = $db_ekantin->insert_id;
+                // Assign ruang kantin
+                $db_ekantin->query("UPDATE ruang_kantin SET id_toko='$id_toko_baru' WHERE nomor_ruang='$nomor_ruang_baru' AND id_toko IS NULL");
                 header("Location: kelolaToko.php?sukses=tambah");
                 exit;
             }
@@ -78,12 +128,25 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 }
 
 // ── Statistik ──────────────────────────────────────────────
-$sql    = "SELECT COUNT(*) as total FROM toko t 
-           JOIN users u ON t.id_users = u.id_users 
+$sql    = "SELECT COUNT(*) as total FROM toko t
+           JOIN users u ON t.id_users = u.id_users
            WHERE u.status = 'aktif'";
 $hasil  = $db_ekantin->query($sql);
 $row    = $hasil->fetch_assoc();
 $total_aktif = $row['total'];
+
+$qRuangKosong = $db_ekantin->query("SELECT COUNT(*) as kosong FROM ruang_kantin WHERE id_toko IS NULL");
+$total_ruang_kosong = ($qRuangKosong && $qRuangKosong->num_rows > 0) ? $qRuangKosong->fetch_assoc()['kosong'] : 10;
+
+// Ambil daftar ruang yang masih kosong (untuk dropdown form tambah toko)
+$qRuangTersedia = $db_ekantin->query("SELECT nomor_ruang FROM ruang_kantin WHERE id_toko IS NULL ORDER BY nomor_ruang");
+$ruang_tersedia = [];
+if($qRuangTersedia){
+    while($r = $qRuangTersedia->fetch_assoc()){
+        $ruang_tersedia[] = $r['nomor_ruang'];
+    }
+}
+$ada_ruang_kosong = count($ruang_tersedia) > 0;
 ?>
 
 <!DOCTYPE html>
@@ -163,21 +226,43 @@ $total_aktif = $row['total'];
             </svg>
             <?php
                 if($_GET['sukses'] == 'aktif')    echo 'Toko berhasil diaktifkan.';
-                if($_GET['sukses'] == 'nonaktif') echo 'Toko berhasil dinonaktifkan.';
+                if($_GET['sukses'] == 'nonaktif') echo 'Toko berhasil dinonaktifkan. Ruang kantin otomatis dikosongkan.';
                 if($_GET['sukses'] == 'tambah')   echo 'Toko baru berhasil ditambahkan.';
             ?>
             <button onclick="document.getElementById('toast-sukses').remove()"
                 class="ml-auto font-bold text-lg leading-none opacity-60 hover:opacity-100">&times;</button>
         </div>
         <?php endif; ?>
+        <?php if(isset($_GET['error'])): ?>
+        <div id="toast-error" class="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl text-sm font-medium bg-red-50 border border-red-200 text-red-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <?php
+                if($_GET['error'] == 'ruang_penuh') echo 'Tidak bisa mengaktifkan toko. Semua ruang kantin sudah terisi!';
+                if($_GET['error'] == 'pilih_ruang') echo 'Silakan pilih nomor ruang kantin yang tersedia.';
+            ?>
+            <button onclick="document.getElementById('toast-error').remove()"
+                class="ml-auto font-bold text-lg leading-none opacity-60 hover:opacity-100">&times;</button>
+        </div>
+        <?php endif; ?>
 
         <!-- ── Statistik ──────────────────────────────────── -->
-        <div class="grid grid-cols-1 gap-4 md:gap-6 mb-6">
+        <div class="grid grid-cols-2 gap-4 md:gap-6 mb-6">
             <div class="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden group">
                 <div class="relative gap-4 z-10">
                     <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Toko Aktif</p>
                     <p class="text-4xl font-extrabold text-primary"><?php echo $total_aktif; ?></p>
-                    <p class="text-xs text-text-2">status aktif</p>
+                    <p class="text-xs text-text-2">dari 10 ruang kantin</p>
+                </div>
+                <img src="../assets/img/ikonstore.png" alt="Store Icon"
+                    class="absolute bottom-0 right-0 translate-y-9 w-[120px] md:w-[140px] opacity-10 pointer-events-none transition-transform duration-300 group-hover:scale-110">
+            </div>
+            <div class="bg-white rounded-[20px] p-6 shadow-sm border <?= $total_ruang_kosong > 0 ? 'border-green-100' : 'border-red-100' ?> flex flex-col gap-2 relative overflow-hidden group">
+                <div class="relative gap-4 z-10">
+                    <p class="text-xs font-semibold uppercase tracking-widest text-text-3">Ruang Kosong</p>
+                    <p class="text-4xl font-extrabold <?= $total_ruang_kosong > 0 ? 'text-green-600' : 'text-red-500' ?>"><?php echo $total_ruang_kosong; ?></p>
+                    <p class="text-xs text-text-2"><?= $total_ruang_kosong > 0 ? 'ruang tersedia' : 'semua terisi' ?></p>
                 </div>
                 <img src="../assets/img/ikonstore.png" alt="Store Icon"
                     class="absolute bottom-0 right-0 translate-y-9 w-[120px] md:w-[140px] opacity-10 pointer-events-none transition-transform duration-300 group-hover:scale-110">
@@ -186,21 +271,25 @@ $total_aktif = $row['total'];
 
         <!-- ── Tabel Toko ─────────────────────────────────── -->
         <div class="w-full bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden">
-            <div class="grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] bg-primary px-6 py-4 gap-4">
+            <div class="grid grid-cols-[40px_40px_1fr_100px_80px_130px_100px_80px] bg-primary px-6 py-4 gap-4">
                 <p class="text-xs font-bold uppercase tracking-widest text-white">ID</p>
                 <p class="text-xs font-bold uppercase tracking-widest text-white">User</p>
                 <p class="text-xs font-bold uppercase tracking-widest text-white">Nama</p>
                 <p class="text-xs font-bold uppercase tracking-widest text-white">Toko</p>
-                <p class="text-xs font-bold uppercase tracking-widest text-white">Email</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-white">Ruang</p>
                 <p class="text-xs font-bold uppercase tracking-widest text-white">Telepon</p>
                 <p class="text-xs font-bold uppercase tracking-widest text-white">Status</p>
                 <p class="text-xs font-bold uppercase tracking-widest text-white">Aksi</p>
             </div>
 
             <div class="overflow-y-auto max-h-[400px]">
-                <?php 
-                $query  = "SELECT t.*, u.username, u.email, u.no_telepon, u.status 
-                           FROM toko t JOIN users u ON t.id_users = u.id_users";
+                <?php
+                $query  = "SELECT t.*, u.username, u.email, u.no_telepon, u.status,
+                                  rk.nomor_ruang
+                           FROM toko t
+                           JOIN users u ON t.id_users = u.id_users
+                           LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko
+                           ORDER BY t.id_toko";
                 $result = $db_ekantin->query($query);
 
                 if($result && $result->num_rows > 0){
@@ -210,23 +299,24 @@ $total_aktif = $row['total'];
                         $username  = htmlspecialchars($data['username'], ENT_QUOTES);
                         $toko      = htmlspecialchars($data['nama_toko'], ENT_QUOTES);
                         $status    = $data['status'];
-                        $lokasi    = htmlspecialchars($data['lokasi']    ?? 'Belum diatur',         ENT_QUOTES);
-                        $deskripsi = htmlspecialchars($data['deskripsi'] ?? 'Tidak ada deskripsi',  ENT_QUOTES);
+                        $lokasi    = htmlspecialchars($data['lokasi']    ?? 'Belum diatur',        ENT_QUOTES);
+                        $deskripsi = htmlspecialchars($data['deskripsi'] ?? 'Tidak ada deskripsi', ENT_QUOTES);
                         $jam_buka  = $data['jam_buka']  ?? '--:--';
                         $jam_tutup = $data['jam_tutup'] ?? '--:--';
+                        $nomor_ruang = $data['nomor_ruang'] ? 'Ruang ' . $data['nomor_ruang'] : '-';
 
                         $tulisanStatus = ($status == 'aktif')
                             ? "<span class='text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full'>Aktif</span>"
-                            : "<span class='text-xs font-semibold text-red-500   bg-red-100   px-3 py-1 rounded-full'>Nonaktif</span>";
+                            : "<span class='text-xs font-semibold text-red-500 bg-red-100 px-3 py-1 rounded-full'>Nonaktif</span>";
 
                         echo "
-                        <div class='row-toko grid grid-cols-[40px_40px_1fr_100px_150px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'
+                        <div class='row-toko grid grid-cols-[40px_40px_1fr_100px_80px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'
                              data-iduser='$id_user' data-status='$status'>
                             <p class='text-sm text-text-2'>$id_toko</p>
                             <p class='text-sm text-text-2'>$id_user</p>
                             <p class='text-sm font-medium text-text-1 truncate'>$username</p>
                             <p class='text-sm font-medium text-text-1 truncate'>$toko</p>
-                            <p class='text-sm text-text-2 truncate'>" . htmlspecialchars($data['email'])       . "</p>
+                            <p class='text-sm font-semibold text-primary'>$nomor_ruang</p>
                             <p class='text-sm text-text-2 truncate'>" . htmlspecialchars($data['no_telepon']) . "</p>
                             $tulisanStatus
                             <button onclick=\"showDetail('$toko','$lokasi','$deskripsi','$jam_buka','$jam_tutup')\"
@@ -266,19 +356,28 @@ $total_aktif = $row['total'];
             </div>
             <?php endif; ?>
 
+            <?php if(!$ada_ruang_kosong): ?>
+            <div class="px-4 py-3 bg-red-50 border border-red-200 rounded-[15px] text-sm text-red-600 font-medium flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Semua 10 ruang kantin sudah terisi. Nonaktifkan toko terlebih dahulu untuk membebaskan ruang.
+            </div>
+            <?php endif; ?>
+
             <div class="flex flex-col gap-1">
                 <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Username</label>
                 <input type="text" name="nama"
                     oninput="this.value = this.value.replace(/[^a-zA-Z0-9_.]/g, '')" maxlength="20"
                     value="<?= isset($_POST['nama']) && $error_toko != '' ? htmlspecialchars($_POST['nama']) : '' ?>"
                     placeholder="Masukkan username pemilik"
-                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
             </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Password</label>
                 <input type="password" name="password" placeholder="Masukkan password"
-                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
             </div>
 
             <div class="flex flex-col gap-1">
@@ -286,7 +385,7 @@ $total_aktif = $row['total'];
                 <input type="text" name="nama_toko"
                     value="<?= isset($_POST['nama_toko']) && $error_toko != '' ? htmlspecialchars($_POST['nama_toko']) : '' ?>"
                     placeholder="Masukkan nama toko"
-                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
             </div>
 
             <div class="flex flex-col gap-1">
@@ -294,7 +393,7 @@ $total_aktif = $row['total'];
                 <input type="email" name="email"
                     value="<?= isset($_POST['email']) && $error_toko != '' ? htmlspecialchars($_POST['email']) : '' ?>"
                     placeholder="contoh@mail.com"
-                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
             </div>
 
             <div class="flex flex-col gap-1">
@@ -302,7 +401,24 @@ $total_aktif = $row['total'];
                 <input type="tel" name="telepon"
                     value="<?= isset($_POST['telepon']) && $error_toko != '' ? htmlspecialchars($_POST['telepon']) : '' ?>"
                     placeholder="0812xxxx"
-                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
+            </div>
+
+            <!-- Pilih Ruang Kantin -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Ruang Kantin</label>
+                <?php if($ada_ruang_kosong): ?>
+                <select name="nomor_ruang" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                    <option value="">-- Pilih Nomor Ruang --</option>
+                    <?php foreach($ruang_tersedia as $nr): ?>
+                    <option value="<?= $nr ?>" <?= (isset($_POST['nomor_ruang']) && $_POST['nomor_ruang'] == $nr && $error_toko != '') ? 'selected' : '' ?>>
+                        Ruang <?= $nr ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php else: ?>
+                <div class="w-full bg-red-50 border border-red-200 rounded-[12px] p-3 text-sm text-red-500">Tidak ada ruang tersedia</div>
+                <?php endif; ?>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -310,19 +426,19 @@ $total_aktif = $row['total'];
                     <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Buka</label>
                     <input type="time" name="jam_buka"
                         value="<?= isset($_POST['jam_buka']) && $error_toko != '' ? htmlspecialchars($_POST['jam_buka']) : '07:00' ?>"
-                        class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                        class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Jam Tutup</label>
                     <input type="time" name="jam_tutup"
                         value="<?= isset($_POST['jam_tutup']) && $error_toko != '' ? htmlspecialchars($_POST['jam_tutup']) : '15:00' ?>"
-                        class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" required>
+                        class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
                 </div>
             </div>
 
-            <button type="submit"
-                class="w-full bg-submit text-white font-bold py-4 rounded-[15px] mt-2 shrink-0 shadow-lg shadow-submit/20 hover:opacity-90 active:scale-[0.98] transition-all">
-                Simpan Data Toko
+            <button type="submit" <?= !$ada_ruang_kosong ? 'disabled' : '' ?>
+                class="w-full <?= $ada_ruang_kosong ? 'bg-submit hover:opacity-90 active:scale-[0.98]' : 'bg-gray-300 cursor-not-allowed' ?> text-white font-bold py-4 rounded-[15px] mt-2 shrink-0 shadow-lg transition-all">
+                <?= $ada_ruang_kosong ? 'Simpan Data Toko' : 'Ruang Kantin Penuh' ?>
             </button>
         </form>
     </div>
@@ -376,52 +492,36 @@ $total_aktif = $row['total'];
                 </svg>
             </button>
         </div>
-        <form method="POST" class="p-8 flex flex-col gap-4">
+        <form method="POST" onsubmit="return validateStatusForm(event)" class="p-8 flex flex-col gap-4">
             <div class="flex flex-col gap-1">
                 <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">ID User Toko</label>
-                <input type="number" id="inputIdStatus" name="id_user_target"
-                    placeholder="Masukkan ID User Toko"
-                    class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-red-500/20" required>
+                <input type="number" id="inputIdStatus" name="id_user_target" placeholder="Masukkan ID User Toko" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-red-500/20" required>
                 <p class="text-xs text-text-3 mt-1">Lihat ID User pada tabel daftar toko.</p>
-
-                <!-- Notif ID tidak ditemukan -->
-                <div id="statusError"
-                     class="hidden flex items-center gap-2 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-semibold">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                    </svg>
-                    ID User tidak ditemukan di daftar toko!
-                </div>
-
-                <!-- Info status toko ditemukan -->
-                <div id="statusInfo"
-                     class="hidden flex items-center gap-2 mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 font-semibold">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span id="statusInfoText"></span>
-                </div>
+                <p id="statusError" class="text-xs text-red-500 mt-1 hidden font-bold">ID User tidak ditemukan!</p>
             </div>
 
-            <!-- Tombol aksi — hanya muncul sesuai status -->
-            <div id="statusButtonsContainer" class="flex flex-col gap-3 mt-2">
-                <!-- Tombol Aktifkan: muncul kalau toko sedang nonaktif -->
+            <!-- Dropdown Ruang (hanya muncul saat mengaktifkan toko) -->
+            <div id="ruangAktifContainer" class="flex-col gap-1 hidden">
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Pilih Ruang Kantin</label>
+                <select name="ruang_aktif" id="selectRuangAktif" class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-green-500/20">
+                    <option value="">-- Pilih Ruang --</option>
+                    <?php foreach($ruang_tersedia as $nr): ?>
+                    <option value="<?= $nr ?>">Ruang <?= $nr ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if(!$ada_ruang_kosong): ?>
+                <p class="text-xs text-red-500 font-bold mt-1">⚠ Semua ruang penuh! Tidak bisa mengaktifkan toko.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-4" id="statusButtonsContainer">
                 <button type="submit" id="btnAktifkan" name="aktifkan_toko"
-                    onclick="return confirm('Aktifkan toko ini?')"
-                    class="hidden w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-[15px] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Aktifkan Toko
+                    onclick="return konfirmasiAktifkan()"
+                    class="hidden w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-[15px] shadow-md transition-all active:scale-95">
+                    Aktifkan
                 </button>
-                <!-- Tombol Nonaktifkan: muncul kalau toko sedang aktif -->
-                <button type="submit" id="btnNonaktifkan" name="nonaktifkan_toko"
-                    onclick="return confirm('Nonaktifkan toko ini?')"
-                    class="hidden w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-[15px] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                    Nonaktifkan Toko
+                <button type="submit" id="btnNonaktifkan" name="nonaktifkan_toko" onclick="return confirm('Nonaktifkan toko ini? Ruang kantin akan otomatis dikosongkan.')" class="hidden w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-[15px] shadow-md transition-all active:scale-95">
+                    Nonaktifkan
                 </button>
             </div>
         </form>
@@ -433,9 +533,24 @@ $total_aktif = $row['total'];
 <?php endif; ?>
 
 <script>
+    const adaRuangKosong = <?= $ada_ruang_kosong ? 'true' : 'false' ?>;
+
     /* ── Modal Tambah ─────────────────────────── */
     function toggleModal(show) {
         document.getElementById('modalTambah').classList.toggle('hidden', !show);
+    }
+
+    function konfirmasiAktifkan() {
+        const selectRuang = document.getElementById('selectRuangAktif');
+        if (!adaRuangKosong) {
+            alert('Semua ruang kantin sudah penuh! Nonaktifkan toko lain terlebih dahulu.');
+            return false;
+        }
+        if (!selectRuang.value) {
+            alert('Pilih nomor ruang kantin terlebih dahulu.');
+            return false;
+        }
+        return confirm('Aktifkan toko ini di Ruang ' + selectRuang.value + '?');
     }
 
     /* ── Modal Kelola Status ──────────────────── */
@@ -448,10 +563,80 @@ $total_aktif = $row['total'];
     function resetStatusModal() {
         document.getElementById('inputIdStatus').value = '';
         document.getElementById('statusError').classList.add('hidden');
-        document.getElementById('statusInfo').classList.add('hidden');
         document.getElementById('btnAktifkan').classList.add('hidden');
         document.getElementById('btnNonaktifkan').classList.add('hidden');
     }
+
+    function validateStatusForm(event) {
+        let id = document.getElementById('inputIdStatus').value;
+        let row = document.querySelector(`.row-toko[data-iduser="${id}"]`);
+        if (!row) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    }
+
+    document.getElementById('inputIdStatus').addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            let id = this.value;
+            let row = document.querySelector(`.row-toko[data-iduser="${id}"]`);
+            if (row) {
+                let status = row.getAttribute('data-status');
+                if (status === 'aktif') {
+                    document.getElementById('btnNonaktifkan').click();
+                } else {
+                    document.getElementById('btnAktifkan').click();
+                }
+            }
+        }
+    });
+
+    document.getElementById('inputIdStatus').addEventListener('input', function() {
+        let id = this.value;
+        let statusError = document.getElementById('statusError');
+        let btnAktifkan = document.getElementById('btnAktifkan');
+        let btnNonaktifkan = document.getElementById('btnNonaktifkan');
+        let container = document.getElementById('statusButtonsContainer');
+        
+        if (!id) {
+            statusError.classList.add('hidden');
+            btnAktifkan.classList.add('hidden');
+            btnNonaktifkan.classList.add('hidden');
+            container.classList.remove('grid-cols-1');
+            container.classList.add('grid-cols-2');
+            return;
+        }
+
+        let row = document.querySelector(`.row-toko[data-iduser="${id}"]`);
+        if (row) {
+            statusError.classList.add('hidden');
+            let status = row.getAttribute('data-status');
+
+            container.classList.remove('grid-cols-2');
+            container.classList.add('grid-cols-1');
+
+            if (status === 'aktif') {
+                btnAktifkan.classList.add('hidden');
+                btnNonaktifkan.classList.remove('hidden');
+                document.getElementById('ruangAktifContainer').classList.add('hidden');
+            } else {
+                btnAktifkan.classList.remove('hidden');
+                btnNonaktifkan.classList.add('hidden');
+                // Tampilkan dropdown ruang hanya saat akan mengaktifkan
+                document.getElementById('ruangAktifContainer').classList.remove('hidden');
+                document.getElementById('ruangAktifContainer').classList.add('flex');
+            }
+        } else {
+            statusError.classList.remove('hidden');
+            btnAktifkan.classList.add('hidden');
+            btnNonaktifkan.classList.add('hidden');
+            document.getElementById('ruangAktifContainer').classList.add('hidden');
+            container.classList.remove('grid-cols-1');
+            container.classList.add('grid-cols-2');
+        }
+    });
 
     /* ── Modal Detail ─────────────────────────── */
     function showDetail(nama, lokasi, deskripsi, buka, tutup) {
@@ -471,7 +656,6 @@ $total_aktif = $row['total'];
         if (e.target === document.getElementById('modalDetail'))   closeDetail();
         if (e.target === document.getElementById('modalNonaktif')) toggleModalNonaktif(false);
     });
-
     /* ── Logika input ID User ─────────────────── */
     document.getElementById('inputIdStatus').addEventListener('input', function() {
         const id            = this.value.trim();

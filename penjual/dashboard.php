@@ -17,7 +17,7 @@ $id_toko = $_SESSION['id_toko'];
 $nama_toko = $_SESSION['nama_toko'] ?? 'Toko';
 
 // Ambil status operasional toko
-$qToko = $db_ekantin->query("SELECT * FROM toko WHERE id_toko = '$id_toko'");
+$qToko = $db_ekantin->query("SELECT t.*, rk.nomor_ruang FROM toko t LEFT JOIN ruang_kantin rk ON t.id_toko = rk.id_toko WHERE t.id_toko = '$id_toko'");
 $toko = $qToko->fetch_assoc();
 $status_toko = $toko['status'] ?? 'aktif';
 
@@ -111,6 +111,13 @@ function badgeStatus($status)
                             Selamat Datang, <?= htmlspecialchars($nama_toko) ?> <span
                                 class="inline-block hover:animate-bounce origin-bottom-right">👋</span>
                         </h2>
+                        <div class="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-primary text-white rounded-full text-xs font-bold shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Ruang <?= htmlspecialchars($toko['nomor_ruang'] ?? '-') ?>
+                        </div>
                         <p class="text-text-3 mt-1 text-sm">Inilah keadaan toko kamu hari ini.</p>
                     </div>
                     <!-- Status Toko Control -->

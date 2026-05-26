@@ -149,7 +149,7 @@ function isStoreOpen($toko) {
 
                 <div class="grid grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                     <?php
-                    $qKantin = $db_ekantin->query("SELECT t.*, COUNT(pk.id_produk) as total_menu FROM toko t JOIN users u ON t.id_users = u.id_users LEFT JOIN produk_kantin pk ON t.id_toko = pk.id_toko AND pk.status_menu = 'aktif' WHERE u.status = 'aktif' GROUP BY t.id_toko LIMIT 6");
+                    $qKantin = $db_ekantin->query("SELECT t.*, COUNT(pk.id_produk) as total_menu, rk.nomor_ruang FROM toko t JOIN users u ON t.id_users = u.id_users LEFT JOIN produk_kantin pk ON t.id_toko = pk.id_toko AND pk.status_menu = 'aktif' LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko WHERE u.status = 'aktif' GROUP BY t.id_toko LIMIT 6");
                     $i = 0;
                     if ($qKantin && $qKantin->num_rows > 0):
                         while ($kantin = $qKantin->fetch_assoc()):
@@ -185,7 +185,10 @@ function isStoreOpen($toko) {
                             <?php endif; ?>
                         </div>
                         <div class="p-3 flex flex-col flex-grow min-w-0">
-                            <p class="store-name font-semibold text-text-1 text-sm sm:text-base leading-snug truncate"><?= htmlspecialchars($kantin['nama_toko']) ?></p>
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="store-name font-semibold text-text-1 text-sm sm:text-base leading-snug truncate"><?= htmlspecialchars($kantin['nama_toko']) ?></p>
+                                <span class="flex-shrink-0 px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-bold">Ruang <?= htmlspecialchars($kantin['nomor_ruang'] ?? '-') ?></span>
+                            </div>
                             <span class="store-tag inline-block mt-1.5 px-2 py-0.5 rounded-full bg-input text-text-3 text-[10px] sm:text-xs font-medium self-start">
                                 <?= $kantin['total_menu'] ?> Menu
                             </span>

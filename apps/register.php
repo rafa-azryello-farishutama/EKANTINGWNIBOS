@@ -7,6 +7,7 @@ $error_register = "";
 if($_SERVER["REQUEST_METHOD"] == "POST"){
 
     $role = "pembeli";
+    $tipe = in_array($_POST['tipe'] ?? '', ['kelas10','kelas11','kelas12','guru']) ? $_POST['tipe'] : 'kelas10';
     $username = $_POST['username'];
 
     if(strlen($username) < 3 || strlen($username) > 20){
@@ -39,8 +40,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         if($error_register == ""){
             $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
-            $stmtInsert = $db_ekantin->prepare("INSERT INTO users(username, password, role, no_telepon, email) VALUES(?, ?, ?, ?, ?)");
-            $stmtInsert->bind_param("sssss", $username, $hash_password, $role, $telepon, $email);
+            $stmtInsert = $db_ekantin->prepare("INSERT INTO users(username, password, role, tipe, no_telepon, email) VALUES(?, ?, ?, ?, ?, ?)");
+            $stmtInsert->bind_param("ssssss", $username, $hash_password, $role, $tipe, $telepon, $email);
 
             if($stmtInsert->execute()){
                 $show_popup = true;
@@ -159,6 +160,58 @@ if($error_register != "") {
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
                             <input type="email" name="email" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="email@contoh.com" required>
                             <img src="../assets/img/email1.png" class="w-5 h-5 opacity-40">
+                        </div>
+                    </div>
+
+                    <!-- Pilihan Tipe Akun -->
+                    <div class="flex flex-col gap-2">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Daftar Sebagai</p>
+                        <div class="grid grid-cols-2 gap-2">
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="tipe" value="kelas10" class="sr-only peer" checked>
+                                <div class="flex items-center gap-2 p-3 bg-input rounded-[12px] border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-100 peer-checked:bg-blue-200 flex items-center justify-center flex-shrink-0 text-sm">📚</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-text-1">Kelas 10</p>
+                                        <p class="text-[10px] text-text-3">Siswa baru</p>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="tipe" value="kelas11" class="sr-only peer">
+                                <div class="flex items-center gap-2 p-3 bg-input rounded-[12px] border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                                    <div class="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0 text-sm">📖</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-text-1">Kelas 11</p>
+                                        <p class="text-[10px] text-text-3">Siswa lanjut</p>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="tipe" value="kelas12" class="sr-only peer">
+                                <div class="flex items-center gap-2 p-3 bg-input rounded-[12px] border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                                    <div class="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 text-sm">🎓</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-text-1">Kelas 12</p>
+                                        <p class="text-[10px] text-text-3">Siswa senior</p>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="tipe" value="guru" class="sr-only peer">
+                                <div class="flex items-center gap-2 p-3 bg-input rounded-[12px] border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                                    <div class="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 text-sm">👨‍🏫</div>
+                                    <div>
+                                        <p class="text-xs font-bold text-text-1">Guru</p>
+                                        <p class="text-[10px] text-text-3">Tenaga pengajar</p>
+                                    </div>
+                                </div>
+                            </label>
+
                         </div>
                     </div>
 

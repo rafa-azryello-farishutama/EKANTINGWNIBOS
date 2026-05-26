@@ -154,16 +154,18 @@ try {
     $stmtPembayaran->execute();
 
     // 2. Simpan setiap item ke tabel detail_pesanan
-    $stmtDetail = $db_ekantin->prepare("INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah) VALUES (?, ?, ?)");
+    $stmtDetail = $db_ekantin->prepare("INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_satuan, subtotal) VALUES (?, ?, ?, ?, ?)");
     $stmtKurangiStok = $db_ekantin->prepare("UPDATE produk_kantin SET stok = stok - ? WHERE id_produk = ?");
     $stmtHapusKeranjang = $db_ekantin->prepare("DELETE FROM keranjang WHERE id_users = ? AND id_produk = ?");
 
     foreach ($cart_data as $item) {
         $id_produk = (int) $item['id'];
         $jumlah    = (int) $item['qty'];
+        $harga_sat = (float) $item['price'];
+        $subtotal  = $harga_sat * $jumlah;
 
         // Insert detail
-        $stmtDetail->bind_param("iii", $id_pesanan, $id_produk, $jumlah);
+        $stmtDetail->bind_param("iiidd", $id_pesanan, $id_produk, $jumlah, $harga_sat, $subtotal);
         $stmtDetail->execute();
 
         // Kurangi stok (mencegah over-order)
