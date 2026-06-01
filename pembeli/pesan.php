@@ -33,13 +33,17 @@ function isStoreOpen($toko) {
         return true;
     }
     date_default_timezone_set('Asia/Jakarta');
-    $now   = date('H:i');
-    $buka  = $toko['jam_buka'];
-    $tutup = $toko['jam_tutup'];
-    if ($buka <= $tutup) {
-        return ($now >= $buka && $now <= $tutup);
+    $now_ts  = time();
+    $buka_ts = strtotime($toko['jam_buka']);
+    $tutup_ts = strtotime($toko['jam_tutup']);
+    
+    // Batas waktu pemesanan adalah 30 menit sebelum tutup
+    $tutup_order_ts = $tutup_ts - (30 * 60);
+
+    if ($buka_ts <= $tutup_ts) {
+        return ($now_ts >= $buka_ts && $now_ts <= $tutup_order_ts);
     } else {
-        return ($now >= $buka || $now <= $tutup);
+        return ($now_ts >= $buka_ts || $now_ts <= $tutup_order_ts);
     }
 }
 
@@ -47,7 +51,7 @@ $id_toko_selected = isset($_GET['id_toko']) ? (int)$_GET['id_toko'] : null;
 $store_details    = null;
 
 if ($id_toko_selected) {
-    $qStore = $db_ekantin->prepare("SELECT t.*, rk.nomor_ruang FROM toko t LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko WHERE t.id_toko = ?");
+    $qStore = $db_ekantin->prepare("SELECT t.*, rk.nomor_ruang, u.foto_profil, u.no_telepon FROM toko t LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko JOIN users u ON t.id_users = u.id_users WHERE t.id_toko = ?");
     $qStore->bind_param("i", $id_toko_selected);
     $qStore->execute();
     $resStore = $qStore->get_result();
@@ -70,7 +74,7 @@ if ($id_toko_selected) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .custom-hero-slider {
-            height: 150px;
+            height: 170px;
         }
         .custom-store-banner-default {
             height: 150px;
@@ -79,12 +83,12 @@ if ($id_toko_selected) {
             height: 170px;
         }
         @media (min-width: 640px) {
-            .custom-hero-slider { height: 180px; }
+            .custom-hero-slider { height: 190px; }
             .custom-store-banner-default { height: 180px; }
             .custom-store-banner-image { height: 200px; }
         }
         @media (min-width: 1024px) {
-            .custom-hero-slider { height: 210px; }
+            .custom-hero-slider { height: 230px; }
             .custom-store-banner-default { height: 210px; }
             .custom-store-banner-image { height: 240px; }
         }
@@ -113,50 +117,75 @@ if ($id_toko_selected) {
 
             <!-- Header -->
             <header class="opacity-0 animate-fadeInUp" style="animation-delay:0.1s;">
-                <div class="flex items-center gap-2 md:gap-3">
-                    <?php if ($store_details): ?>
-                    <a href="pesan.php"
-                        class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-full bg-input text-text-2
-                               hover:bg-primary hover:text-white transition-all duration-200 flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </a>
-                    <div class="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-input text-2xl md:text-3xl flex-shrink-0 ring-2 ring-primary/10 shadow-sm overflow-hidden">
-                        <?php
-                            $foto_toko_header = !empty($store_details['foto_toko']) ? "../assets/img_toko/" . $store_details['foto_toko'] : '';
-                            if ($foto_toko_header): ?>
-                            <img src="<?= htmlspecialchars($foto_toko_header) ?>" alt="Logo" class="w-full h-full object-cover">
-                        <?php else: ?>
-                            <span class="text-primary font-bold text-xl"><?= strtoupper(substr($store_details['nama_toko'], 0, 1)) ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
-
-                    <div class="min-w-0 flex-grow">
-                        <h2 class="font-extrabold text-xl sm:text-3xl md:text-4xl tracking-tight text-primary leading-tight truncate">
-                            <?= $store_details ? htmlspecialchars($store_details['nama_toko']) : 'Pesan Menu' ?>
-                        </h2>
-                        <div class="flex items-center gap-2 mt-0.5">
-                            <p class="text-text-3 text-xs sm:text-sm truncate">
-                                <?= $store_details ? htmlspecialchars($store_details['lokasi'] ?? 'Kantin Sekolah') : 'Pilih kantin dan menu favoritmu' ?>
-                            </p>
-                            <?php if ($store_details && !empty($store_details['nomor_ruang'])): ?>
-                            <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] sm:text-xs font-bold">Ruang <?= $store_details['nomor_ruang'] ?></span>
+                <div class="flex flex-row items-start justify-between gap-2 sm:gap-4 w-full">
+                    <div class="flex items-start gap-2 md:gap-3 min-w-0">
+                        <?php if ($store_details): ?>
+                        <a href="pesan.php"
+                            class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 mt-1 rounded-full bg-input text-text-2
+                                   hover:bg-primary hover:text-white transition-all duration-200 flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </a>
+                        <div class="flex items-center justify-center w-10 h-10 md:w-14 md:h-14 mt-0.5 rounded-full bg-input text-2xl md:text-3xl flex-shrink-0 shadow-sm overflow-hidden border-2 border-white ring-2 ring-primary/20">
+                            <?php
+                                $foto_toko_header = !empty($store_details['foto_profil']) ? "../assets/img/profil/" . $store_details['foto_profil'] : '';
+                                if ($foto_toko_header && file_exists($foto_toko_header)): ?>
+                                <img src="<?= htmlspecialchars($foto_toko_header) ?>" alt="Profil" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <span class="text-primary font-bold text-xl md:text-2xl"><?= strtoupper(substr($store_details['nama_toko'], 0, 1)) ?></span>
                             <?php endif; ?>
                         </div>
-                        <?php if ($store_details):
-                            $is_open_header = isStoreOpen($store_details); ?>
-                        <p class="text-[11px] sm:text-xs font-semibold mt-1 flex items-center gap-1 <?= $is_open_header ? 'text-green-600' : 'text-red-600' ?>">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <?= htmlspecialchars($store_details['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($store_details['jam_tutup'] ?? '--:--') ?> WIB
-                            <?= $is_open_header ? '(Buka)' : '(Tutup)' ?>
-                        </p>
+                        <?php endif; ?>
+
+                        <div class="min-w-0 flex-grow">
+                            <h2 class="font-extrabold text-xl sm:text-3xl md:text-4xl tracking-tight text-primary leading-tight truncate">
+                                <?= $store_details ? htmlspecialchars($store_details['nama_toko']) : 'Pesan Menu' ?>
+                            </h2>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <p class="text-text-3 text-xs sm:text-sm truncate">
+                                    <?= $store_details ? htmlspecialchars($store_details['lokasi'] ?? 'Kantin Sekolah') : 'Pilih kantin dan menu favoritmu' ?>
+                                </p>
+                                <?php if ($store_details && !empty($store_details['nomor_ruang'])): ?>
+                                <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] sm:text-xs font-bold whitespace-nowrap">Ruang <?= $store_details['nomor_ruang'] ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($store_details):
+                                $is_open_header = isStoreOpen($store_details); ?>
+                            <p class="text-[11px] sm:text-xs font-semibold mt-1 flex items-center gap-1 <?= $is_open_header ? 'text-green-600' : 'text-red-600' ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <?= htmlspecialchars($store_details['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($store_details['jam_tutup'] ?? '--:--') ?> WIB
+                                <?= $is_open_header ? '(Buka)' : '(Tutup)' ?>
+                            </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <?php if($store_details && !empty($store_details['deskripsi'])): ?>
+                            <div class="hidden sm:block text-[11px] sm:text-xs text-text-2 leading-tight bg-white border border-gray-100 px-3 py-2 rounded-xl italic font-medium shadow-sm max-w-[150px] md:max-w-[250px] text-right break-words">
+                                "<?= htmlspecialchars($store_details['deskripsi']) ?>"
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($store_details && !empty($store_details['no_telepon'])): 
+                            $no_wa = preg_replace('/[^0-9]/', '', $store_details['no_telepon']);
+                            if (str_starts_with($no_wa, '0')) $no_wa = '62' . substr($no_wa, 1);
+                        ?>
+                        <a href="https://wa.me/<?= $no_wa ?>" target="_blank" class="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white text-gray-700 hover:text-[#128C7E] rounded-full border border-gray-200 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        </a>
                         <?php endif; ?>
                     </div>
                 </div>
+                
+                <?php if($store_details && !empty($store_details['deskripsi'])): ?>
+                    <div class="sm:hidden mt-3 text-[11px] text-text-2 leading-relaxed bg-white border border-gray-100 p-2.5 rounded-lg italic font-medium shadow-sm w-full">
+                        "<?= htmlspecialchars($store_details['deskripsi']) ?>"
+                    </div>
+                <?php endif; ?>
             </header>
 
             <!-- Search Bar -->
@@ -195,7 +224,7 @@ if ($id_toko_selected) {
                 'url'   => 'pesan.php'
             ];
 
-            $qSlides = $db_ekantin->query("SELECT * FROM toko LIMIT 5");
+            $qSlides = $db_ekantin->query("SELECT * FROM toko ORDER BY RAND() LIMIT 5");
             if ($qSlides && $qSlides->num_rows > 0) {
                 while ($tSlide = $qSlides->fetch_assoc()) {
                     $banner    = $tSlide['banner_toko'] ?? null;
@@ -220,16 +249,16 @@ if ($id_toko_selected) {
                         <?php foreach ($slides as $idx => $slide): ?>
                             <div class="min-w-full h-full relative flex-shrink-0">
                                 <img src="<?= $slide['image'] ?>" class="absolute inset-0 w-full h-full object-cover object-center" alt="Banner">
-                                <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/35 to-transparent"></div>
+                                <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent"></div>
                                 <div class="absolute inset-0 flex items-center px-6 sm:px-12">
                                     <div class="relative z-10 text-white max-w-[85%]">
-                                        <span class="inline-block text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-white/20 backdrop-blur-sm">
+                                        <span class="inline-block text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-black/40 backdrop-blur-md border border-white/10 text-white drop-shadow-md">
                                             <?= $slide['badge'] ?>
                                         </span>
-                                        <h3 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight drop-shadow-md">
+                                        <h3 class="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
                                             <?= $slide['title'] ?>
                                         </h3>
-                                        <p class="text-white/80 text-xs sm:text-sm mt-1 drop-shadow-sm font-medium">
+                                        <p class="text-white/95 text-xs sm:text-sm mt-1 font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
                                             <?= $slide['desc'] ?>
                                         </p>
                                         <a href="<?= $slide['url'] ?>" class="mt-3 inline-flex items-center gap-2 bg-white text-primary font-extrabold text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-yellow-50 hover:shadow-md transition-all">

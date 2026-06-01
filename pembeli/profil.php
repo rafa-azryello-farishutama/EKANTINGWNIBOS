@@ -244,6 +244,20 @@ $halaman = basename($_SERVER['PHP_SELF']);
                         </button>
                     </div>
 
+                    <!-- Card Saldo Poin -->
+                    <div class="bg-gradient-to-br from-primary to-[#006800] rounded-[20px] shadow-sm p-6 text-white relative overflow-hidden">
+                        <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10"></div>
+                        <div class="absolute bottom-0 right-6 w-16 h-16 rounded-full bg-white/5"></div>
+                        <div class="relative z-10">
+                            <p class="text-[11px] font-bold uppercase tracking-widest text-white/70 mb-1">🎁 Saldo Poin</p>
+                            <p class="text-4xl font-extrabold"><?= number_format($user['poin'] ?? 0, 0, ',', '.') ?></p>
+                            <p class="text-xs text-white/70 mt-1">≈ Rp <?= number_format($user['poin'] ?? 0, 0, ',', '.') ?> potongan</p>
+                            <div class="mt-4 pt-4 border-t border-white/20">
+                                <p class="text-[11px] text-white/60 leading-relaxed">Poin dari <b class="text-white/90">kode unik</b> setiap pesanan selesai. Gunakan saat checkout untuk diskon!</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <form method="POST">
                         <button type="submit" name="logout"
                             class="w-full h-[44px] bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-[12px] transition-all active:scale-[0.98]">

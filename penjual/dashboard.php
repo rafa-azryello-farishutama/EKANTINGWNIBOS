@@ -61,7 +61,13 @@ $total_pesanan = $qTotalPesanan->fetch_assoc()['total'] ?? 0;
 $qTotalMenu = $db_ekantin->query("SELECT COUNT(*) as total FROM produk_kantin WHERE id_toko='$id_toko'");
 $total_menu = $qTotalMenu->fetch_assoc()['total'] ?? 0;
 
-$qPendapatan = $db_ekantin->query("SELECT SUM(total_harga) as total FROM pesanan WHERE id_toko='$id_toko' AND status_pesanan='selesai'");
+$qPendapatan = $db_ekantin->query("
+    SELECT SUM(IF(dp.harga_satuan > 0, dp.harga_satuan * dp.jumlah, pk.harga * dp.jumlah)) as total 
+    FROM pesanan p
+    LEFT JOIN detail_pesanan dp ON p.id_pesanan = dp.id_pesanan
+    LEFT JOIN produk_kantin pk ON dp.id_produk = pk.id_produk
+    WHERE p.id_toko='$id_toko' AND p.status_pesanan IN ('selesai', 'diambil', 'tidak_diambil')
+");
 $pendapatan = $qPendapatan->fetch_assoc()['total'] ?? 0;
 
 $qPesanan = $db_ekantin->query("

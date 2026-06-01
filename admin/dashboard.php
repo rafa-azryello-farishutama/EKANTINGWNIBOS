@@ -33,12 +33,13 @@ $total_transaksi = $db_ekantin->query("SELECT * FROM
 pesanan")->num_rows;
 
 // Ambil Total Pendapatan (Hanya yang Selesai)
-$res_pendapatan = $db_ekantin->query("SELECT SUM(total_harga) AS total FROM
-pesanan WHERE status_pesanan = 'selesai'");
-$data_pendapatan =
-  $res_pendapatan->fetch_assoc();
-$total_pendapatan = $data_pendapatan['total'] ??
-  0; ?>
+$total_pendapatan = $db_ekantin->query("
+    SELECT SUM(IF(dp.harga_satuan > 0, dp.harga_satuan * dp.jumlah, pk.harga * dp.jumlah)) as total_pendapatan 
+    FROM pesanan p
+    LEFT JOIN detail_pesanan dp ON p.id_pesanan = dp.id_pesanan
+    LEFT JOIN produk_kantin pk ON dp.id_produk = pk.id_produk
+    WHERE p.status_pesanan IN ('selesai','diambil','tidak_diambil')
+")->fetch_assoc()['total_pendapatan'] ?? 0; ?>
 
 <!doctype html>
 <html lang="en">

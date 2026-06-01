@@ -36,6 +36,7 @@ if ($aksi === 'simpan_cart') {
     foreach ($cart as $item) {
         $id_produk = (int) $item['id'];
         $jumlah    = (int) $item['qty'];
+        if ($jumlah <= 0) continue; // Jangan simpan produk jika jumlahnya nol atau negatif
         $stmt->bind_param("iiii", $id_users, $id_produk, $id_toko, $jumlah);
         $stmt->execute();
     }

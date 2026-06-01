@@ -73,6 +73,12 @@ if ($current_hash != '') { // Only notify if there are actual orders
                 class="w-5 h-5 <?= $halaman != 'keranjang.php' ? 'opacity-40' : '' ?>">
             <span class="text-sm font-medium">Keranjang</span>
         </a>
+        <a href="pesanan.php"
+            class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300">
+            <img src="<?= $halaman == 'pesanan.php' ? '../assets/img/kotakGarpu_white.png' : '../assets/img/kotakGarpu_black.png' ?>"
+                class="w-5 h-5 <?= $halaman != 'pesanan.php' ? 'opacity-40' : '' ?>">
+            <span class="text-sm font-medium">Pesanan Aktif</span>
+        </a>
         <a href="history.php"
             class="<?= $halaman == 'history.php' ? 'bg-primary text-white shadow-md shadow-primary/20 translate-x-1' : 'text-text-2 hover:bg-primary/10 hover:translate-x-1' ?> rounded-xl flex items-center gap-3 px-4 py-3 transition-all duration-300 justify-between">
             <div class="flex items-center gap-3">
@@ -126,6 +132,13 @@ if ($current_hash != '') { // Only notify if there are actual orders
         <img src="<?= $halaman == 'keranjang.php' ? '../assets/img/keranjang_white.png' : '../assets/img/keranjang_black.png' ?>"
             class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'keranjang.php' ? 'opacity-40' : '' ?>">
         <span class="font-medium text-sm">Keranjang</span>
+    </a>
+
+    <a href="pesanan.php" class="<?= $halaman == 'pesanan.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>
+                rounded-xl flex items-center px-8 py-4 transition-all duration-300 cursor-pointer group">
+        <img src="<?= $halaman == 'pesanan.php' ? '../assets/img/kotakGarpu_white.png' : '../assets/img/kotakGarpu_black.png' ?>"
+            class="w-[25px] h-auto mr-3 group-hover:scale-110 transition-transform duration-300 <?= $halaman != 'pesanan.php' ? 'opacity-40' : '' ?>">
+        <span class="font-medium text-sm">Pesanan Aktif</span>
     </a>
 
     <a href="history.php" class="<?= $halaman == 'history.php' ? 'bg-primary text-white shadow-[0_4px_20px_rgba(0,73,0,0.3)] translate-x-2' : 'text-text-2 hover:bg-primary/10 hover:translate-x-2' ?>

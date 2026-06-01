@@ -12,7 +12,15 @@ $_SESSION['username'] = $_SESSION['pembeli_username'];
 $_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $id_users = $_SESSION['id_users'];
-$username = $_SESSION['username'] ?? 'Pembeli';
+$qUser = $db_ekantin->query("SELECT username FROM users WHERE id_users = '$id_users'");
+if ($qUser && $qUser->num_rows > 0) {
+    $userData = $qUser->fetch_assoc();
+    $username = $userData['username'];
+    $_SESSION['username'] = $username;
+    $_SESSION['pembeli_username'] = $username;
+} else {
+    $username = $_SESSION['username'];
+}
 
 function isStoreOpen($toko) {
     if (!$toko) return false;
@@ -26,13 +34,17 @@ function isStoreOpen($toko) {
         return true;
     }
     date_default_timezone_set('Asia/Jakarta');
-    $now = date('H:i');
-    $buka = $toko['jam_buka'];
-    $tutup = $toko['jam_tutup'];
-    if ($buka <= $tutup) {
-        return ($now >= $buka && $now <= $tutup);
+    $now_ts  = time();
+    $buka_ts = strtotime($toko['jam_buka']);
+    $tutup_ts = strtotime($toko['jam_tutup']);
+    
+    // Batas waktu pemesanan adalah 30 menit sebelum tutup
+    $tutup_order_ts = $tutup_ts - (30 * 60);
+
+    if ($buka_ts <= $tutup_ts) {
+        return ($now_ts >= $buka_ts && $now_ts <= $tutup_order_ts);
     } else {
-        return ($now >= $buka || $now <= $tutup);
+        return ($now_ts >= $buka_ts || $now_ts <= $tutup_order_ts);
     }
 }
 ?>

@@ -29,8 +29,15 @@
                 <a href="kelola.php" class="<?= $halaman == 'kelola.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
                 rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
                 <img src="<?= $halaman == 'kelola.php' ? '../assets/img/person_white.png' : '../assets/img/person_black.png' ?>" 
-                    class="w-[25px] h-auto mr-3 <?= $halaman != 'pesan.php' ? 'opacity-40' : '' ?>">
+                    class="w-[25px] h-auto mr-3 <?= $halaman != 'kelola.php' ? 'opacity-40' : '' ?>">
                 <span class="font-medium text-sm">Anggota</span>
+                </a>
+
+                <a href="laporan.php" class="<?= $halaman == 'laporan.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+                <img src="<?= $halaman == 'laporan.php' ? '../assets/img/report_white.png' : '../assets/img/report_black.png' ?>" 
+                    class="w-[25px] h-auto mr-3 <?= $halaman != 'laporan.php' ? 'opacity-40' : '' ?>" onerror="this.src='../assets/img/history_black.png'">
+                <span class="font-medium text-sm">Laporan</span>
                 </a>
 
                 <a href="kelolaToko.php" class="<?= $halaman == 'kelolaToko.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 

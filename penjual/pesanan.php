@@ -22,7 +22,12 @@ if (isset($_POST['update_status'])) {
     $status_baru = $_POST['status_baru'];
     $alasan_tolak = isset($_POST['alasan_tolak']) ? $db_ekantin->real_escape_string($_POST['alasan_tolak']) : '';
 
-    $query_update = "UPDATE pesanan SET status_pesanan = '$status_baru', alasan_tolak = '$alasan_tolak' WHERE id_pesanan = '$id'";
+    $waktu_dikonfirmasi_query = "";
+    if ($status_baru === 'dikonfirmasi') {
+        $waktu_dikonfirmasi_query = ", waktu_dikonfirmasi = NOW()";
+    }
+
+    $query_update = "UPDATE pesanan SET status_pesanan = '$status_baru', alasan_tolak = '$alasan_tolak' $waktu_dikonfirmasi_query WHERE id_pesanan = '$id'";
     $db_ekantin->query($query_update);
 
     // Kembalikan stok jika pesanan ditolak
@@ -31,6 +36,50 @@ if (isset($_POST['update_status'])) {
         while ($det = $qDetail->fetch_assoc()) {
             $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']} WHERE id_produk = '{$det['id_produk']}'");
         }
+        
+        // Refund poin
+        $qPoin = $db_ekantin->query("SELECT id_users, poin_digunakan FROM pesanan WHERE id_pesanan = '$id'");
+        if ($qPoin && $qPoin->num_rows > 0) {
+            $pData = $qPoin->fetch_assoc();
+            $poin_dig = (int)$pData['poin_digunakan'];
+            if ($poin_dig > 0) {
+                $uid = $pData['id_users'];
+                $db_ekantin->query("UPDATE users SET poin = poin + $poin_dig WHERE id_users = '$uid'");
+                $db_ekantin->query("UPDATE pesanan SET poin_digunakan = 0 WHERE id_pesanan = '$id'");
+            }
+        }
+    }
+    
+    // Jika Selesai/Diambil, beri poin ke user (berdasarkan kode unik)
+    if ($status_baru === 'selesai' || $status_baru === 'diambil') {
+        // Ambil ID User dan Kode Unik
+        $qPesanan = $db_ekantin->query("SELECT id_users, kode_unik FROM pesanan WHERE id_pesanan = '$id'");
+        if ($qPesanan && $qPesanan->num_rows > 0) {
+            $pData = $qPesanan->fetch_assoc();
+            $kode = (int)$pData['kode_unik'];
+            if ($kode > 0) {
+                $uid = $pData['id_users'];
+                $db_ekantin->query("UPDATE users SET poin = poin + $kode WHERE id_users = '$uid'");
+                // Hapus kode unik agar tidak di-double
+                $db_ekantin->query("UPDATE pesanan SET kode_unik = 0 WHERE id_pesanan = '$id'");
+            }
+        }
+    }
+    
+    // Logika Laporkan Pembeli (Jika Pesanan Tidak Diambil)
+    if ($status_baru === 'tidak_diambil_lapor') {
+        $status_baru = 'tidak_diambil';
+        // Ambil ID User dan ID Penjual
+        $qInfo = $db_ekantin->query("SELECT id_users FROM pesanan WHERE id_pesanan = '$id'");
+        if ($qInfo && $qInfo->num_rows > 0) {
+            $id_terlapor = $qInfo->fetch_assoc()['id_users'];
+            $id_pelapor = $_SESSION['id_users'];
+            $alasan = $alasan_tolak ?: "Pesanan tidak diambil oleh pembeli.";
+            $db_ekantin->query("INSERT INTO laporan_pembeli (id_pelapor, id_terlapor, alasan) VALUES ('$id_pelapor', '$id_terlapor', '$alasan')");
+        }
+        
+        // Ubah status jadi tidak_diambil (stok TIDAK dikembalikan karena makanan sudah dibuat)
+        $db_ekantin->query("UPDATE pesanan SET status_pesanan = 'tidak_diambil', alasan_tolak = '$alasan_tolak' WHERE id_pesanan = '$id'");
     }
 
     header("Location: pesanan.php");
@@ -38,6 +87,55 @@ if (isset($_POST['update_status'])) {
 }
 
 $today = date('Y-m-d'); // Asia/Jakarta sudah di-set di atas
+
+// --- AUTO CLEANUP PESANAN MENGGANTUNG & UPDATE ENUM ---
+$db_ekantin->query("ALTER TABLE pesanan MODIFY COLUMN status_pesanan ENUM('pending','dikonfirmasi','diproses','selesai','dibatalkan','diambil','tidak_diambil') DEFAULT 'pending'");
+
+$qToko = $db_ekantin->query("SELECT jam_tutup FROM toko WHERE id_toko='$id_toko'");
+if ($qToko && $qToko->num_rows > 0) {
+    $jam_tutup = $qToko->fetch_assoc()['jam_tutup'];
+    $sekarang = date('H:i:s');
+    
+    // Cari pesanan yang batal karena timeout:
+    // 1. Tunai yang lewat jam tutup hari itu
+    // 2. Dikonfirmasi tapi lewat 10 menit
+    $qMenggantung = $db_ekantin->query("
+        SELECT p.id_pesanan 
+        FROM pesanan p
+        JOIN pembayaran pb ON p.id_pesanan = pb.id_pesanan
+        WHERE p.id_toko = '$id_toko' 
+        AND (
+            (p.status_pesanan IN ('pending', 'diproses') AND pb.metode_bayar = 'cash' AND (DATE(p.tanggal_pesan) < '$today' OR (DATE(p.tanggal_pesan) = '$today' AND '$sekarang' > '$jam_tutup')))
+            OR 
+            (p.status_pesanan = 'dikonfirmasi' AND p.waktu_dikonfirmasi < DATE_SUB(NOW(), INTERVAL 10 MINUTE))
+        )
+    ");
+    
+    if($qMenggantung && $qMenggantung->num_rows > 0) {
+        while ($pm = $qMenggantung->fetch_assoc()) {
+            $id_batal = $pm['id_pesanan'];
+            $db_ekantin->query("UPDATE pesanan SET status_pesanan = 'dibatalkan', alasan_tolak = 'Dibatalkan otomatis (Timeout)' WHERE id_pesanan = '$id_batal'");
+            
+            $qDetail = $db_ekantin->query("SELECT id_produk, jumlah FROM detail_pesanan WHERE id_pesanan = '$id_batal'");
+            while ($det = $qDetail->fetch_assoc()) {
+                $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']} WHERE id_produk = '{$det['id_produk']}'");
+            }
+            
+            // Refund poin
+            $qPoin = $db_ekantin->query("SELECT id_users, poin_digunakan FROM pesanan WHERE id_pesanan = '$id_batal'");
+            if ($qPoin && $qPoin->num_rows > 0) {
+                $pData = $qPoin->fetch_assoc();
+                $poin_dig = (int)$pData['poin_digunakan'];
+                if ($poin_dig > 0) {
+                    $uid = $pData['id_users'];
+                    $db_ekantin->query("UPDATE users SET poin = poin + $poin_dig WHERE id_users = '$uid'");
+                    $db_ekantin->query("UPDATE pesanan SET poin_digunakan = 0 WHERE id_pesanan = '$id_batal'");
+                }
+            }
+        }
+    }
+}
+// --- END AUTO CLEANUP ---
 
 // Pesanan yang masuk HARI INI saja
 $qTotal = "SELECT * FROM pesanan WHERE id_toko = '$id_toko' AND DATE(tanggal_pesan) = '$today'";
@@ -116,25 +214,27 @@ $sTotal = $hSelesai->num_rows;
             </div>
 
             <div class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-                <form method="GET" id="form-filter">
-                    <input type="hidden" name="filter_status" id="input-filter" value="semua">
+                <?php 
+                $filter_tanggal = isset($_GET['filter_tanggal']) ? $_GET['filter_tanggal'] : $today; 
+                $filter_status = isset($_GET['filter_status']) ? $_GET['filter_status'] : 'semua';
+                ?>
+                <form method="GET" id="form-filter" class="flex gap-2 w-full">
+                    <input type="date" name="filter_tanggal" value="<?= htmlspecialchars($filter_tanggal) ?>" 
+                           onchange="this.form.submit();"
+                           class="px-4 py-2 rounded-full text-sm font-semibold border border-gray-200 text-text-2 bg-white hover:bg-gray-50 focus:outline-none focus:ring-0 focus:border-primary cursor-pointer transition-all">
+                    
+                    <select name="filter_status" onchange="this.form.submit();" 
+                            class="px-4 py-2 rounded-full text-sm font-semibold border border-gray-200 text-text-2 bg-white hover:bg-gray-50 focus:outline-none focus:ring-0 focus:border-primary cursor-pointer transition-all">
+                        <option value="semua" <?= $filter_status == 'semua' ? 'selected' : '' ?>>📋 Semua Status</option>
+                        <option value="pending" <?= $filter_status == 'pending' ? 'selected' : '' ?>>⏳ Pending</option>
+                        <option value="dikonfirmasi" <?= $filter_status == 'dikonfirmasi' ? 'selected' : '' ?>>💳 Menunggu Transfer (Dikonfirmasi)</option>
+                        <option value="diproses" <?= $filter_status == 'diproses' ? 'selected' : '' ?>>🍳 Sedang Diproses</option>
+                        <option value="selesai" <?= $filter_status == 'selesai' ? 'selected' : '' ?>>📦 Selesai Siap Ambil</option>
+                        <option value="diambil" <?= $filter_status == 'diambil' ? 'selected' : '' ?>>✅ Sudah Diambil</option>
+                        <option value="tidak_diambil" <?= $filter_status == 'tidak_diambil' ? 'selected' : '' ?>>⚠️ Tidak Diambil</option>
+                        <option value="dibatalkan" <?= $filter_status == 'dibatalkan' ? 'selected' : '' ?>>❌ Dibatalkan</option>
+                    </select>
                 </form>
-                <button onclick="filterPesanan('semua')" id="btn-semua"
-                    class="px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap bg-primary text-white transition-all">
-                    Semua
-                </button>
-                <button onclick="filterPesanan('pending')" id="btn-pending"
-                    class="px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap bg-white border border-gray-200 text-text-2 hover:bg-gray-50 transition-all">
-                    Pending
-                </button>
-                <button onclick="filterPesanan('diproses')" id="btn-diproses"
-                    class="px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap bg-white border border-gray-200 text-text-2 hover:bg-gray-50 transition-all">
-                    Diproses
-                </button>
-                <button onclick="filterPesanan('selesai')" id="btn-selesai"
-                    class="px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap bg-white border border-gray-200 text-text-2 hover:bg-gray-50 transition-all">
-                    Selesai
-                </button>
             </div>
 
             <div class="flex flex-col gap-3">
@@ -148,7 +248,8 @@ $sTotal = $hSelesai->num_rows;
               JOIN users u ON p.id_users = u.id_users 
               LEFT JOIN pembayaran pay ON p.id_pesanan = pay.id_pesanan
               WHERE p.id_toko = '$id_toko' $where_status 
-              ORDER BY p.tanggal_pesan DESC";
+              AND DATE(p.tanggal_pesan) = '$filter_tanggal'
+              ORDER BY FIELD(p.status_pesanan, 'pending', 'dikonfirmasi', 'diproses', 'selesai', 'diambil', 'tidak_diambil', 'dibatalkan'), p.tanggal_pesan DESC";
 
                 $pesanan = $db_ekantin->query($query);
 
@@ -179,6 +280,7 @@ $sTotal = $hSelesai->num_rows;
     
                         $badgeClass = match ($status) {
                             'pending' => 'text-yellow-700 bg-yellow-100 border border-yellow-200',
+                            'dikonfirmasi' => 'text-indigo-700 bg-indigo-100 border border-indigo-200',
                             'diproses' => 'text-blue-700 bg-blue-100 border border-blue-200',
                             'selesai' => 'text-green-700 bg-green-100 border border-green-200',
                             'dibatalkan' => 'text-red-600 bg-red-100 border border-red-200',
@@ -187,21 +289,29 @@ $sTotal = $hSelesai->num_rows;
 
                         $badgePill = match ($status) {
                             'pending' => 'text-yellow-700 bg-yellow-100 border border-yellow-200',
+                            'dikonfirmasi' => 'text-indigo-700 bg-indigo-100 border border-indigo-200',
                             'diproses' => 'text-blue-700 bg-blue-100 border border-blue-200',
                             'selesai' => 'text-green-700 bg-green-100 border border-green-200',
+                            'diambil' => 'text-teal-700 bg-teal-100 border border-teal-200',
+                            'tidak_diambil' => 'text-orange-700 bg-orange-100 border border-orange-200',
                             'dibatalkan' => 'text-red-600 bg-red-100 border border-red-200',
                             default => 'text-gray-600 bg-gray-100 border border-gray-200'
                         };
 
                         $cardBorderClass = match ($status) {
                             'pending' => 'border-yellow-100 hover:border-yellow-200',
+                            'dikonfirmasi' => 'border-indigo-100 hover:border-indigo-200',
                             'diproses' => 'border-blue-100 hover:border-blue-200',
                             'selesai' => 'border-green-100 hover:border-green-200',
+                            'diambil' => 'border-teal-100 hover:border-teal-200',
+                            'tidak_diambil' => 'border-orange-100 hover:border-orange-200',
                             'dibatalkan' => 'border-red-100 hover:border-red-200',
                             default => 'border-gray-100 hover:border-primary/30'
                         };
                         if ($status == 'pending') {
                             $tombolAksi = "<span class='text-xs font-bold bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl'>⏳ Pending</span>";
+                        } else if ($status == 'dikonfirmasi') {
+                            $tombolAksi = "<span class='text-xs font-bold bg-indigo-100 text-indigo-700 px-4 py-2 rounded-xl'>⌛ Menunggu Pembayaran/Proses</span>";
                         } else if ($status == 'diproses') {
                             $tombolAksi = "<span class='text-xs font-bold bg-blue-100 text-blue-700 px-4 py-2 rounded-xl'>🔄 Diproses</span>";
                         } else {
@@ -213,6 +323,16 @@ $sTotal = $hSelesai->num_rows;
                         $catatan = htmlspecialchars($row['catatan'] ?? '-', ENT_QUOTES);
                         $metode_pembayaran = htmlspecialchars($row['metode_pembayaran'] ?? 'transfer', ENT_QUOTES);
                         $bukti_pembayaran = htmlspecialchars($row['bukti_pembayaran'] ?? '', ENT_QUOTES);
+                        $status_bayar = htmlspecialchars($row['status_bayar'] ?? 'belum_bayar', ENT_QUOTES);
+                        
+                        $tgl_pesan = date('Ymd', strtotime($row['tanggal_pesan']));
+                        $id_show = $row['id_harian'] ? sprintf("%03d", $row['id_harian']) : sprintf("%04d", $row['id_pesanan']);
+                        $display_id = "#ORD-" . $tgl_pesan . "-" . $id_show;
+                        
+                        $indikatorTransfer = '';
+                        if ($status_bayar === 'sudah_bayar') {
+                            $indikatorTransfer = "<span class='text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full mb-1 inline-block'>💰 Sudah Transfer</span>";
+                        }
 
                         $qMenu = $db_ekantin->query("SELECT dp.jumlah, pk.nama_menu FROM detail_pesanan dp JOIN produk_kantin pk ON dp.id_produk = pk.id_produk WHERE dp.id_pesanan = '$id_pesanan'");
                         $listMenu = [];
@@ -222,18 +342,19 @@ $sTotal = $hSelesai->num_rows;
                         $tampilMenu = implode(", ", $listMenu);
 
                         echo "
-            <div onclick=\"bukaPopup('$username', '$tulisanTanggal', '$status', '$tampilMenu', '$catatan', '$harga','$id_pesanan', '$metode_pembayaran', '$bukti_pembayaran')\"
+            <div onclick=\"bukaPopup('$username', '$tulisanTanggal', '$status', '$tampilMenu', '$catatan', '$harga','$id_pesanan', '$metode_pembayaran', '$bukti_pembayaran', '$status_bayar', '$display_id')\"
                 class='bg-white rounded-[24px] p-6 shadow-sm border $cardBorderClass cursor-pointer transition-all mb-2 hover:-translate-y-0.5 hover:shadow-md'>
                 
                 <div class='flex justify-between items-start mb-2'>
                     <div>
-                        <div class='flex items-center gap-2'>
-                            <p class='text-lg font-bold text-text-1'>#ORD-" . sprintf("%04d", $id_pesanan) . "</p>
-                            <p class='text-xs font-semibold px-2 py-0.5 bg-gray-100 rounded-md'>$username</p>
-                        </div>
+                        $indikatorTransfer
+                        <p class='text-base md:text-lg font-bold text-text-1 mt-1'>$display_id</p>
                         <p class='text-xs text-text-3 mt-1'>$tulisanTanggal</p>
                     </div>
-                    <span class='text-xs font-bold $badgePill px-4 py-1.5 rounded-full capitalize'>$status</span>
+                    <div class='flex flex-col items-end gap-1.5'>
+                        <span class='text-[11px] md:text-xs font-bold $badgePill px-3 py-1 md:px-4 md:py-1.5 rounded-full capitalize'>" . str_replace('_', ' ', $status) . "</span>
+                        <p class='text-[11px] font-semibold px-2 py-0.5 bg-gray-100 rounded-md text-text-2 text-right'>$username</p>
+                    </div>
                 </div>
 
                 <p class='text-sm text-text-2 mb-4'>$tampilMenu</p>
@@ -253,15 +374,15 @@ $sTotal = $hSelesai->num_rows;
         </main>
     </div>
 
-    <div id="overlay-popup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    <div id="overlay-popup" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 md:p-6"
         onclick="tutupPopup()">
-        <div class="bg-white rounded-[24px] w-full max-w-md shadow-2xl overflow-hidden"
+        <div class="bg-white rounded-[20px] md:rounded-[24px] w-full max-w-md shadow-2xl overflow-hidden max-h-[95vh] flex flex-col"
             onclick="event.stopPropagation()">
 
             <div class="bg-gradient-to-r from-primary to-[#006800] px-8 py-6 flex items-center justify-between">
                 <div>
                     <p class="text-white/60 text-xs uppercase tracking-widest mb-1">Detail Pesanan</p>
-                    <h2 id="popup-nama" class="text-white font-bold text-xl">-</h2>
+                    <h2 id="popup-nama" class="text-white font-bold text-lg md:text-xl leading-tight">-</h2>
                 </div>
                 <button onclick="tutupPopup()"
                     class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-all">
@@ -272,7 +393,7 @@ $sTotal = $hSelesai->num_rows;
                 </button>
             </div>
 
-            <div class="px-8 py-6 flex flex-col gap-5">
+            <div class="px-6 py-6 flex flex-col gap-5 overflow-y-auto">
 
                 <div class="flex justify-between items-center">
                     <div>
@@ -320,38 +441,18 @@ $sTotal = $hSelesai->num_rows;
     </div>
 
     <script>
-        function filterPesanan(status) {
-            document.getElementById('input-filter').value = status;
-            document.getElementById('form-filter').submit();
-        }
 
-        function setActiveButton() {
-            const params = new URLSearchParams(window.location.search);
-            const aktif = params.get('filter_status') || 'semua';
-
-            const buttons = ['semua', 'pending', 'diproses', 'selesai'];
-            buttons.forEach(btn => {
-                const el = document.getElementById('btn-' + btn);
-                if (btn === aktif) {
-                    el.classList.add('bg-primary', 'text-white');
-                    el.classList.remove('bg-white', 'border', 'border-gray-200', 'text-text-2');
-                } else {
-                    el.classList.remove('bg-primary', 'text-white');
-                    el.classList.add('bg-white', 'border', 'border-gray-200', 'text-text-2');
-                }
-            });
-        }
-
-        setActiveButton();
-
-        function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan, metode_bayar, bukti_bayar) {
-            document.getElementById('popup-nama').textContent = "#ORD-" + String(id_pesanan).padStart(4, '0') + " (" + nama + ")";
+        function bukaPopup(nama, waktu, status, items, catatan, total, id_pesanan, metode_bayar, bukti_bayar, status_bayar, display_id) {
+            document.getElementById('popup-nama').textContent = display_id + " (" + nama + ")";
             document.getElementById('popup-waktu').textContent = waktu;
             document.getElementById('popup-items').textContent = items;
             document.getElementById('popup-catatan').textContent = catatan;
             document.getElementById('popup-total').textContent = total;
 
-            const metodeText = metode_bayar === 'qr' ? '📱 QRIS / QR Code' : '🏦 Transfer Bank';
+            let metodeText = '🏦 Transfer Bank';
+            if (metode_bayar === 'qr') metodeText = '📱 QRIS / QR Code';
+            if (metode_bayar === 'cash') metodeText = '💵 Tunai (Bayar di Tempat)';
+            
             document.getElementById('popup-metode').textContent = metodeText;
 
             const linkEl = document.getElementById('popup-bukti-link');
@@ -364,8 +465,48 @@ $sTotal = $hSelesai->num_rows;
 
             document.getElementById('popup-struk-link').href = "../apps/struk.php?id_pesanan=" + id_pesanan;
 
+            let isWaitingPayment = (metode_bayar !== 'cash' && status_bayar === 'menunggu_pembayaran');
+            let btnProses = isWaitingPayment 
+                ? `<button type="button" disabled style="background:#f3f4f6;" class="w-full h-[46px] rounded-[12px] text-gray-400 border border-gray-200 text-sm font-bold cursor-not-allowed transition-all">⏳ Menunggu Pembayaran</button>`
+                : `<button type="submit" id="btn-proses" style="background:#2563eb;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">Proses Pesanan</button>`;
+
+            let notifTransfer = '';
+            if (status_bayar === 'sudah_bayar') {
+                notifTransfer = `<div class="mb-3 p-3 bg-green-50 border border-green-200 rounded-xl text-center shadow-sm">
+                    <p class="text-sm font-bold text-green-700">✅ Pembeli Telah Konfirmasi Transfer</p>
+                    <p class="text-[11px] text-green-600 mt-1">Silakan cek mutasi rekening/e-wallet Anda sebelum memproses.</p>
+                </div>`;
+            }
+
+            const btnProsesFinal = notifTransfer + btnProses;
+            let statusKonfirmasiValue = metode_bayar === 'cash' ? 'diproses' : 'dikonfirmasi';
+            let btnKonfirmasiText = metode_bayar === 'cash' ? 'Terima & Langsung Proses' : 'Konfirmasi Pesanan';
+
             const aksiMap = {
                 pending: `
+        <form method="POST" class="flex flex-col gap-2.5" id="form-pesanan">
+            <input type="hidden" name="id_pesanan" value="${id_pesanan}">
+            <input type="hidden" name="update_status" value="1">
+            <input type="hidden" name="status_baru" id="status-baru-input" value="${statusKonfirmasiValue}">
+            
+            <div id="alasan-tolak-section" class="hidden flex flex-col gap-1.5 border-t pt-3">
+                <label class="text-[10px] font-semibold uppercase tracking-widest text-text-3">Alasan Penolakan</label>
+                <textarea name="alasan_tolak" id="alasan-tolak-input" rows="2" placeholder="Sebutkan alasan penolakan..." class="w-full border-gray-200 bg-input focus:bg-white focus:ring-primary focus:border-primary text-sm rounded-xl resize-none"></textarea>
+            </div>
+
+            <button type="submit" id="btn-konfirmasi" style="background:#2563eb;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">${btnKonfirmasiText}</button>
+            
+            <button type="button" id="btn-tolak-init" onclick="showTolakSection()" class="w-full h-[46px] bg-red-50 text-red-600 border border-red-200 rounded-[12px] text-sm font-bold hover:bg-red-100 transition-all">
+                Tolak Pesanan
+            </button>
+            <button type="submit" id="btn-tolak-submit" onclick="return setStatusBatal()" class="hidden w-full h-[46px] bg-red-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Kirim & Tolak Pesanan
+            </button>
+            <button type="button" id="btn-batal-tolak" onclick="hideTolakSection()" class="hidden w-full h-[36px] text-text-3 text-xs font-semibold hover:underline">
+                Kembali
+            </button>
+        </form>`,
+                dikonfirmasi: `
         <form method="POST" class="flex flex-col gap-2.5" id="form-pesanan">
             <input type="hidden" name="id_pesanan" value="${id_pesanan}">
             <input type="hidden" name="update_status" value="1">
@@ -376,9 +517,8 @@ $sTotal = $hSelesai->num_rows;
                 <textarea name="alasan_tolak" id="alasan-tolak-input" rows="2" placeholder="Sebutkan alasan penolakan..." class="w-full border-gray-200 bg-input focus:bg-white focus:ring-primary focus:border-primary text-sm rounded-xl resize-none"></textarea>
             </div>
 
-            <button type="submit" id="btn-proses" style="background:#2563eb;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
-                Proses Pesanan
-            </button>
+            ${btnProsesFinal}
+            
             <button type="button" id="btn-tolak-init" onclick="showTolakSection()" class="w-full h-[46px] bg-red-50 text-red-600 border border-red-200 rounded-[12px] text-sm font-bold hover:bg-red-100 transition-all">
                 Tolak Pesanan
             </button>
@@ -394,10 +534,36 @@ $sTotal = $hSelesai->num_rows;
             <input type="hidden" name="id_pesanan" value="${id_pesanan}">
             <input type="hidden" name="status_baru" value="selesai">
             <button type="submit" name="update_status" style="background:#16a34a;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
-                Tandai Selesai
+                Tandai Siap Diambil (Selesai)
             </button>
         </form>`,
-                selesai: `<div class="py-2 text-center text-green-600 font-bold bg-green-50 rounded-xl">✅ Pesanan Selesai</div>`
+                selesai: `
+        <form method="POST" class="flex flex-col gap-2.5" id="form-pesanan">
+            <input type="hidden" name="id_pesanan" value="${id_pesanan}">
+            <input type="hidden" name="update_status" value="1">
+            <input type="hidden" name="status_baru" id="status-baru-input" value="diambil">
+
+            <div id="alasan-tolak-section" class="hidden flex flex-col gap-1.5 border-t pt-3">
+                <label class="text-[10px] font-semibold uppercase tracking-widest text-text-3">Alasan Laporan</label>
+                <textarea name="alasan_tolak" id="alasan-tolak-input" rows="2" placeholder="Jelaskan alasan (Misal: Pembeli tidak datang mengambil)..." class="w-full border-gray-200 bg-input focus:bg-white focus:ring-primary focus:border-primary text-sm rounded-xl resize-none"></textarea>
+            </div>
+
+            <button type="submit" id="btn-proses" onclick="document.getElementById('status-baru-input').value='diambil';" style="background:#0d9488;" class="w-full h-[46px] rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Sudah Diambil
+            </button>
+            
+            <button type="button" id="btn-tolak-init" onclick="showTolakSection()" class="w-full h-[46px] bg-orange-50 text-orange-600 border border-orange-200 rounded-[12px] text-sm font-bold hover:bg-orange-100 transition-all">
+                Tidak Diambil & Laporkan
+            </button>
+            <button type="submit" id="btn-tolak-submit" onclick="return setStatusBatalLapor()" class="hidden w-full h-[46px] bg-red-600 rounded-[12px] text-white text-sm font-bold hover:opacity-90 transition-all">
+                Kirim Laporan & Tandai Tidak Diambil
+            </button>
+            <button type="button" id="btn-batal-tolak" onclick="hideTolakSection()" class="hidden w-full h-[36px] text-text-3 text-xs font-semibold hover:underline">
+                Kembali
+            </button>
+        </form>`,
+                diambil: `<div class="py-2 text-center text-teal-700 font-bold bg-teal-50 rounded-xl">✅ Pesanan Selesai & Diambil</div>`,
+                tidak_diambil: `<div class="py-2 text-center text-orange-700 font-bold bg-orange-50 rounded-xl">⚠️ Pesanan Tidak Diambil Pembeli</div>`
             };
 
             document.getElementById('popup-aksi').innerHTML = aksiMap[status] || '';
@@ -420,22 +586,35 @@ $sTotal = $hSelesai->num_rows;
 
         function showTolakSection() {
             document.getElementById('alasan-tolak-section').classList.remove('hidden');
-            document.getElementById('btn-proses').classList.add('hidden');
+            // Sembunyikan semua tombol aksi utama (bisa btn-proses atau btn-konfirmasi)
+            const btnProses = document.getElementById('btn-proses');
+            if (btnProses) btnProses.classList.add('hidden');
+            const btnKonfirmasi = document.getElementById('btn-konfirmasi');
+            if (btnKonfirmasi) btnKonfirmasi.classList.add('hidden');
             document.getElementById('btn-tolak-init').classList.add('hidden');
             document.getElementById('btn-tolak-submit').classList.remove('hidden');
             document.getElementById('btn-batal-tolak').classList.remove('hidden');
             document.getElementById('alasan-tolak-input').setAttribute('required', 'true');
-            document.getElementById('status-baru-input').value = 'dibatalkan';
+            // Simpan nilai status asli sebelum diganti ke dibatalkan
+            const inp = document.getElementById('status-baru-input');
+            inp.dataset.original = inp.value;
+            inp.value = 'dibatalkan';
         }
 
         function hideTolakSection() {
             document.getElementById('alasan-tolak-section').classList.add('hidden');
-            document.getElementById('btn-proses').classList.remove('hidden');
+            // Tampilkan kembali tombol aksi utama
+            const btnProses = document.getElementById('btn-proses');
+            if (btnProses) btnProses.classList.remove('hidden');
+            const btnKonfirmasi = document.getElementById('btn-konfirmasi');
+            if (btnKonfirmasi) btnKonfirmasi.classList.remove('hidden');
             document.getElementById('btn-tolak-init').classList.remove('hidden');
             document.getElementById('btn-tolak-submit').classList.add('hidden');
             document.getElementById('btn-batal-tolak').classList.add('hidden');
             document.getElementById('alasan-tolak-input').removeAttribute('required');
-            document.getElementById('status-baru-input').value = 'diproses';
+            // Kembalikan status ke nilai asli sebelum tolak dibuka
+            const inp = document.getElementById('status-baru-input');
+            inp.value = inp.dataset.original || inp.value;
         }
 
         function setStatusBatal() {
@@ -444,6 +623,17 @@ $sTotal = $hSelesai->num_rows;
                 alert('Harap masukkan alasan penolakan.');
                 return false;
             }
+            document.getElementById('status-baru-input').value = 'dibatalkan';
+            return true;
+        }
+
+        function setStatusBatalLapor() {
+            const input = document.getElementById('alasan-tolak-input');
+            if (!input.value.trim()) {
+                alert('Harap masukkan alasan pelaporan.');
+                return false;
+            }
+            document.getElementById('status-baru-input').value = 'tidak_diambil_lapor';
             return true;
         }
     </script>

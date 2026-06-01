@@ -62,7 +62,7 @@ foreach ($items as $item) {
     <?php include 'navbar.php'; ?>
 
     <main class="lg:ml-80 flex-grow w-full px-4 md:px-8 pb-10 pt-20 lg:pt-8">
-        <div class="w-full max-w-xl mx-auto flex flex-col gap-6">
+        <div class="w-full max-w-5xl mx-auto flex flex-col gap-6">
 
             <!-- Header -->
             <header class="opacity-0 animate-fadeInUp" style="animation-delay:0.1s;">

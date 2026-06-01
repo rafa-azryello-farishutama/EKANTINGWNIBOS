@@ -37,6 +37,20 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             $error_register = "Email sudah terdaftar, silakan gunakan email lain.";
         }
 
+        if($tipe === 'guru' && $error_register == "") {
+            $kode_input = trim($_POST['kode_guru'] ?? '');
+            
+            // Buat tabel jika belum ada (sekadar fallback)
+            $db_ekantin->query("CREATE TABLE IF NOT EXISTS pengaturan (kunci VARCHAR(100) PRIMARY KEY, nilai TEXT)");
+            $resKode = $db_ekantin->query("SELECT nilai FROM pengaturan WHERE kunci='kode_guru'");
+            $dataKode = $resKode->fetch_assoc();
+            $kode_valid = $dataKode ? $dataKode['nilai'] : 'GURU2025';
+            
+            if (strtoupper($kode_input) !== strtoupper($kode_valid)) {
+                $error_register = "Kode Guru yang Anda masukkan salah!";
+            }
+        }
+
         if($error_register == ""){
             $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
@@ -92,6 +106,15 @@ if($error_register != "") {
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-background min-h-screen flex items-center justify-center p-4 md:p-10 relative overflow-hidden">
@@ -102,17 +125,39 @@ if($error_register != "") {
 
     <div class="flex flex-col lg:flex-row w-full max-w-[1000px] h-[90vh] lg:h-[650px] lg:max-h-[90vh] bg-white rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden">
         
-        <div class="hidden lg:flex w-[40%] bg-primary relative p-12 flex-col justify-between text-white shrink-0">
-            <div class="absolute inset-0 bg-black/10"></div>
-            <div class="relative z-10">
-                <img src="../assets/img/logoBaru1.png" class="w-[160px] h-auto opacity-90"/>
-                <p class="mt-4 text-white/60 font-medium">E-Kantin</p>
+        <div class="hidden lg:flex w-[40%] relative p-12 flex-col justify-between text-white shrink-0 overflow-hidden bg-primary">
+            <!-- Background Image with Overlay -->
+            <div class="absolute inset-0 z-0">
+                <img src="../assets/img/fotoBackground3.jpg" class="w-full h-full object-cover opacity-40 mix-blend-overlay" alt="Background">
+                <div class="absolute inset-0 bg-primary/80"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-primary via-primary/60 to-transparent"></div>
             </div>
-            <div class="relative z-10">
-                <h2 class="text-4xl font-bold leading-tight mb-4 font-headline">Daftar Akun Baru</h2>
-                <p class="text-white/70 text-sm leading-relaxed">
-                    Buat akun dan mulai pesan makanan favoritmu dengan mudah dan cepat.
+            
+            <!-- Decorative Elements -->
+            <div class="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/20 rounded-full blur-3xl z-0"></div>
+            <div class="absolute bottom-[20%] left-[-20%] w-80 h-80 bg-white/20 rounded-full blur-3xl z-0"></div>
+
+            <div class="relative z-10 animate-[fadeInDown_0.6s_ease-out_forwards]">
+                <div class="bg-white/10 backdrop-blur-md w-fit p-4 rounded-[20px] border border-white/20 mb-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+                    <img src="../assets/img/logoBaru1.png" class="w-[140px] h-auto drop-shadow-lg"/>
+                </div>
+                <p class="text-white/80 font-bold tracking-widest uppercase text-[10px]">Aplikasi Kantin Digital</p>
+            </div>
+            
+            <div class="relative z-10 animate-[fadeInUp_0.6s_ease-out_forwards]" style="animation-delay: 0.2s; opacity: 0;">
+                <h2 class="text-4xl lg:text-[2.5rem] font-extrabold leading-[1.1] mb-5 font-headline drop-shadow-sm">Mulai Pesan,<br><span class="text-amber-300">Tanpa Antre!</span></h2>
+                <p class="text-white/80 text-[13px] leading-relaxed max-w-sm mb-8 font-medium">
+                    Buat akun sekarang dan rasakan kemudahan menikmati makanan favoritmu di sekolah.
                 </p>
+                
+                <div class="flex items-center gap-3 p-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl w-fit">
+                    <div class="flex -space-x-3">
+                        <div class="w-9 h-9 rounded-full bg-blue-100 border-2 border-primary flex items-center justify-center text-sm shadow-md">🧑‍🎓</div>
+                        <div class="w-9 h-9 rounded-full bg-amber-100 border-2 border-primary flex items-center justify-center text-sm shadow-md z-10">👨‍🏫</div>
+                        <div class="w-9 h-9 rounded-full bg-green-100 border-2 border-primary flex items-center justify-center text-sm shadow-md z-20">👩‍🎓</div>
+                    </div>
+                    <p class="text-[10px] text-white font-semibold leading-tight pr-2">Bergabung bersama<br><span class="text-amber-300">Warga E-Kantin</span> lainnya.</p>
+                </div>
             </div>
         </div>
 
@@ -215,6 +260,14 @@ if($error_register != "") {
                         </div>
                     </div>
 
+                    <div id="kode-guru-container" class="hidden flex-col gap-1 mt-2 p-4 bg-amber-50 border border-amber-200 rounded-[15px]">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-amber-700 ml-1">Kode Pendaftaran Guru</p>
+                        <div class="w-full h-[55px] bg-white rounded-[12px] flex items-center px-4 border border-amber-100">
+                            <input type="text" name="kode_guru" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0 uppercase font-mono tracking-wider" placeholder="Masukkan Kode">
+                        </div>
+                        <p class="text-[10px] text-amber-600 ml-1 mt-1">Dapatkan kode ini dari pihak admin sekolah.</p>
+                    </div>
+
                     <div class="pt-4">
                         <button type="submit" class="w-full h-[55px] bg-submit rounded-[15px] text-white font-bold tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-primary/10 uppercase">
                             Daftar Sekarang
@@ -233,4 +286,32 @@ if($error_register != "") {
     </div>
 
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tipeRadios = document.querySelectorAll('input[name="tipe"]');
+        const kodeGuruContainer = document.getElementById('kode-guru-container');
+        const kodeGuruInput = document.querySelector('input[name="kode_guru"]');
+
+        function updateKodeGuruVisibility() {
+            const selectedTipe = document.querySelector('input[name="tipe"]:checked');
+            if(selectedTipe && selectedTipe.value === 'guru') {
+                kodeGuruContainer.classList.remove('hidden');
+                kodeGuruContainer.classList.add('flex');
+                kodeGuruInput.required = true;
+            } else {
+                kodeGuruContainer.classList.add('hidden');
+                kodeGuruContainer.classList.remove('flex');
+                kodeGuruInput.required = false;
+                kodeGuruInput.value = '';
+            }
+        }
+
+        tipeRadios.forEach(radio => {
+            radio.addEventListener('change', updateKodeGuruVisibility);
+        });
+
+        // Initialize state on load
+        updateKodeGuruVisibility();
+    });
+</script>
 </html>

@@ -309,6 +309,20 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
                             ? "<span class='text-xs font-semibold text-green-600 bg-green-100 px-3 py-1 rounded-full'>Aktif</span>"
                             : "<span class='text-xs font-semibold text-red-500 bg-red-100 px-3 py-1 rounded-full'>Nonaktif</span>";
 
+                        $detailData = json_encode([
+                            "id_toko" => $id_toko,
+                            "id_user" => $id_user,
+                            "username" => $data['username'],
+                            "email" => $data['email'],
+                            "telepon" => $data['no_telepon'],
+                            "toko" => $data['nama_toko'],
+                            "ruang" => $nomor_ruang,
+                            "status" => ucfirst($status),
+                            "jam" => $jam_buka . ' - ' . $jam_tutup,
+                            "lokasi" => $data['lokasi'] ?? 'Belum diatur',
+                            "deskripsi" => $data['deskripsi'] ?? 'Tidak ada deskripsi'
+                        ]);
+
                         echo "
                         <div class='row-toko grid grid-cols-[40px_40px_1fr_100px_80px_130px_100px_80px] px-6 py-4 gap-4 border-b border-gray-100 items-center hover:bg-gray-50 transition-colors'
                              data-iduser='$id_user' data-status='$status'>
@@ -319,8 +333,8 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
                             <p class='text-sm font-semibold text-primary'>$nomor_ruang</p>
                             <p class='text-sm text-text-2 truncate'>" . htmlspecialchars($data['no_telepon']) . "</p>
                             $tulisanStatus
-                            <button onclick=\"showDetail('$toko','$lokasi','$deskripsi','$jam_buka','$jam_tutup')\"
-                                class='text-primary hover:text-submit font-bold text-xs uppercase tracking-wider'>Detail</button>
+                            <button data-info='" . htmlspecialchars($detailData, ENT_QUOTES, 'UTF-8') . "' onclick=\"showDetail(this)\"
+                                class='text-primary bg-primary/10 hover:bg-primary hover:text-white px-3 py-1.5 rounded-[10px] font-bold text-xs uppercase tracking-wider transition-all border border-primary/20 w-full'>Detail</button>
                         </div>";
                     }
                 } else {
@@ -457,20 +471,46 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
                 </svg>
             </button>
         </div>
-        <div class="p-8 space-y-6">
-            <div class="grid grid-cols-2 gap-4">
+        <div class="p-8 space-y-6 overflow-y-auto max-h-[75vh]">
+            
+            <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div>
-                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Jam Operasional</p>
-                    <p id="detailJam" class="text-sm font-semibold text-text-1 mt-1"></p>
+                    <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">ID Toko / User</p>
+                    <p class="text-sm font-semibold text-text-1 mt-1">#<span id="detailIdToko"></span> / #<span id="detailIdUser"></span></p>
                 </div>
                 <div>
-                    <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Lokasi</p>
-                    <p id="detailLokasi" class="text-sm text-text-1 mt-1"></p>
+                    <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Status / Ruang</p>
+                    <p class="text-sm font-semibold text-text-1 mt-1"><span id="detailStatus" class="text-primary"></span> &bull; <span id="detailRuang"></span></p>
                 </div>
             </div>
-            <hr class="border-gray-100">
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Pemilik (Username)</p>
+                    <p id="detailUsername" class="text-sm font-semibold text-text-1 mt-1"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Email</p>
+                    <p id="detailEmail" class="text-sm font-semibold text-text-1 mt-1"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Telepon</p>
+                    <p id="detailTelepon" class="text-sm font-semibold text-text-1 mt-1"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Jam Operasional</p>
+                    <p id="detailJam" class="text-sm font-semibold text-text-1 mt-1"></p>
+                </div>
+            </div>
+            
+            <hr class="border-gray-100 border-dashed">
+            
             <div>
-                <p class="text-[11px] font-bold uppercase text-text-3 tracking-widest">Deskripsi Toko</p>
+                <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Lokasi</p>
+                <p id="detailLokasi" class="text-sm text-text-1 mt-1"></p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase text-text-3 tracking-widest">Deskripsi Toko</p>
                 <p id="detailDeskripsi" class="text-sm text-text-2 mt-2 leading-relaxed italic"></p>
             </div>
             <button onclick="closeDetail()"
@@ -639,11 +679,21 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
     });
 
     /* ── Modal Detail ─────────────────────────── */
-    function showDetail(nama, lokasi, deskripsi, buka, tutup) {
-        document.getElementById('detailNamaToko').innerText  = nama;
-        document.getElementById('detailLokasi').innerText    = lokasi;
-        document.getElementById('detailDeskripsi').innerText = deskripsi;
-        document.getElementById('detailJam').innerText       = buka + " – " + tutup;
+    function showDetail(btnElement) {
+        let info = JSON.parse(btnElement.getAttribute('data-info'));
+        
+        document.getElementById('detailNamaToko').innerText  = info.toko;
+        document.getElementById('detailIdToko').innerText    = info.id_toko;
+        document.getElementById('detailIdUser').innerText    = info.id_user;
+        document.getElementById('detailUsername').innerText  = info.username;
+        document.getElementById('detailEmail').innerText     = info.email;
+        document.getElementById('detailTelepon').innerText   = info.telepon;
+        document.getElementById('detailStatus').innerText    = info.status;
+        document.getElementById('detailRuang').innerText     = info.ruang;
+        document.getElementById('detailJam').innerText       = info.jam;
+        document.getElementById('detailLokasi').innerText    = info.lokasi;
+        document.getElementById('detailDeskripsi').innerText = info.deskripsi;
+        
         document.getElementById('modalDetail').classList.remove('hidden');
     }
     function closeDetail() {

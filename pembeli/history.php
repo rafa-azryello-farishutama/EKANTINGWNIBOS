@@ -13,6 +13,20 @@ $_SESSION['role']     = $_SESSION['pembeli_role'];
 
 $id_users = (int) $_SESSION['id_users'];
 
+// Migrasi otomatis: tambah kolom refund_confirmed jika belum ada
+$db_ekantin->query("ALTER TABLE pesanan ADD COLUMN IF NOT EXISTS refund_confirmed TINYINT(1) NOT NULL DEFAULT 0");
+
+// Handle konfirmasi refund offline
+if (isset($_POST['konfirmasi_refund'])) {
+    $id_refund = (int) $_POST['id_pesanan'];
+    $stmt = $db_ekantin->prepare("UPDATE pesanan SET refund_confirmed = 1 WHERE id_pesanan = ? AND id_users = ? AND status_pesanan = 'dibatalkan'");
+    $stmt->bind_param("ii", $id_refund, $id_users);
+    $stmt->execute();
+    $_SESSION['pesan_sukses'] = "Terima kasih! Refund selesai diproses.";
+    header("Location: history.php");
+    exit;
+}
+
 // Update notifikasi pesanan terakhir dilihat
 $q_hash = $db_ekantin->query("SELECT GROUP_CONCAT(CONCAT(id_pesanan, '-', status_pesanan)) as hash FROM pesanan WHERE id_users='$id_users'");
 if ($q_hash) {
@@ -62,16 +76,21 @@ $filter = $_GET['filter'] ?? 'semua';
 $where_status = "";
 if ($filter !== 'semua') {
     // Validasi filter agar tidak disusupi SQL injection
-    $allowed_filters = ['pending', 'diproses', 'selesai', 'dibatalkan'];
+    $allowed_filters = ['pending', 'diproses', 'selesai', 'diambil', 'tidak_diambil', 'dibatalkan'];
     if (in_array($filter, $allowed_filters)) {
-        $where_status = " AND p.status_pesanan = '$filter'";
+        if ($filter === 'selesai') {
+            // Tampilkan semua status yang dianggap 'selesai'
+            $where_status = " AND p.status_pesanan IN ('selesai','diambil','tidak_diambil')";
+        } else {
+            $where_status = " AND p.status_pesanan = '$filter'";
+        }
     } else {
         $filter = 'semua';
     }
 }
 
 // Ambil data pesanan
-$sql_pesanan = "SELECT p.*, t.nama_toko, pay.metode_bayar as metode_pembayaran, pay.bukti_bayar as bukti_pembayaran, pay.status_bayar,
+$sql_pesanan = "SELECT p.*, p.refund_confirmed, t.nama_toko, pay.metode_bayar as metode_pembayaran, pay.bukti_bayar as bukti_pembayaran, pay.status_bayar,
                 (SELECT COUNT(*) FROM review r WHERE r.id_pesanan = p.id_pesanan) as is_reviewed
                 FROM pesanan p 
                 JOIN toko t ON p.id_toko = t.id_toko 
@@ -188,19 +207,31 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                             $items = $stmt_detail->get_result()->fetch_all(MYSQLI_ASSOC);
                             
                             // Setup UI berdasarkan status
-                            if ($status == 'selesai') {
+                            if (in_array($status, ['selesai', 'diambil', 'tidak_diambil'])) {
                                 $icon = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
-                                $iconColor = "text-green-600"; $iconBg = "bg-green-50"; $badgeClass = "bg-green-100 text-green-700";
+                                if ($status === 'diambil') {
+                                    $iconColor = "text-teal-600"; $iconBg = "bg-teal-50"; $badgeClass = "bg-teal-100 text-teal-700";
+                                    $labelStatus = 'Diambil';
+                                } elseif ($status === 'tidak_diambil') {
+                                    $iconColor = "text-orange-500"; $iconBg = "bg-orange-50"; $badgeClass = "bg-orange-100 text-orange-700";
+                                    $labelStatus = 'Tidak Diambil';
+                                } else {
+                                    $iconColor = "text-green-600"; $iconBg = "bg-green-50"; $badgeClass = "bg-green-100 text-green-700";
+                                    $labelStatus = 'Selesai';
+                                }
                             } elseif ($status == 'diproses') {
                                 $icon = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />';
                                 $iconColor = "text-blue-500"; $iconBg = "bg-blue-50"; $badgeClass = "bg-blue-100 text-blue-700";
+                                $labelStatus = 'Diproses';
                             } elseif ($status == 'dibatalkan') {
                                 $icon = '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
                                 $iconColor = "text-red-500"; $iconBg = "bg-red-50"; $badgeClass = "bg-red-100 text-red-600";
+                                $labelStatus = 'Dibatalkan';
                             } else {
                                 // pending
                                 $icon = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />';
                                 $iconColor = "text-yellow-500"; $iconBg = "bg-yellow-50"; $badgeClass = "bg-yellow-100 text-yellow-700";
+                                $labelStatus = 'Pending';
                             }
                             
                             $waktu_pesan = date('d M Y · H:i', strtotime($pesanan['tanggal_pesan']));
@@ -218,11 +249,15 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                         </svg>
                                     </div>
                                     <div>
-                                        <p class="font-bold text-text-1 text-sm">#ORD-<?= sprintf("%04d", $id_pesanan) ?></p>
+                                        <?php
+                                        $id_show_history = $pesanan['id_harian'] ? sprintf("%03d", $pesanan['id_harian']) : sprintf("%04d", $pesanan['id_pesanan']);
+                                        $tgl_pesan_history = date('Ymd', strtotime($pesanan['tanggal_pesan']));
+                                        ?>
+                                        <p class="font-bold text-text-1 text-sm">#ORD-<?= $tgl_pesan_history ?>-<?= $id_show_history ?></p>
                                         <p class="text-xs text-text-3 mt-0.5"><?= $waktu_pesan ?> WIB</p>
                                     </div>
                                 </div>
-                                <span class="text-xs font-bold px-3 py-1 rounded-full capitalize <?= $badgeClass ?>"><?= $status ?></span>
+                                <span class="text-xs font-bold px-3 py-1 rounded-full capitalize <?= $badgeClass ?>"><?= $labelStatus ?></span>
                             </div>
                             
                             <!-- Card Body (Items) -->
@@ -257,9 +292,33 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if ($status === 'dibatalkan' && !empty($pesanan['alasan_tolak'])): ?>
-                                    <div class="mt-2 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg">
-                                        Alasan Ditolak: "<?= htmlspecialchars($pesanan['alasan_tolak']) ?>"
+                                <?php if ($status === 'dibatalkan'): ?>
+                                    <div class="mt-2 flex flex-col gap-2">
+                                        <?php if (!empty($pesanan['alasan_tolak'])): ?>
+                                        <div class="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 p-2.5 rounded-xl flex items-start gap-2">
+                                            <span class="mt-0.5">❌</span>
+                                            <span>Alasan Ditolak: "<i><?= htmlspecialchars($pesanan['alasan_tolak']) ?></i>"</span>
+                                        </div>
+                                        <?php endif; ?>
+
+                                        <?php 
+                                            $sudah_tf = in_array($pesanan['status_bayar'] ?? '', ['sudah_bayar', 'lunas']);
+                                            $refund_done = (int)($pesanan['refund_confirmed'] ?? 0) === 1;
+                                        ?>
+                                        <?php if ($sudah_tf && !$refund_done): ?>
+                                        <div class="bg-orange-50 border border-orange-300 rounded-xl p-3 flex items-start gap-2">
+                                            <span class="text-lg leading-none">⚠️</span>
+                                            <div>
+                                                <p class="text-xs font-bold text-orange-700">Dana Anda belum dikembalikan!</p>
+                                                <p class="text-xs text-orange-600 mt-0.5">Silakan datang langsung ke kantin untuk melakukan <b>pengembalian dana secara tunai (refund offline)</b> bersama penjual.</p>
+                                            </div>
+                                        </div>
+                                        <?php elseif ($sudah_tf && $refund_done): ?>
+                                        <div class="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+                                            <span>✅</span>
+                                            <p class="text-xs font-semibold text-green-700">Refund tunai telah selesai diproses.</p>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -268,19 +327,25 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                             <div class="px-5 pb-4 pt-3 flex items-center justify-between border-t border-gray-50">
                                 <span class="text-xs text-text-3"><?= $total_qty ?> item</span>
                                 <div class="flex items-center gap-3">
-                                    <?php if ($status === 'selesai'): ?>
+                                    <?php if (in_array($status, ['selesai', 'diambil', 'tidak_diambil'])): ?>
                                     <a href="../apps/struk.php?id_pesanan=<?= $id_pesanan ?>" class="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                         📄 Struk
                                     </a>
                                     <?php endif; ?>
                                     
-                                    <?php if ($status === 'selesai' && $pesanan['is_reviewed'] == 0): ?>
+                                    <?php if ($pesanan['status_bayar'] === 'menunggu_pembayaran' && $pesanan['metode_pembayaran'] !== 'tunai'): ?>
+                                    <a href="pesanan.php?id=<?= $id_pesanan ?>" class="text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 px-4 py-1.5 rounded-lg transition-colors shadow-sm">
+                                        Bayar Sekarang
+                                    </a>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (in_array($status, ['selesai', 'diambil']) && $pesanan['is_reviewed'] == 0): ?>
                                     <button type="button" onclick="bukaModalReview(<?= $id_pesanan ?>)" class="text-xs font-bold text-yellow-600 bg-yellow-100 hover:bg-yellow-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                         ⭐ Beri Ulasan
                                     </button>
                                     <?php endif; ?>
 
-                                    <?php if ($status === 'selesai' && $pesanan['is_reviewed'] > 0): ?>
+                                    <?php if (in_array($status, ['selesai', 'diambil']) && $pesanan['is_reviewed'] > 0): ?>
                                     <span class="text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
                                         Sudah Diulas
                                     </span>
@@ -292,6 +357,21 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                                         <button type="submit" name="batalkan_pesanan" class="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">
                                             Batalkan
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
+
+                                    <?php
+                                        $sudah_tf_footer = in_array($pesanan['status_bayar'] ?? '', ['sudah_bayar', 'lunas']);
+                                        $refund_done_footer = (int)($pesanan['refund_confirmed'] ?? 0) === 1;
+                                    ?>
+                                    <?php if ($status === 'dibatalkan' && $sudah_tf_footer && !$refund_done_footer): ?>
+                                    <!-- Tombol konfirmasi refund offline -->
+                                    <form method="POST" onsubmit="return confirm('Pastikan Anda sudah menerima pengembalian uang tunai dari penjual. Lanjutkan?');">
+                                        <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
+                                        <button type="submit" name="konfirmasi_refund"
+                                            class="text-xs font-bold text-green-700 bg-green-100 hover:bg-green-200 border border-green-300 px-3 py-1.5 rounded-lg transition-colors">
+                                            ✅ Uang Saya Sudah Kembali
                                         </button>
                                     </form>
                                     <?php endif; ?>

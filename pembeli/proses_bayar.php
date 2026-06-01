@@ -60,46 +60,10 @@ if (!isStoreOpenBackend($tokoVal)) {
     exit;
 }
 
-// Proses Upload Bukti Pembayaran
+// Bukti pembayaran diupload nanti di halaman unggah_bukti.php
 $metode_pembayaran = $_POST['metode_pembayaran'] ?? 'transfer';
-$file_input_name = 'bukti_bayar';
 $bukti_pembayaran = NULL;
-
-if (isset($_FILES[$file_input_name]) && $_FILES[$file_input_name]['error'] === UPLOAD_ERR_OK) {
-    $fileTmpPath = $_FILES[$file_input_name]['tmp_name'];
-    $fileName = $_FILES[$file_input_name]['name'];
-    $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-    
-    // Validasi ekstensi bukti pembayaran
-    $ekstensi_valid = ['jpg', 'jpeg', 'png', 'webp'];
-    if (!in_array($fileExtension, $ekstensi_valid)) {
-        $_SESSION['pesan_error'] = "Format bukti pembayaran salah! Hanya diperbolehkan JPG, JPEG, PNG, atau WEBP.";
-        header("Location: pesan.php?id_toko=" . $id_toko);
-        exit;
-    }
-    
-    // Generate nama file yang unik untuk menghindari tabrakan nama file
-    $newFileName = time() . '_' . md5(uniqid()) . '.' . $fileExtension;
-    
-    $uploadFileDir = '../assets/uploads_bukti/';
-    if (!is_dir($uploadFileDir)) {
-        mkdir($uploadFileDir, 0777, true);
-    }
-    
-    $dest_path = $uploadFileDir . $newFileName;
-    
-    if(move_uploaded_file($fileTmpPath, $dest_path)) {
-        $bukti_pembayaran = $newFileName;
-    } else {
-        $_SESSION['pesan_error'] = "Gagal menyimpan berkas bukti pembayaran di server.";
-        header("Location: pesan.php?id_toko=" . $id_toko);
-        exit;
-    }
-} else {
-    $_SESSION['pesan_error'] = "Bukti pembayaran wajib diunggah untuk konfirmasi pesanan.";
-    header("Location: pesan.php?id_toko=" . $id_toko);
-    exit;
-}
+$gunakan_poin = isset($_POST['gunakan_poin']) ? (int)$_POST['gunakan_poin'] : 0;
 
 // Gunakan transaksi untuk memastikan semua operasi (insert & delete) berhasil
 $db_ekantin->begin_transaction();
@@ -112,6 +76,10 @@ try {
     foreach ($cart_data as $item) {
         $id_produk = (int) $item['id'];
         $jumlah    = (int) $item['qty'];
+
+        if ($jumlah <= 0) {
+            throw new Exception("Jumlah pesanan tidak valid (harus lebih dari 0).");
+        }
 
         $stmtCekProduk->bind_param("ii", $id_produk, $id_toko);
         $stmtCekProduk->execute();
@@ -137,18 +105,62 @@ try {
         throw new Exception("Total harga pembayaran tidak cocok dengan rincian keranjang belanja.");
     }
 
-    // 1. Simpan ke tabel pesanan
+    // Proses Poin
+    $potongan_poin = 0;
+    if ($gunakan_poin) {
+        $stmtCekPoin = $db_ekantin->prepare("SELECT poin FROM users WHERE id_users = ? FOR UPDATE");
+        $stmtCekPoin->bind_param("i", $id_users);
+        $stmtCekPoin->execute();
+        $resPoin = $stmtCekPoin->get_result();
+        if ($resPoin->num_rows > 0) {
+            $userPoin = (int)$resPoin->fetch_assoc()['poin'];
+            $potongan_poin = min($userPoin, $total_harga);
+            
+            // Kurangi poin user
+            $sisa_poin = $userPoin - $potongan_poin;
+            $stmtKurangiPoin = $db_ekantin->prepare("UPDATE users SET poin = ? WHERE id_users = ?");
+            $stmtKurangiPoin->bind_param("ii", $sisa_poin, $id_users);
+            $stmtKurangiPoin->execute();
+
+            $total_harga -= $potongan_poin;
+        }
+    }
+
+    // 1. Hitung id_harian (nomor antrian hari ini)
+    date_default_timezone_set('Asia/Jakarta');
+    $today = date('Y-m-d');
+    $qHarian = $db_ekantin->query("SELECT MAX(id_harian) as max_harian FROM pesanan WHERE DATE(tanggal_pesan) = '$today' AND id_toko = '$id_toko'");
+    $id_harian = 1;
+    if ($qHarian && $qHarian->num_rows > 0) {
+        $row_harian = $qHarian->fetch_assoc();
+        if ($row_harian['max_harian']) {
+            $id_harian = (int)$row_harian['max_harian'] + 1;
+        }
+    }
+
+    // 2. Simpan ke tabel pesanan
     $status_awal = 'pending';
     // Gunakan prepared statement untuk keamanan dari SQL injection
-    $stmtPesanan = $db_ekantin->prepare("INSERT INTO pesanan (id_users, id_toko, total_harga, status_pesanan, catatan) VALUES (?, ?, ?, ?, ?)");
-    $stmtPesanan->bind_param("iiiss", $id_users, $id_toko, $total_harga, $status_awal, $catatan);
+    $stmtPesanan = $db_ekantin->prepare("INSERT INTO pesanan (id_users, id_toko, total_harga, status_pesanan, catatan, id_harian, poin_digunakan) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmtPesanan->bind_param("iiissii", $id_users, $id_toko, $total_harga, $status_awal, $catatan, $id_harian, $potongan_poin);
     $stmtPesanan->execute();
     
     // Dapatkan ID pesanan yang baru saja dibuat
     $id_pesanan = $db_ekantin->insert_id;
 
+    $kode_unik = 0;
+    if ($metode_pembayaran !== 'cash') {
+        $kode_unik = $id_harian;
+        $total_harga += $kode_unik;
+        
+        // Update total harga dan kode_unik
+        $stmtUpdate = $db_ekantin->prepare("UPDATE pesanan SET total_harga = ?, kode_unik = ? WHERE id_pesanan = ?");
+        $stmtUpdate->bind_param("iii", $total_harga, $kode_unik, $id_pesanan);
+        $stmtUpdate->execute();
+    }
+
     // Simpan data pembayaran ke tabel pembayaran
-    $status_bayar = 'sudah_bayar'; // Pembeli mengunggah bukti
+    $status_bayar = ($metode_pembayaran === 'cash') ? 'belum_bayar' : 'menunggu_pembayaran';
     $stmtPembayaran = $db_ekantin->prepare("INSERT INTO pembayaran (id_pesanan, id_toko, metode_bayar, jumlah_bayar, bukti_bayar, status_bayar) VALUES (?, ?, ?, ?, ?, ?)");
     $stmtPembayaran->bind_param("iisdss", $id_pesanan, $id_toko, $metode_pembayaran, $total_harga, $bukti_pembayaran, $status_bayar);
     $stmtPembayaran->execute();
@@ -180,20 +192,19 @@ try {
     // Commit jika semua berhasil
     $db_ekantin->commit();
 
-    // Redirect ke halaman riwayat pesanan
-    $_SESSION['pesan_sukses'] = "Pesanan berhasil dibuat!";
-    header("Location: history.php");
+    // Redirect ke halaman pesanan
+    if ($metode_pembayaran === 'cash') {
+        $_SESSION['pesan_sukses'] = "Pesanan berhasil dibuat! Silakan menuju kantin untuk melakukan pembayaran.";
+        header("Location: pesanan.php");
+    } else {
+        // Tampilkan halaman QRIS/nominal + upload bukti
+        header("Location: pesanan.php?id=" . $id_pesanan);
+    }
     exit;
 
 } catch (Exception $e) {
-    // Rollback jika ada yang gagal
+    // Batalkan transaksi jika terjadi kesalahan
     $db_ekantin->rollback();
-    
-    // Hapus file bukti pembayaran yang telanjur diunggah
-    if ($bukti_pembayaran && isset($uploadFileDir) && file_exists($uploadFileDir . $bukti_pembayaran)) {
-        unlink($uploadFileDir . $bukti_pembayaran);
-    }
-    
     $_SESSION['pesan_error'] = "Gagal memproses pesanan: " . $e->getMessage();
     header("Location: pesan.php?id_toko=" . $id_toko);
     exit;

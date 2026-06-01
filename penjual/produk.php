@@ -169,11 +169,34 @@ if (isset($_POST['filter_makanan'])) {
    Ambil data toko + banner
 ═══════════════════════════════════════ */
 $id_toko          = $_SESSION['id_toko'];
-$res_toko         = $db_ekantin->query("SELECT * FROM toko WHERE id_toko='$id_toko'");
-$data_toko        = $res_toko->fetch_assoc();
+$qStore = $db_ekantin->prepare("SELECT t.*, rk.nomor_ruang, u.foto_profil, u.no_telepon FROM toko t LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko JOIN users u ON t.id_users = u.id_users WHERE t.id_toko = ?");
+$qStore->bind_param("i", $id_toko);
+$qStore->execute();
+$data_toko = $qStore->get_result()->fetch_assoc();
+$store_details    = $data_toko;
 $banner_toko      = $data_toko['banner_toko'] ?? null;
 $banner_src       = $banner_toko ? "../assets/img_banner/" . htmlspecialchars($banner_toko) : null;
 $nama_toko_display = htmlspecialchars($data_toko['nama_toko'] ?? 'Toko Saya');
+
+if(!function_exists('isStoreOpen')){
+    function isStoreOpen($toko) {
+        if (!$toko) return false;
+        if (($toko['status'] ?? 'aktif') === 'tutup') return false;
+        if (($toko['status'] ?? 'aktif') === 'buka')  return true;
+        if (empty($toko['jam_buka']) || empty($toko['jam_tutup']) || $toko['jam_buka'] == '--:--' || $toko['jam_tutup'] == '--:--') {
+            return true;
+        }
+        date_default_timezone_set('Asia/Jakarta');
+        $now   = date('H:i');
+        $buka  = $toko['jam_buka'];
+        $tutup = $toko['jam_tutup'];
+        if ($buka <= $tutup) {
+            return ($now >= $buka && $now <= $tutup);
+        } else {
+            return ($now >= $buka || $now <= $tutup);
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -226,6 +249,66 @@ $nama_toko_display = htmlspecialchars($data_toko['nama_toko'] ?? 'Toko Saya');
                         class="ml-auto text-green-500 hover:text-green-700 font-bold text-lg leading-none">&times;</button>
             </div>
             <?php endif; ?>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--  HEADER TOKO PREVIEW                        -->
+            <!-- ═══════════════════════════════════════════ -->
+            <header class="opacity-0 animate-fadeInUp" style="animation-delay:0.1s;">
+                <div class="flex flex-row items-start justify-between gap-2 sm:gap-4 w-full">
+                    <div class="flex items-start gap-2 md:gap-3 min-w-0">
+                        <?php if ($store_details): ?>
+                        <div class="flex items-center justify-center w-10 h-10 md:w-14 md:h-14 mt-0.5 rounded-full bg-input text-2xl md:text-3xl flex-shrink-0 shadow-sm overflow-hidden border-2 border-white ring-2 ring-primary/20">
+                            <?php
+                                $foto_toko_header = !empty($store_details['foto_profil']) ? "../assets/img/profil/" . $store_details['foto_profil'] : '';
+                                if ($foto_toko_header && file_exists($foto_toko_header)): ?>
+                                <img src="<?= htmlspecialchars($foto_toko_header) ?>" alt="Profil" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <span class="text-primary font-bold text-xl md:text-2xl"><?= strtoupper(substr($store_details['nama_toko'], 0, 1)) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+
+                        <div class="min-w-0 flex-grow">
+                            <h2 class="font-extrabold text-xl sm:text-3xl md:text-4xl tracking-tight text-primary leading-tight truncate">
+                                <?= $store_details ? htmlspecialchars($store_details['nama_toko']) : 'Toko Saya' ?>
+                            </h2>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <p class="text-text-3 text-xs sm:text-sm truncate">
+                                    <?= $store_details ? htmlspecialchars($store_details['lokasi'] ?? 'Kantin Sekolah') : 'Lokasi Toko' ?>
+                                </p>
+                                <?php if ($store_details && !empty($store_details['nomor_ruang'])): ?>
+                                <span class="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] sm:text-xs font-bold whitespace-nowrap">Ruang <?= $store_details['nomor_ruang'] ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($store_details):
+                                $is_open_header = isStoreOpen($store_details); ?>
+                            <p class="text-[11px] sm:text-xs font-semibold mt-1 flex items-center gap-1 <?= $is_open_header ? 'text-green-600' : 'text-red-600' ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <?= htmlspecialchars($store_details['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($store_details['jam_tutup'] ?? '--:--') ?> WIB
+                                <?= $is_open_header ? '(Buka)' : '(Tutup)' ?>
+                            </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <?php if($store_details && !empty($store_details['deskripsi'])): ?>
+                            <div class="hidden sm:block text-[11px] sm:text-xs text-text-2 leading-tight bg-white border border-gray-100 px-3 py-2 rounded-xl italic font-medium shadow-sm max-w-[150px] md:max-w-[250px] text-right break-words">
+                                "<?= htmlspecialchars($store_details['deskripsi']) ?>"
+                            </div>
+                        <?php endif; ?>
+                        
+                    </div>
+                </div>
+                
+                <?php if($store_details && !empty($store_details['deskripsi'])): ?>
+                    <div class="sm:hidden mt-3 text-[11px] text-text-2 leading-relaxed bg-white border border-gray-100 p-2.5 rounded-lg italic font-medium shadow-sm w-full">
+                        "<?= htmlspecialchars($store_details['deskripsi']) ?>"
+                    </div>
+                <?php endif; ?>
+            </header>
 
             <!-- ═══════════════════════════════════════════ -->
             <!--  BANNER SECTION                             -->

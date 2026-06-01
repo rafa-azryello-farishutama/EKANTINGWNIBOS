@@ -25,17 +25,75 @@ $qStore->execute();
 $store = $qStore->get_result()->fetch_assoc();
 $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
 
+$id_users = $_SESSION['id_users'];
+$qUser = $db_ekantin->prepare("SELECT poin FROM users WHERE id_users = ?");
+$qUser->bind_param("i", $id_users);
+$qUser->execute();
+$userData = $qUser->get_result()->fetch_assoc();
+$poin_user = $userData ? (int)$userData['poin'] : 0;
 ?>
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="no-scrollbar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Pesanan</title>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
+    <style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Custom Background to bypass Tailwind compiler issues */
+        .bg-custom-gradient {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #ecfdf5 100%);
+        }
+        .blob-1 {
+            position: absolute;
+            top: -10%;
+            right: -5%;
+            width: 400px;
+            height: 400px;
+            background-color: rgba(21, 128, 61, 0.08); /* Green primary */
+            border-radius: 50%;
+            filter: blur(80px);
+        }
+        .blob-2 {
+            position: absolute;
+            bottom: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background-color: rgba(250, 204, 21, 0.15); /* Yellow */
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+        .bg-dots {
+            position: absolute;
+            inset: 0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMCwgMCwgMCwgMC4wNCkiLz48L3N2Zz4=');
+            opacity: 0.6;
+        }
+    </style>
 </head>
-<body class="bg-background text-text-1">
-<div class="min-h-screen flex items-center justify-center p-4">
+<body class="text-text-1 relative min-h-screen no-scrollbar bg-slate-50">
+    
+    <!-- Beautiful Modern Gradient Background -->
+    <div class="fixed inset-0 -z-10 bg-custom-gradient">
+        <!-- Soft glowing orbs -->
+        <div class="blob-1"></div>
+        <div class="blob-2"></div>
+        <!-- Subtle dot pattern -->
+        <div class="bg-dots"></div>
+    </div>
+
+<div class="min-h-screen flex items-center justify-center p-4 py-8">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8">
         
         <div class="flex items-center gap-3 mb-6">
@@ -68,17 +126,38 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
             <?php endforeach; ?>
         </div>
 
-        <div class="border-t pt-4 mb-8">
-            <div class="flex justify-between items-center text-lg font-extrabold text-primary">
-                <span>Total Pembayaran</span>
-                <span>Rp <?= number_format($total_harga, 0, ',', '.') ?></span>
-            </div>
-        </div>
-
         <form action="proses_bayar.php" method="POST" enctype="multipart/form-data" onsubmit="return validateCheckoutForm()">
             <input type="hidden" name="id_toko" value="<?= $id_toko ?>">
             <input type="hidden" name="cart_data" value="<?= htmlspecialchars($cart_data_json) ?>">
             <input type="hidden" name="total_harga" value="<?= $total_harga ?>">
+
+        <div class="border-t pt-4 mb-6">
+            <?php if ($poin_user > 0): ?>
+            <div class="flex items-center justify-between bg-yellow-50 p-3 rounded-xl border border-yellow-100 mb-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <p class="text-xs font-bold text-yellow-700">Saldo Poin: Rp <?= number_format($poin_user, 0, ',', '.') ?></p>
+                        <p class="text-[10px] text-yellow-600">Gunakan poin untuk memotong tagihan</p>
+                    </div>
+                </div>
+                <label class="flex items-center cursor-pointer gap-2 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 hover:bg-yellow-500/20 transition-all">
+                    <input type="checkbox" id="checkbox_poin" name="gunakan_poin" value="1" class="w-5 h-5 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500 cursor-pointer" onchange="updateTotal()">
+                    <span class="text-xs font-bold text-yellow-800">Pakai Poin</span>
+                </label>
+            </div>
+            <?php endif; ?>
+
+            <div class="flex justify-between items-center text-lg font-extrabold text-primary">
+                <span>Total Pembayaran</span>
+                <span id="display_total">Rp <?= number_format($total_harga, 0, ',', '.') ?></span>
+            </div>
+            <div id="info_potongan" class="hidden text-right text-xs text-yellow-600 font-semibold mt-1">
+                - Rp <span id="display_potongan">0</span> (Poin)
+            </div>
+        </div>
 
             <!-- Input Catatan -->
             <div class="mb-5">
@@ -137,8 +216,8 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
                     </label>
 
                     <!-- Option 6: Uang Tunai -->
-                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-tunai">
-                        <input type="radio" name="metode_pembayaran" value="tunai" class="sr-only" onchange="togglePaymentMethod('tunai')">
+                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-cash">
+                        <input type="radio" name="metode_pembayaran" value="cash" class="sr-only" onchange="togglePaymentMethod('cash')">
                         <span class="text-xs text-text-3 font-semibold">Langsung</span>
                         <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
                             💵 Uang Tunai
@@ -147,31 +226,15 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
                 </div>
 
                 <!-- Info Box: Payment Details -->
-                <div id="info-payment" class="bg-input rounded-xl p-4 border border-gray-100 mb-4 transition-all duration-300">
-                    <p id="payment-title" class="text-xs font-bold text-primary mb-1 uppercase tracking-widest">🏦 Detail Rekening</p>
-                    
-                    <div id="payment-text-wrapper">
-                        <p id="payment-desc" class="text-sm font-semibold text-text-1">Bank BCA: <span class="font-bold select-all">869-214-5561</span></p>
-                        <p id="payment-name" class="text-xs text-text-3 mt-0.5">a/n E-Kantin SMEA</p>
-                    </div>
-
-                    <div id="payment-qr-wrapper" class="hidden flex flex-col items-center">
-                        <div class="flex justify-center bg-white p-3 rounded-lg border border-gray-100 w-44 h-44 mx-auto mb-3">
-                            <img src="../assets/img/qr_dummy.png" alt="QRIS Dummy Code" class="w-full h-full object-contain">
-                        </div>
-                        <p class="text-center text-xs text-text-3 mb-3">Silakan scan kode QR di atas untuk melakukan pembayaran.</p>
-                    </div>
-
-                    <div class="mt-3 border-t border-gray-200/50 pt-3" id="bukti-wrapper">
-                        <label for="bukti_bayar" class="block text-xs font-bold text-text-3 mb-1.5">Upload Bukti Pembayaran (Wajib)</label>
-                        <input type="file" id="bukti_bayar" name="bukti_bayar" accept="image/*" class="w-full text-xs text-text-3 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-white hover:file:bg-submit file:cursor-pointer">
-                    </div>
+                <div id="info-payment" class="bg-input rounded-xl p-4 border border-gray-100 mb-4 transition-all duration-300 hidden">
+                    <p class="text-xs font-bold text-primary mb-1 uppercase tracking-widest">ℹ️ Informasi</p>
+                    <p class="text-sm font-semibold text-text-1">Instruksi transfer, nominal pasti (termasuk kode unik), dan informasi rekening/QRIS Kantin akan ditampilkan di halaman selanjutnya setelah pesanan dibuat.</p>
                 </div>
 
             </div>
             
             <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-submit active:scale-95 transition-all shadow-md flex justify-center items-center gap-2">
-                Konfirmasi & Bayar
+                Buat Pesanan
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
@@ -182,7 +245,7 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
 </div>
 
 <script>
-    const paymentMethods = ['transfer', 'qr', 'gopay', 'ovo', 'dana', 'tunai'];
+    const paymentMethods = ['transfer', 'qr', 'gopay', 'ovo', 'dana', 'cash'];
 
     function togglePaymentMethod(method) {
         paymentMethods.forEach(m => {
@@ -199,61 +262,43 @@ $nama_toko = $store ? $store['nama_toko'] : 'Kantin';
         });
         
         const infoBox  = document.getElementById('info-payment');
-        const title    = document.getElementById('payment-title');
-        const textWrap = document.getElementById('payment-text-wrapper');
-        const qrWrap   = document.getElementById('payment-qr-wrapper');
-        const desc     = document.getElementById('payment-desc');
-        const name     = document.getElementById('payment-name');
-        const buktiWrapper = document.getElementById('bukti-wrapper');
         
-        if (method === 'tunai') {
-            // Uang tunai: sembunyikan info box & upload bukti
+        if (method === 'cash') {
             infoBox.classList.add('hidden');
-            buktiWrapper.classList.add('hidden');
-            document.getElementById('bukti_bayar').removeAttribute('required');
         } else {
             infoBox.classList.remove('hidden');
-            buktiWrapper.classList.remove('hidden');
-            document.getElementById('bukti_bayar').setAttribute('required', '');
-
-            if (method === 'qr') {
-                title.innerText = '📱 Scan QRIS';
-                textWrap.classList.add('hidden');
-                qrWrap.classList.remove('hidden');
-            } else {
-                textWrap.classList.remove('hidden');
-                qrWrap.classList.add('hidden');
-                if (method === 'transfer') {
-                    title.innerText = '🏦 Detail Rekening';
-                    desc.innerHTML = 'Bank BCA: <span class="font-bold select-all">869-214-5561</span>';
-                    name.innerText = 'a/n E-Kantin SMEA';
-                } else if (method === 'gopay') {
-                    title.innerText = '🟢 Instruksi GoPay';
-                    desc.innerHTML = 'Nomor GoPay: <span class="font-bold select-all">0812-3456-7890</span>';
-                    name.innerText = 'a/n E-Kantin SMEA';
-                } else if (method === 'ovo') {
-                    title.innerText = '🟣 Instruksi OVO';
-                    desc.innerHTML = 'Nomor OVO: <span class="font-bold select-all">0812-3456-7890</span>';
-                    name.innerText = 'a/n E-Kantin SMEA';
-                } else if (method === 'dana') {
-                    title.innerText = '🔵 Instruksi DANA';
-                    desc.innerHTML = 'Nomor DANA: <span class="font-bold select-all">0812-3456-7890</span>';
-                    name.innerText = 'a/n E-Kantin SMEA';
-                }
-            }
         }
     }
 
+        const originalTotal = <?= $total_harga ?>;
+        const poinUser = <?= $poin_user ?>;
+
+        function updateTotal() {
+            let finalTotal = originalTotal;
+            let potongan = 0;
+            const cbPoin = document.getElementById('checkbox_poin');
+            const infoPotongan = document.getElementById('info_potongan');
+            const displayPotongan = document.getElementById('display_potongan');
+            const displayTotal = document.getElementById('display_total');
+
+            if (cbPoin && cbPoin.checked) {
+                // Potong sebanyak poin yang dimiliki (max sebesar total_harga)
+                potongan = Math.min(poinUser, originalTotal);
+                finalTotal = originalTotal - potongan;
+                
+                infoPotongan.classList.remove('hidden');
+                displayPotongan.textContent = potongan.toLocaleString('id-ID');
+            } else {
+                if (infoPotongan) infoPotongan.classList.add('hidden');
+            }
+
+            if (displayTotal) {
+                displayTotal.textContent = 'Rp ' + finalTotal.toLocaleString('id-ID');
+            }
+        }
+
     function validateCheckoutForm() {
-        const metodeTerpilih = document.querySelector('input[name="metode_pembayaran"]:checked');
-        if (metodeTerpilih && metodeTerpilih.value === 'tunai') {
-            return true; // Tunai tidak butuh bukti
-        }
-        const file = document.getElementById('bukti_bayar').files[0];
-        if (!file) {
-            alert('Silakan upload bukti pembayaran Anda terlebih dahulu!');
-            return false;
-        }
+        // Karena bukti bayar dipindah ke halaman pesanan.php, tidak perlu validasi disini
         return true;
     }
 </script>

@@ -67,6 +67,8 @@ $items = $qItems->get_result()->fetch_all(MYSQLI_ASSOC);
 $waktu = date('d-m-Y H:i:s', strtotime($pesanan['tanggal_pesan']));
 $status = strtoupper($pesanan['status_pesanan']);
 $metode = strtoupper($pesanan['metode_pembayaran'] ?? 'TRANSFER');
+$tgl_pesan_struk = date('Ymd', strtotime($pesanan['tanggal_pesan']));
+$id_show_struk = $pesanan['id_harian'] ? sprintf("%03d", $pesanan['id_harian']) : sprintf("%04d", $pesanan['id_pesanan']);
 ?>
 
 <!DOCTYPE html>
@@ -74,7 +76,7 @@ $metode = strtoupper($pesanan['metode_pembayaran'] ?? 'TRANSFER');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Struk Belanja #ORD-<?= sprintf("%04d", $id_pesanan) ?></title>
+    <title>Struk Belanja #ORD-<?= $tgl_pesan_struk ?>-<?= $id_show_struk ?></title>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <style>
         @font-face {
@@ -129,7 +131,7 @@ $metode = strtoupper($pesanan['metode_pembayaran'] ?? 'TRANSFER');
         <div class="flex flex-col gap-1 text-xs">
             <div class="flex justify-between">
                 <span>No. Pesanan:</span>
-                <span class="font-bold">#ORD-<?= sprintf("%04d", $id_pesanan) ?></span>
+                <span class="font-bold">#ORD-<?= $tgl_pesan_struk ?>-<?= $id_show_struk ?></span>
             </div>
             <div class="flex justify-between">
                 <span>Tanggal:</span>
@@ -141,11 +143,14 @@ $metode = strtoupper($pesanan['metode_pembayaran'] ?? 'TRANSFER');
             </div>
             <div class="flex justify-between">
                 <span>Pembayaran:</span>
-                <span class="font-semibold"><?= $metode === 'QR' ? 'QRIS / QR CODE' : 'TRANSFER BANK' ?></span>
-            </div>
-            <div class="flex justify-between">
-                <span>Status:</span>
-                <span class="font-bold text-green-700"><?= $status ?></span>
+                <span class="font-semibold">
+                    <?php 
+                        if ($metode === 'CASH') echo 'TUNAI (BAYAR DI TEMPAT)';
+                        elseif ($metode === 'QR') echo 'QRIS / QR CODE';
+                        elseif ($metode === 'TRANSFER') echo 'TRANSFER BANK';
+                        else echo 'E-WALLET (' . $metode . ')';
+                    ?>
+                </span>
             </div>
         </div>
 
