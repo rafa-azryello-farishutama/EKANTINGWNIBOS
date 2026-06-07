@@ -55,6 +55,16 @@ foreach ($items as $item) {
     <title>Keranjang</title>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .hide-arrow::-webkit-outer-spin-button,
+        .hide-arrow::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .hide-arrow[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
 </head>
 <body class="bg-background text-text-1 selection:bg-primary selection:text-white">
 <div class="flex min-h-screen relative">
@@ -136,7 +146,10 @@ foreach ($items as $item) {
                                     class="w-7 h-7 rounded-full bg-input text-primary font-bold flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors text-base">−</button>
 
                                 <!-- Jumlah (editable) -->
-                                <span class="font-bold text-sm w-5 text-center text-text-1" id="qty-<?= $item['id_keranjang'] ?>"><?= $item['jumlah'] ?></span>
+                                <input type="number" min="1" max="<?= $item['stok'] ?>" id="qty-<?= $item['id_keranjang'] ?>" value="<?= $item['jumlah'] ?>"
+                                    oninput="if(parseInt(this.value) > <?= $item['stok'] ?>) this.value = <?= $item['stok'] ?>;"
+                                    onchange="ketikQty(<?= $item['id_keranjang'] ?>, this.value, <?= $id_toko ?>)"
+                                    class="font-bold text-sm w-12 h-8 text-center text-text-1 bg-white border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-primary p-0 hide-arrow mx-1">
 
                                 <!-- Tombol + -->
                                 <button onclick="ubahQty(<?= $item['id_keranjang'] ?>, 1, <?= $id_toko ?>)"
@@ -218,6 +231,24 @@ foreach ($items as $item) {
         ?>
     };
 
+    function ketikQty(id_keranjang, val, id_toko) {
+        let newVal = parseInt(val);
+        if (isNaN(newVal) || newVal < 0) {
+            newVal = 0;
+        }
+        if (newVal > stokPerItem[id_keranjang]) {
+            showToast("Stok hanya tersedia " + stokPerItem[id_keranjang] + " ⚠️");
+            newVal = stokPerItem[id_keranjang];
+        }
+        
+        let delta = newVal - (qtyLokal[id_keranjang] || 0);
+        if (delta !== 0) {
+            ubahQty(id_keranjang, delta, id_toko);
+        } else {
+            document.getElementById("qty-" + id_keranjang).value = qtyLokal[id_keranjang];
+        }
+    }
+
     function ubahQty(id_keranjang, delta, id_toko) {
         // Cek stok jika mencoba menambah
         if (delta > 0 && qtyLokal[id_keranjang] >= stokPerItem[id_keranjang]) {
@@ -256,7 +287,8 @@ foreach ($items as $item) {
                     }, 270);
                 } else {
                     // Update tampilan angka qty dan subtotal
-                    document.getElementById("qty-" + id_keranjang).textContent = qtyLokal[id_keranjang];
+                    let elQty = document.getElementById("qty-" + id_keranjang);
+                    if (elQty) elQty.value = qtyLokal[id_keranjang];
                     const subtotal = hargaPerItem[id_keranjang] * qtyLokal[id_keranjang];
                     document.getElementById("sub-" + id_keranjang).textContent = "Rp " + subtotal.toLocaleString("id-ID");
                     hitungUlangTotal(id_toko);

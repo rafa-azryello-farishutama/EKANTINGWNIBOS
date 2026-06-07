@@ -64,7 +64,11 @@
                             <p class="text-[11px] text-gray-400 mt-2">Kosongkan jika tidak ingin ganti foto</p>
                         </label>
                         <input type="file" id="input-foto-edit" name="foto_produk_edit" accept="image/*" class="hidden"
-                            onchange="previewFotoEdit(this)">
+                            onchange="if(this.files && this.files[0]) { 
+                                document.getElementById('preview-img-edit').src = window.URL.createObjectURL(this.files[0]); 
+                                document.getElementById('preview-img-edit').classList.remove('hidden'); 
+                                document.getElementById('placeholder-edit').classList.add('hidden'); 
+                            }">
                     </div>
                     <input type="hidden" name="edit_id" id="edit_id">
 
@@ -77,30 +81,16 @@
                             required>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Harga</label>
-                            <input type="number" min="0" step="1" max="999999999" oninput="cekHarga(this)"
-                                onpaste="event.preventDefault()"
-                                onwheel="this.blur()"
-                                onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
-                                name="edit_harga" id="edit_harga" placeholder="0"
-                                class="border border-gray-200 rounded-[14px] px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-1 placeholder-gray-400"
-                                required>
-                            <p id="harga-menu-tambah" class="hidden text-[10px] text-red-500 font-medium ml-1 leading-tight">Maks Rp 999.999.999</p>
-                        </div>
-
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Stok</label>
-                            <input type="number" min="0" max="999" step="1" oninput="cekStok(this)"
-                                onpaste="event.preventDefault()"
-                                onwheel="this.blur()"
-                                onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
-                                name="edit_stok" id="edit_stok" placeholder="0"
-                                class="border border-gray-200 rounded-[14px] px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-1 placeholder-gray-400"
-                                required>
-                            <p id="pesan-stok-tambah" class="hidden text-[10px] text-red-500 font-medium ml-1 leading-tight">Maksimal 999</p>
-                        </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Harga</label>
+                        <input type="number" min="0" step="1" max="999999999" oninput="cekHarga(this)"
+                            onpaste="event.preventDefault()"
+                            onwheel="this.blur()"
+                            onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault()"
+                            name="edit_harga" id="edit_harga" placeholder="0"
+                            class="border border-gray-200 rounded-[14px] px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium text-text-1 placeholder-gray-400"
+                            required>
+                        <p id="harga-menu-tambah" class="hidden text-[10px] text-red-500 font-medium ml-1 leading-tight">Maks Rp 999.999.999</p>
                     </div>
 
                     <div class="flex flex-col gap-2 mt-1">

@@ -54,7 +54,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         if($error_register == ""){
             $hash_password = password_hash($password, PASSWORD_DEFAULT);
 
-            $stmtInsert = $db_ekantin->prepare("INSERT INTO users(username, password, role, tipe, no_telepon, email) VALUES(?, ?, ?, ?, ?, ?)");
+            $stmtInsert = $db_ekantin->prepare("INSERT INTO users(username, password, role, tipe, no_telepon, email, status) VALUES(?, ?, ?, ?, ?, ?, 'pending')");
             $stmtInsert->bind_param("ssssss", $username, $hash_password, $role, $tipe, $telepon, $email);
 
             if($stmtInsert->execute()){
@@ -195,15 +195,15 @@ if($error_register != "") {
                     <div class="flex flex-col gap-1">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">No. Telepon</p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="tel" name="phone" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="0812xxxx" required>
+                            <input type="tel" name="phone" pattern="[0-9]+" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="0812xxxx" required>
                             <img src="../assets/img/phone1.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>
 
                     <div class="flex flex-col gap-1">
-                        <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Email</p>
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 ml-1">Email <span class="normal-case font-normal text-red-500">(wajib .com)</span></p>
                         <div class="w-full h-[55px] bg-input rounded-[15px] flex items-center gap-3 px-4">
-                            <input type="email" name="email" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="email@contoh.com" required>
+                            <input type="email" name="email" pattern=".*\.com$" title="Harap masukkan email yang valid dengan akhiran .com" class="border-none bg-transparent outline-none text-[15px] text-text-1 w-full focus:ring-0" placeholder="email@contoh.com" required>
                             <img src="../assets/img/email1.png" class="w-5 h-5 opacity-40">
                         </div>
                     </div>

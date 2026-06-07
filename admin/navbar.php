@@ -12,6 +12,8 @@
 
         </div><!--Mobile Navigation-->
 
+<!-- Mobile Sidebar (if any, although wait, this is missing in the file initially) -->
+
         <aside class="hidden lg:flex flex-col top-0 left-0 w-80 h-full fixed py-8 bg-input rounded-r-xl z-40">
             <div class="flex items-center justify-center mb-4">
                 <img src="../assets/img/logoBaru1.png" class="w-[200px] h-auto">
@@ -45,6 +47,13 @@
                 <img src="<?= $halaman == 'kelolaToko.php' ? '../assets/img/store_white.png' : '../assets/img/store_black.png' ?>" 
                     class="w-[25px] h-auto mr-3 <?= $halaman != 'kelolaToko.php' ? 'opacity-40' : '' ?>">
                 <span class="font-medium text-sm">Toko</span>
+                </a>
+
+                <a href="konfirmasi_menu.php" class="<?= $halaman == 'konfirmasi_menu.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 
+                rounded-xl flex items-center px-8 py-4 transition-all duration-200 cursor-pointer">
+                <img src="<?= $halaman == 'konfirmasi_menu.php' ? '../assets/img/menuBook_white.png' : '../assets/img/menuBook_black.png' ?>" 
+                    class="w-[25px] h-auto mr-3 <?= $halaman != 'konfirmasi_menu.php' ? 'opacity-40' : '' ?>">
+                <span class="font-medium text-sm">Konfirmasi Menu</span>
                 </a>
 
                 <a href="history.php" class="<?= $halaman == 'history.php' ? 'bg-primary text-white' : 'text-text-2 hover:bg-primary/10' ?> 

@@ -58,6 +58,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     exit;
                 }
 
+            } else if ($status == "pending") {
+                $show_popup = true;
+                $pesan_error1 = "Akun Anda sedang menunggu konfirmasi dari Admin.";
+                $popup_type = "error";
             } else {
                 $show_popup = true;
                 $pesan_error1 = "Akun anda Tidak Aktif. Hubungi Admin.";
@@ -94,12 +98,10 @@ if ($show_popup) {
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
-<body
-    class="bg-cover bg-center bg-no-repeat min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll"
-    style="background-image: url('assets/img/fotoBackground3.jpg');">
+<body class="min-h-screen flex flex-col items-center justify-center relative overflow-y-scroll bg-background">
 
-    <!-- Overlay untuk membuat background tidak terlalu mencolok agar teks tetap terbaca -->
-    <div class="fixed inset-0 bg-white/60 backdrop-blur-sm z-0"></div>
+    <!-- Background decorative gradient -->
+    <div class="fixed inset-0 bg-gradient-to-br from-primary/5 via-white to-green-50 z-0"></div>
 
     <div
         class="absolute top-4 left-1/2 mb-[20px] -translate-x-1/2 md:top-8 md:left-10 md:translate-x-0 lg:left-12 z-20">

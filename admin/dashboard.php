@@ -22,9 +22,9 @@ function formatSingkat($n)
     number_format($n, 0, ',', '.');
 }
 
-$total_user = $db_ekantin->query("SELECT * FROM users")->num_rows;
+$total_user = $db_ekantin->query("SELECT * FROM users WHERE status = 'aktif'")->num_rows;
 
-$total_toko = $db_ekantin->query("SELECT * FROM toko")->num_rows;
+$total_toko = $db_ekantin->query("SELECT t.* FROM toko t JOIN users u ON t.id_users = u.id_users WHERE u.status = 'aktif'")->num_rows;
 
 $pesanan_pending = $db_ekantin->query("SELECT * FROM pesanan WHERE status_pesanan ='pending'")->num_rows;
 

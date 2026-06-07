@@ -44,7 +44,7 @@
             <div class="flex flex-col text-center justify-center items-center gap-[10px] md:gap-[15px]">
                 <h2 class="font-bold text-xl md:text-3xl text-text-1">Pendaftaran Berhasil!</h2>
                 <p class="text-sm md:text-lg text-text-2 leading-relaxed px-2">
-                    Akun Anda telah berhasil didaftarkan. Silakan masuk untuk mulai memesan makanan sehat.
+                    Akun Anda telah berhasil didaftarkan dan sedang <b>menunggu konfirmasi admin</b>. Silakan coba masuk kembali beberapa saat lagi.
                 </p>
             </div>
 

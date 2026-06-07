@@ -2,11 +2,10 @@
 $id_produk    = $_POST['edit_id'];
 $nama_produk  = $db_ekantin->real_escape_string($_POST['edit_nama']);
 $harga_produk = $db_ekantin->real_escape_string($_POST['edit_harga']);
-$stok_produk  = $db_ekantin->real_escape_string($_POST['edit_stok']);
 $tipe_produk  = $db_ekantin->real_escape_string($_POST['tipe_pesanan']);
 $foto_lama    = $db_ekantin->real_escape_string($_POST['edit_foto_lama']);
 
-$params = "&dari=edit&id=$id_produk&nama=".urlencode($nama_produk)."&harga=$harga_produk&stok=$stok_produk&tipe=$tipe_produk&foto=".urlencode($foto_lama);
+$params = "&dari=edit&id=$id_produk&nama=".urlencode($nama_produk)."&harga=$harga_produk&tipe=$tipe_produk&foto=".urlencode($foto_lama);
 
 $nama_foto_simpan = $foto_lama;
 
@@ -58,7 +57,6 @@ $nama_foto_escaped = $db_ekantin->real_escape_string($nama_foto_simpan);
 $db_ekantin->query("UPDATE produk_kantin 
                     SET nama_menu   = '$nama_produk',
                         harga       = '$harga_produk',
-                        stok        = '$stok_produk',
                         tipe_produk = '$tipe_produk',
                         status_menu = '$status_menu',
                         file_foto   = '$nama_foto_escaped'

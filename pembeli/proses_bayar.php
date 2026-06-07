@@ -139,7 +139,7 @@ try {
     }
 
     // 2. Simpan ke tabel pesanan
-    $status_awal = 'pending';
+    $status_awal = ($metode_pembayaran === 'cash' || $total_harga == 0) ? 'pending' : 'dikonfirmasi';
     // Gunakan prepared statement untuk keamanan dari SQL injection
     $stmtPesanan = $db_ekantin->prepare("INSERT INTO pesanan (id_users, id_toko, total_harga, status_pesanan, catatan, id_harian, poin_digunakan) VALUES (?, ?, ?, ?, ?, ?, ?)");
     $stmtPesanan->bind_param("iiissii", $id_users, $id_toko, $total_harga, $status_awal, $catatan, $id_harian, $potongan_poin);
@@ -149,18 +149,22 @@ try {
     $id_pesanan = $db_ekantin->insert_id;
 
     $kode_unik = 0;
-    if ($metode_pembayaran !== 'cash') {
+    if ($metode_pembayaran !== 'cash' && $total_harga > 0) {
         $kode_unik = $id_harian;
         $total_harga += $kode_unik;
         
-        // Update total harga dan kode_unik
-        $stmtUpdate = $db_ekantin->prepare("UPDATE pesanan SET total_harga = ?, kode_unik = ? WHERE id_pesanan = ?");
+        // Update total harga, kode_unik, dan waktu_dikonfirmasi agar timer mulai
+        $stmtUpdate = $db_ekantin->prepare("UPDATE pesanan SET total_harga = ?, kode_unik = ?, waktu_dikonfirmasi = NOW() WHERE id_pesanan = ?");
         $stmtUpdate->bind_param("iii", $total_harga, $kode_unik, $id_pesanan);
         $stmtUpdate->execute();
     }
 
     // Simpan data pembayaran ke tabel pembayaran
-    $status_bayar = ($metode_pembayaran === 'cash') ? 'belum_bayar' : 'menunggu_pembayaran';
+    if ($total_harga == 0) {
+        $status_bayar = 'lunas'; // Langsung lunas jika terpotong habis oleh poin
+    } else {
+        $status_bayar = ($metode_pembayaran === 'cash') ? 'belum_bayar' : 'menunggu_pembayaran';
+    }
     $stmtPembayaran = $db_ekantin->prepare("INSERT INTO pembayaran (id_pesanan, id_toko, metode_bayar, jumlah_bayar, bukti_bayar, status_bayar) VALUES (?, ?, ?, ?, ?, ?)");
     $stmtPembayaran->bind_param("iisdss", $id_pesanan, $id_toko, $metode_pembayaran, $total_harga, $bukti_pembayaran, $status_bayar);
     $stmtPembayaran->execute();
@@ -183,6 +187,9 @@ try {
         // Kurangi stok (mencegah over-order)
         $stmtKurangiStok->bind_param("ii", $jumlah, $id_produk);
         $stmtKurangiStok->execute();
+        
+        // Nonaktifkan otomatis jika stok habis
+        // Do not touch status_menu, just rely on stok <= 0
 
         // 3. Hapus item yang dibeli dari keranjang pengguna ini (jika ada)
         $stmtHapusKeranjang->bind_param("ii", $id_users, $id_produk);

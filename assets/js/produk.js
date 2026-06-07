@@ -1,15 +1,16 @@
-function tampilkanMode(id, nama, harga, stok, produk, foto, status_menu) {
-            document.getElementById('edit_harga').classList.remove('border-red-400');
-            document.getElementById('edit_harga').classList.add('border-gray-200');
-            document.getElementById('edit_stok').classList.remove('border-red-400');
-            document.getElementById('edit_stok').classList.add('border-gray-200');
-            document.getElementById('harga-menu').classList.add('hidden');
-            document.getElementById('pesan-stok').classList.add('hidden');
+function tampilkanMode(id, nama, harga, produk, foto, status_menu) {
+            const editHarga = document.getElementById('edit_harga');
+            if (editHarga) {
+                editHarga.classList.remove('border-red-400');
+                editHarga.classList.add('border-gray-200');
+            }
+            
+            const hargaMenu = document.getElementById('harga-menu') || document.getElementById('harga-menu-tambah');
+            if (hargaMenu) hargaMenu.classList.add('hidden');
 
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_nama').value = nama;
             document.getElementById('edit_harga').value = harga;
-            document.getElementById('edit_stok').value = stok;
             document.getElementById('edit_foto_lama').value = foto;
 
             const previewImg = document.getElementById('preview-img-edit');
@@ -48,7 +49,6 @@ function tampilkanMode(id, nama, harga, stok, produk, foto, status_menu) {
             document.getElementById('edit_id').value = '';
             document.getElementById('edit_nama').value = '';
             document.getElementById('edit_harga').value = '';
-            document.getElementById('edit_stok').value = '';
             document.getElementById('edit_foto_lama').value = '';
             document.getElementById('input-foto-edit').value = '';
 
@@ -61,12 +61,14 @@ function tampilkanMode(id, nama, harga, stok, produk, foto, status_menu) {
             document.getElementById('makanan_radio').checked = false;
             document.getElementById('minuman_radio').checked = false;
 
-            document.getElementById('harga-menu').classList.add('hidden');
-            document.getElementById('pesan-stok').classList.add('hidden');
-            document.getElementById('edit_harga').classList.remove('border-red-400');
-            document.getElementById('edit_harga').classList.add('border-gray-200');
-            document.getElementById('edit_stok').classList.remove('border-red-400');
-            document.getElementById('edit_stok').classList.add('border-gray-200');
+            const hargaMenu = document.getElementById('harga-menu') || document.getElementById('harga-menu-tambah');
+            if (hargaMenu) hargaMenu.classList.add('hidden');
+            
+            const editHarga = document.getElementById('edit_harga');
+            if (editHarga) {
+                editHarga.classList.remove('border-red-400');
+                editHarga.classList.add('border-gray-200');
+            }
 
             const form = document.querySelector('#modal-edit form');
             const errorBox = form.querySelector('.bg-red-50');

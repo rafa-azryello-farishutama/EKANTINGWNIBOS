@@ -223,10 +223,15 @@ $role     = $data['role'];
                 </form>
             </div>
 
-            <form method="POST" class="flex justify-center items-center gap-5">
-                    <button type="submit" name="logout" class="bg-red-500 hover:bg-red-900 text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2">
-                    Log Out
-                </button>
+            <!-- Tombol Log Out -->
+            <div class="mt-8 pt-4 border-t border-gray-100 flex justify-end">
+                <form method="POST" class="w-full md:w-auto">
+                    <button type="submit" name="logout" class="w-full md:w-auto px-8 py-3 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-100 text-sm font-bold rounded-[12px] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Log Out
+                    </button>
                 </form>
             </div>
 

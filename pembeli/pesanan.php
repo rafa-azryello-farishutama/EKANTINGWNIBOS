@@ -18,10 +18,21 @@ $pesan_sukses = $_SESSION['pesan_sukses'] ?? null;
 $pesan_error  = $_SESSION['pesan_error']  ?? null;
 unset($_SESSION['pesan_sukses'], $_SESSION['pesan_error']);
 
+// Handle aksi sembunyikan pesanan batal
+if (isset($_POST['sembunyikan_pesanan'])) {
+    $id_sembunyi = (int)$_POST['id_pesanan_sembunyi'];
+    $db_ekantin->query("UPDATE pesanan SET sembunyikan_pembeli = 1 WHERE id_pesanan = '$id_sembunyi' AND id_users = '$id_users'");
+    header("Location: pesanan.php");
+    exit;
+}
+
 // Jika ada ?id=X, tampilkan halaman konfirmasi pesanan itu
 $id_pesanan_fokus = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $pesanan_fokus    = null;
 $detail_fokus     = [];
+
+// Update notifikasi pesanan (tandai sudah dilihat)
+$db_ekantin->query("UPDATE pesanan SET dilihat_pembeli = 1 WHERE id_users = '$id_users' AND status_pesanan IN ('pending', 'dikonfirmasi', 'diproses')");
 
 if ($id_pesanan_fokus) {
     $qFokus = $db_ekantin->prepare("
@@ -74,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['konfirmasi_transfer']
                     
                     $qDet = $db_ekantin->query("SELECT id_produk, jumlah FROM detail_pesanan WHERE id_pesanan = '$id_konfirmasi'");
                     while ($det = $qDet->fetch_assoc()) {
-                        $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']} WHERE id_produk = '{$det['id_produk']}'");
+                        $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']}, status_menu = 'aktif', diset_nol_oleh_penjual = 0 WHERE id_produk = '{$det['id_produk']}'");
                     }
                     
                     $qPoinAuto = $db_ekantin->query("SELECT poin_digunakan FROM pesanan WHERE id_pesanan = '$id_konfirmasi'");
@@ -90,6 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['konfirmasi_transfer']
                     $stmt = $db_ekantin->prepare("UPDATE pembayaran SET status_bayar = 'sudah_bayar' WHERE id_pesanan = ?");
                     $stmt->bind_param("i", $id_konfirmasi);
                     if ($stmt->execute()) {
+                        // Set dilihat_penjual = 0 agar penjual mendapat notifikasi update ini
+                        $db_ekantin->query("UPDATE pesanan SET dilihat_penjual = 0 WHERE id_pesanan = '$id_konfirmasi'");
                         $_SESSION['pesan_sukses'] = "Konfirmasi transfer terkirim! Menunggu penjual mengecek mutasi.";
                     } else {
                         $_SESSION['pesan_error']  = "Gagal mengonfirmasi transfer.";
@@ -116,15 +129,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['batalkan_pesanan'])) 
     $bisa_batal = $dataCek && in_array($dataCek['status_pesanan'], ['pending', 'dikonfirmasi']);
 
     if ($bisa_batal) {
-        // Ubah status menjadi dibatalkan
-        $db_ekantin->query("UPDATE pesanan SET status_pesanan = 'dibatalkan' WHERE id_pesanan = '$id_batal'");
+        // Ubah status menjadi dibatalkan dan langsung sembunyikan dari pesanan aktif
+        $db_ekantin->query("UPDATE pesanan SET status_pesanan = 'dibatalkan', sembunyikan_pembeli = 1 WHERE id_pesanan = '$id_batal'");
 
         // Kembalikan stok produk
         $qDet = $db_ekantin->prepare("SELECT id_produk, jumlah FROM detail_pesanan WHERE id_pesanan = ?");
         $qDet->bind_param("i", $id_batal);
         $qDet->execute();
         $resDet = $qDet->get_result();
-        $stmtStok = $db_ekantin->prepare("UPDATE produk_kantin SET stok = stok + ? WHERE id_produk = ?");
+        $stmtStok = $db_ekantin->prepare("UPDATE produk_kantin SET stok = stok + ?, status_menu = 'aktif', diset_nol_oleh_penjual = 0 WHERE id_produk = ?");
         while ($det = $resDet->fetch_assoc()) {
             $stmtStok->bind_param("ii", $det['jumlah'], $det['id_produk']);
             $stmtStok->execute();
@@ -149,31 +162,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['batalkan_pesanan'])) 
 }
 
 // --- AUTO CLEANUP PESANAN MENGGANTUNG (PEMBELI) ---
-date_default_timezone_set('Asia/Jakarta');
-$today = date('Y-m-d');
-$sekarang = date('H:i:s');
-$jam_tutup = '23:59:00'; 
-
+// Hanya batalkan pesanan dikonfirmasi yang sudah lewat 10 menit tanpa transfer
 $qMenggantung = $db_ekantin->query("
     SELECT p.id_pesanan 
     FROM pesanan p
     JOIN pembayaran pb ON p.id_pesanan = pb.id_pesanan
     WHERE p.id_users = '$id_users' 
-    AND (
-        (p.status_pesanan IN ('pending', 'diproses') AND pb.metode_bayar = 'cash' AND (DATE(p.tanggal_pesan) < '$today' OR (DATE(p.tanggal_pesan) = '$today' AND '$sekarang' > '$jam_tutup')))
-        OR 
-        (p.status_pesanan = 'dikonfirmasi' AND p.waktu_dikonfirmasi < DATE_SUB(NOW(), INTERVAL 10 MINUTE))
-    )
+    AND p.status_pesanan = 'dikonfirmasi' 
+    AND pb.status_bayar = 'menunggu_pembayaran' 
+    AND p.waktu_dikonfirmasi < DATE_SUB(NOW(), INTERVAL 10 MINUTE)
 ");
 
 if($qMenggantung && $qMenggantung->num_rows > 0) {
     while ($pm = $qMenggantung->fetch_assoc()) {
         $id_batal_auto = $pm['id_pesanan'];
-        $db_ekantin->query("UPDATE pesanan SET status_pesanan = 'dibatalkan', alasan_tolak = 'Dibatalkan otomatis (Timeout)' WHERE id_pesanan = '$id_batal_auto'");
+        $db_ekantin->query("UPDATE pesanan SET status_pesanan = 'dibatalkan', alasan_tolak = 'Dibatalkan otomatis (Timeout)', sembunyikan_pembeli = 1 WHERE id_pesanan = '$id_batal_auto'");
         
         $qDetailAuto = $db_ekantin->query("SELECT id_produk, jumlah FROM detail_pesanan WHERE id_pesanan = '$id_batal_auto'");
         while ($det = $qDetailAuto->fetch_assoc()) {
-            $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']} WHERE id_produk = '{$det['id_produk']}'");
+            $db_ekantin->query("UPDATE produk_kantin SET stok = stok + {$det['jumlah']}, status_menu = 'aktif', diset_nol_oleh_penjual = 0 WHERE id_produk = '{$det['id_produk']}'");
         }
         
         // Refund poin
@@ -191,15 +198,34 @@ if($qMenggantung && $qMenggantung->num_rows > 0) {
 }
 // --- END AUTO CLEANUP ---
 
-// Ambil semua pesanan aktif (bukan selesai/dibatalkan)
+$filter_status = $_GET['filter_status'] ?? 'semua';
+
+$where_cond = "p.id_users = '$id_users'";
+
+if ($filter_status === 'semua') {
+    $where_cond .= " AND p.status_pesanan NOT IN ('diambil','tidak_diambil') AND NOT (p.status_pesanan = 'dibatalkan' AND p.sembunyikan_pembeli = 1)";
+} elseif ($filter_status === 'menunggu_pembayaran') {
+    $where_cond .= " AND p.status_pesanan IN ('pending','dikonfirmasi') AND pb.metode_bayar != 'cash' AND pb.status_bayar IN ('menunggu_pembayaran', 'belum_bayar')";
+} elseif ($filter_status === 'menunggu_verifikasi') {
+    $where_cond .= " AND pb.metode_bayar != 'cash' AND pb.status_bayar = 'sudah_bayar' AND p.status_pesanan IN ('pending','dikonfirmasi')";
+} elseif ($filter_status === 'diproses') {
+    $where_cond .= " AND p.status_pesanan = 'diproses'";
+} elseif ($filter_status === 'selesai') {
+    $where_cond .= " AND p.status_pesanan = 'selesai'";
+} elseif ($filter_status === 'bayar_di_tempat') {
+    $where_cond .= " AND pb.status_bayar = 'belum_bayar' AND p.status_pesanan NOT IN ('diambil','tidak_diambil','dibatalkan')";
+} elseif ($filter_status === 'dibatalkan') {
+    $where_cond .= " AND p.status_pesanan = 'dibatalkan'";
+}
+
+// Ambil pesanan sesuai filter
 $qAktif = $db_ekantin->query("
     SELECT p.*, t.nama_toko, t.qris_image, t.info_bank, t.info_ewallet,
            pb.metode_bayar, pb.status_bayar, pb.bukti_bayar
     FROM pesanan p
     JOIN toko t ON p.id_toko = t.id_toko
     LEFT JOIN pembayaran pb ON p.id_pesanan = pb.id_pesanan
-    WHERE p.id_users = '$id_users'
-      AND p.status_pesanan NOT IN ('diambil','tidak_diambil','dibatalkan')
+    WHERE $where_cond
     ORDER BY p.tanggal_pesan DESC
 ");
 $pesanan_aktif = $qAktif ? $qAktif->fetch_all(MYSQLI_ASSOC) : [];
@@ -213,9 +239,10 @@ unset($pa);
 // Helper label status
 function labelStatus($s) {
     $map = [
-        'pending'   => ['label' => 'Menunggu Konfirmasi', 'bg' => 'bg-yellow-100 text-yellow-700'],
-        'diproses'  => ['label' => 'Sedang Diproses',    'bg' => 'bg-blue-100 text-blue-700'],
-        'selesai'   => ['label' => 'Siap Diambil',       'bg' => 'bg-green-100 text-green-700'],
+        'pending'    => ['label' => 'Menunggu Konfirmasi', 'bg' => 'bg-yellow-100 text-yellow-700'],
+        'diproses'   => ['label' => 'Sedang Diproses',     'bg' => 'bg-blue-100 text-blue-700'],
+        'selesai'    => ['label' => 'Siap Diambil',        'bg' => 'bg-green-100 text-green-700'],
+        'dibatalkan' => ['label' => 'Dibatalkan',          'bg' => 'bg-red-100 text-red-600'],
     ];
     return $map[$s] ?? ['label' => ucfirst($s), 'bg' => 'bg-gray-100 text-gray-600'];
 }
@@ -254,9 +281,23 @@ function labelBayar($s) {
     <main class="lg:ml-80 flex-grow w-full px-4 md:px-8 pb-10 pt-[72px] lg:pt-8">
         <div class="w-full max-w-2xl mx-auto flex flex-col gap-6">
 
-            <header>
-                <h2 class="font-extrabold text-3xl tracking-tight text-primary">Pesanan Saya</h2>
-                <p class="text-text-3 mt-1 text-sm">Pantau status & selesaikan pembayaran pesanan aktif Anda</p>
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="font-extrabold text-3xl tracking-tight text-primary">Pesanan Saya</h2>
+                    <p class="text-text-3 mt-1 text-sm">Pantau status & selesaikan pembayaran pesanan aktif Anda</p>
+                </div>
+                
+                <form method="GET" class="flex items-center shrink-0">
+                    <select name="filter_status" onchange="this.form.submit()" class="bg-white border border-gray-200 text-sm font-medium rounded-xl px-4 py-2.5 text-text-1 focus:ring-primary focus:border-primary cursor-pointer outline-none shadow-sm min-w-[200px] hover:bg-gray-50 transition-all">
+                        <option value="semua" <?= $filter_status === 'semua' ? 'selected' : '' ?>>Semua Pesanan Aktif</option>
+                        <option value="menunggu_verifikasi" <?= $filter_status === 'menunggu_verifikasi' ? 'selected' : '' ?>>Menunggu Verifikasi</option>
+                        <option value="menunggu_pembayaran" <?= $filter_status === 'menunggu_pembayaran' ? 'selected' : '' ?>>Menunggu Pembayaran</option>
+                        <option value="diproses" <?= $filter_status === 'diproses' ? 'selected' : '' ?>>Sedang Diproses</option>
+                        <option value="selesai" <?= $filter_status === 'selesai' ? 'selected' : '' ?>>Siap Diambil</option>
+                        <option value="bayar_di_tempat" <?= $filter_status === 'bayar_di_tempat' ? 'selected' : '' ?>>Bayar di Tempat</option>
+                        <option value="dibatalkan" <?= $filter_status === 'dibatalkan' ? 'selected' : '' ?>>Dibatalkan</option>
+                    </select>
+                </form>
             </header>
 
             <?php if ($pesan_sukses): ?>
@@ -344,22 +385,29 @@ function labelBayar($s) {
                                 <?php if (!empty($pesanan_fokus['alasan_tolak'])): ?>
                                 <p class="text-xs text-red-600 mt-1">Pesan dari penjual: <b>"<?= htmlspecialchars($pesanan_fokus['alasan_tolak']) ?>"</b></p>
                                 <?php endif; ?>
-                                <?php if (($pesanan_fokus['poin_digunakan'] ?? 0) > 0): ?>
-                                <p class="text-xs text-green-700 font-semibold mt-2">✅ <?= $pesanan_fokus['poin_digunakan'] ?> poin yang Anda gunakan sudah dikembalikan.</p>
+                                <?php 
+                                    $alasan_lower = strtolower($pesanan_fokus['alasan_tolak'] ?? '');
+                                    $indikasi_belum_bayar = (strpos($alasan_lower, 'tidak bayar') !== false || strpos($alasan_lower, 'belum bayar') !== false || strpos($alasan_lower, 'tidak transfer') !== false || strpos($alasan_lower, 'belum transfer') !== false);
+                                    
+                                    if ($indikasi_belum_bayar): 
+                                ?>
+                                <p class="text-xs text-red-700 font-semibold mt-2">
+                                    ⚠️ Pesanan dibatalkan karena tidak ada dana masuk. (Poin awal yang digunakan, jika ada, telah dikembalikan)
+                                </p>
+                                <?php elseif (($pesanan_fokus['poin_digunakan'] ?? 0) > 0 || $sudah_transfer): ?>
+                                <p class="text-xs text-green-700 font-semibold mt-2">
+                                    ✅ <?php
+                                        if ($sudah_transfer) {
+                                            echo "Dana transfer dan poin Anda sudah dikembalikan seluruhnya ke saldo poin.";
+                                        } else {
+                                            echo $pesanan_fokus['poin_digunakan'] . " poin yang Anda gunakan sudah dikembalikan.";
+                                        }
+                                    ?>
+                                </p>
                                 <?php endif; ?>
                             </div>
                         </div>
 
-                        <?php if ($sudah_transfer): ?>
-                        <!-- Kotak peringatan refund offline -->
-                        <div class="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 flex items-start gap-3">
-                            <span class="text-xl leading-none">⚠️</span>
-                            <div>
-                                <p class="text-sm font-bold text-orange-700">Dana Anda belum dikembalikan!</p>
-                                <p class="text-xs text-orange-600 mt-1">Karena Anda sudah mentransfer, silakan datang langsung ke kantin untuk melakukan <b>pengembalian dana secara tunai (refund offline)</b> bersama penjual.</p>
-                            </div>
-                        </div>
-                        <?php endif; ?>
                     </div>
 
                     <?php elseif ($pesanan_fokus['status_bayar'] === 'menunggu_pembayaran'): ?>
@@ -378,12 +426,13 @@ function labelBayar($s) {
                                 <p class="text-sm font-semibold text-text-2 flex items-center gap-1.5">📱 Scan QRIS Toko</p>
                                 <?php if (!empty($pesanan_fokus['qris_image']) && file_exists('../assets/img/qris/' . $pesanan_fokus['qris_image'])): ?>
                                     <img src="../assets/img/qris/<?= htmlspecialchars($pesanan_fokus['qris_image']) ?>"
-                                         alt="QRIS" class="w-52 h-52 object-contain rounded-2xl border border-gray-200 bg-white qris-glow">
+                                         alt="QRIS" class="object-contain rounded-2xl border border-gray-200 bg-white qris-glow"
+                                         style="width: 200px; height: 200px; max-width: 100%; flex-shrink: 0;">
                                     <p class="text-xs text-text-3 text-center max-w-xs">
                                         Scan kode QR di atas menggunakan aplikasi e-wallet/bank Anda, dengan nominal <b>tepat Rp <?= number_format($pesanan_fokus['total_harga'], 0, ',', '.') ?></b>
                                     </p>
                                 <?php else: ?>
-                                    <div class="w-52 h-52 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-text-3 gap-2">
+                                    <div class="rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-text-3 gap-2" style="width: 200px; height: 200px; max-width: 100%; flex-shrink: 0;">
                                         <svg class="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                                         <p class="text-xs font-semibold">QRIS belum diatur penjual</p>
                                         <p class="text-[11px] text-center px-4">Silakan minta QRIS langsung di kantin</p>
@@ -402,34 +451,38 @@ function labelBayar($s) {
                             <!-- E-Wallet -->
                             <div class="bg-input rounded-xl p-4 border border-gray-100">
                                 <p class="text-xs font-bold text-primary mb-1 uppercase tracking-widest">🟡 E-Wallet (<?= strtoupper($pesanan_fokus['metode_bayar']) ?>)</p>
-                                <p class="text-lg font-bold select-all text-text-1 mt-1"><?= htmlspecialchars($pesanan_fokus['info_ewallet'] ?: 'Belum diatur — tanya penjual') ?></p>
+                                <?php
+                                $ewallet_str = $pesanan_fokus['info_ewallet'] ?? '';
+                                $ewallet_parsed = json_decode($ewallet_str, true);
+                                $metode = strtoupper($pesanan_fokus['metode_bayar']);
+                                $ewallet_display = 'Belum diatur — tanya penjual';
+                                if (json_last_error() === JSON_ERROR_NONE && is_array($ewallet_parsed)) {
+                                    if (!empty($ewallet_parsed[$metode])) $ewallet_display = $ewallet_parsed[$metode];
+                                } else if (!empty(trim($ewallet_str))) {
+                                    $ewallet_display = $ewallet_str;
+                                }
+                                ?>
+                                <p class="text-lg font-bold select-all text-text-1 mt-1"><?= htmlspecialchars($ewallet_display) ?></p>
                             </div>
                             <?php endif; ?>
                         </div>
-
-                        <!-- Tombol Konfirmasi Transfer -->
                         <div class="border-t pt-5">
                             <p class="text-[11px] font-bold uppercase tracking-widest text-text-3 mb-3">Konfirmasi Pembayaran</p>
                             
                             <?php
-                            // Hitung sisa waktu dari server
+                            // Cek dari server apakah sudah expired (untuk disable tombol)
                             $waktu_dikonfirmasi_ts = strtotime($pesanan_fokus['waktu_dikonfirmasi']);
-                            $batas_waktu_ts = $waktu_dikonfirmasi_ts + (10 * 60);
-                            $sisa_detik = max(0, $batas_waktu_ts - time());
+                            $batas_server_ts = $waktu_dikonfirmasi_ts + (10 * 60);
+                            $sudah_expired_server = (time() > $batas_server_ts);
                             ?>
                             
                             <!-- Countdown Timer -->
-                            <div id="transfer-timer-box" class="mb-4 rounded-xl p-3 border flex items-center gap-3 <?= $sisa_detik > 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200' ?>">
-                                <div class="text-2xl"><?= $sisa_detik > 0 ? '⏱️' : '⌛' ?></div>
+                            <div id="transfer-timer-box" class="mb-4 rounded-xl p-3 border flex items-center gap-3 bg-yellow-50 border-yellow-200">
+                                <div id="timer-icon" class="text-2xl">⏱️</div>
                                 <div class="flex-1">
                                     <p class="text-[10px] font-bold uppercase tracking-widest text-text-3 mb-0.5">Batas Waktu Transfer</p>
-                                    <?php if ($sisa_detik > 0): ?>
                                     <p id="timer-display" class="text-xl font-extrabold text-yellow-600 font-mono tabular-nums">--:--</p>
-                                    <p class="text-[11px] text-yellow-700 mt-0.5">Transfer sebelum waktu habis</p>
-                                    <?php else: ?>
-                                    <p class="text-base font-bold text-red-600">Waktu Habis!</p>
-                                    <p class="text-[11px] text-red-500 mt-0.5">Pesanan akan dibatalkan otomatis</p>
-                                    <?php endif; ?>
+                                    <p id="timer-sub" class="text-[11px] text-yellow-700 mt-0.5">Transfer sebelum waktu habis</p>
                                 </div>
                             </div>
                             
@@ -439,59 +492,71 @@ function labelBayar($s) {
                             <form method="POST" class="flex flex-col gap-3" onsubmit="return confirm('Apakah Anda yakin sudah mentransfer sejumlah yang ditentukan? Penjual akan memverifikasi mutasi rekening mereka.')">
                                 <input type="hidden" name="id_pesanan" value="<?= $pesanan_fokus['id_pesanan'] ?>">
                                 <button type="submit" name="konfirmasi_transfer" value="1" id="btn-konfirmasi-transfer"
-                                    class="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-submit active:scale-95 transition-all shadow-md"
-                                    <?= $sisa_detik <= 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '' ?>>
+                                    class="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-submit active:scale-95 transition-all shadow-md">
                                     Saya Sudah Transfer
                                 </button>
                             </form>
                             
                             <script>
                             (function() {
-                                var sisaDetik = <?= $sisa_detik ?>;
+                                var idPesanan = '<?= $pesanan_fokus['id_pesanan'] ?>';
+                                var storageKey = 'ekantin_timer_deadline_' + idPesanan;
+                                var DURASI_MS = 10 * 60 * 1000; // 10 menit
+
+                                // Ambil deadline dari localStorage, atau buat baru jika pertama kali
+                                var deadline = parseInt(localStorage.getItem(storageKey));
+                                if (!deadline || isNaN(deadline)) {
+                                    deadline = Date.now() + DURASI_MS;
+                                    localStorage.setItem(storageKey, deadline);
+                                }
+
                                 var timerDisplay = document.getElementById('timer-display');
                                 var timerBox = document.getElementById('transfer-timer-box');
+                                var timerSub = document.getElementById('timer-sub');
+                                var timerIcon = document.getElementById('timer-icon');
                                 var btnTransfer = document.getElementById('btn-konfirmasi-transfer');
-                                
-                                if (sisaDetik <= 0) return; // Sudah expired, tidak perlu timer
-                                
+
                                 function updateTimer() {
+                                    var sisaMs = deadline - Date.now();
+                                    var sisaDetik = Math.floor(sisaMs / 1000);
+
                                     if (sisaDetik <= 0) {
                                         // Timer habis
-                                        if (timerDisplay) {
-                                            timerDisplay.textContent = '00:00';
-                                        }
-                                        if (timerBox) {
-                                            timerBox.className = 'mb-4 rounded-xl p-3 border flex items-center gap-3 bg-red-50 border-red-200';
-                                            timerBox.innerHTML = '<div class="text-2xl">⌛</div><div class="flex-1"><p class="text-[10px] font-bold uppercase tracking-widest text-text-3 mb-0.5">Batas Waktu Transfer</p><p class="text-base font-bold text-red-600">Waktu Habis!</p><p class="text-[11px] text-red-500 mt-0.5">Pesanan akan dibatalkan otomatis saat kamu klik tombol</p></div>';
-                                        }
+                                        localStorage.removeItem(storageKey); // bersihkan
+                                        if (timerDisplay) timerDisplay.textContent = '00:00';
+                                        if (timerIcon) timerIcon.textContent = '⌛';
+                                        if (timerBox) timerBox.className = 'mb-4 rounded-xl p-3 border flex items-center gap-3 bg-red-50 border-red-200';
+                                        if (timerSub) { timerSub.textContent = 'Batas waktu telah habis'; timerSub.className = 'text-[11px] text-red-500 mt-0.5'; }
+                                        if (timerDisplay) timerDisplay.className = 'text-xl font-extrabold text-red-600 font-mono tabular-nums';
                                         if (btnTransfer) {
-                                            btnTransfer.disabled = false; // Biarkan bisa diklik agar server yang batalkan
                                             btnTransfer.style.background = '#ef4444';
-                                            btnTransfer.textContent = 'Waktu Habis — Klik untuk Lanjut';
+                                            btnTransfer.textContent = 'Waktu Habis';
+                                            btnTransfer.disabled = true;
                                         }
-                                        return;
+                                        alert("Log ini akan dihapus dari pesanan aktif ketika Anda keluar page dan hanya ditampilkan di bagian riwayat, silakan buat baru");
+                                        return; // Hentikan loop
                                     }
-                                    
+
                                     var menit = Math.floor(sisaDetik / 60);
                                     var detik = sisaDetik % 60;
                                     var display = String(menit).padStart(2, '0') + ':' + String(detik).padStart(2, '0');
-                                    
                                     if (timerDisplay) timerDisplay.textContent = display;
-                                    
+
                                     // Ubah warna jadi merah saat sisa < 2 menit
-                                    if (sisaDetik <= 120 && timerDisplay) {
-                                        timerDisplay.className = 'text-xl font-extrabold text-red-600 font-mono tabular-nums';
-                                        timerBox.className = 'mb-4 rounded-xl p-3 border flex items-center gap-3 bg-red-50 border-red-200';
+                                    if (sisaDetik <= 120) {
+                                        if (timerDisplay) timerDisplay.className = 'text-xl font-extrabold text-red-600 font-mono tabular-nums';
+                                        if (timerBox) timerBox.className = 'mb-4 rounded-xl p-3 border flex items-center gap-3 bg-red-50 border-red-200';
+                                        if (timerSub) { timerSub.textContent = 'Segera transfer sebelum pesanan dibatalkan!'; timerSub.className = 'text-[11px] text-red-500 mt-0.5 font-semibold'; }
                                     }
-                                    
-                                    sisaDetik--;
+
                                     setTimeout(updateTimer, 1000);
                                 }
-                                
+
                                 updateTimer();
                             })();
                             </script>
                         </div>
+
                         <?php endif; ?>
 
                     <?php elseif ($pesanan_fokus['status_bayar'] === 'sudah_bayar'): ?>
@@ -515,8 +580,8 @@ function labelBayar($s) {
                         <?php endif; ?>
                     <?php endif; ?>
 
-                    <!-- Batalkan (hanya jika pending) -->
-                    <?php if ($pesanan_fokus['status_pesanan'] === 'pending'): ?>
+                    <!-- Batalkan (hanya jika pending atau menunggu pembayaran) -->
+                    <?php if ($pesanan_fokus['status_pesanan'] === 'pending' || ($pesanan_fokus['status_pesanan'] === 'dikonfirmasi' && $pesanan_fokus['status_bayar'] === 'menunggu_pembayaran')): ?>
                     <form method="POST" onsubmit="return confirm('Yakin ingin membatalkan pesanan ini?')">
                         <input type="hidden" name="id_pesanan" value="<?= $pesanan_fokus['id_pesanan'] ?>">
                         <button type="submit" name="batalkan_pesanan"
@@ -564,8 +629,13 @@ function labelBayar($s) {
                         <p class="text-xs text-text-3 mt-0.5"><?= date('d M Y, H:i', strtotime($p['tanggal_pesan'])) ?></p>
                     </div>
                     <div class="flex flex-col items-end gap-1">
+                        <?php if ($st['label'] !== 'Dikonfirmasi'): ?>
                         <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full <?= $st['bg'] ?>"><?= $st['label'] ?></span>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($stb['label']) && $p['status_pesanan'] !== 'dibatalkan'): ?>
                         <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full <?= $stb['bg'] ?>"><?= $stb['label'] ?></span>
+                        <?php endif; ?>
                     </div>
                 </div>
 

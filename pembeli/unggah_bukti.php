@@ -129,7 +129,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <?php else: ?>
                         <p class="text-xs font-bold text-primary mb-1 uppercase tracking-widest">🟡 Informasi E-Wallet (<?= strtoupper($pesanan['metode_bayar']) ?>)</p>
-                        <p class="text-lg font-bold select-all text-text-1 mt-2"><?= htmlspecialchars($pesanan['info_ewallet'] ?: 'Belum diatur') ?></p>
+                        <?php
+                        $ewallet_str = $pesanan['info_ewallet'] ?? '';
+                        $ewallet_parsed = json_decode($ewallet_str, true);
+                        $metode = strtoupper($pesanan['metode_bayar']);
+                        $ewallet_display = 'Belum diatur';
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($ewallet_parsed)) {
+                            if (!empty($ewallet_parsed[$metode])) $ewallet_display = $ewallet_parsed[$metode];
+                        } else if (!empty(trim($ewallet_str))) {
+                            $ewallet_display = $ewallet_str;
+                        }
+                        ?>
+                        <p class="text-lg font-bold select-all text-text-1 mt-2"><?= htmlspecialchars($ewallet_display) ?></p>
                         <p class="text-xs text-text-3 mt-1">Silakan transfer ke nomor E-Wallet di atas</p>
                     <?php endif; ?>
                 </div>

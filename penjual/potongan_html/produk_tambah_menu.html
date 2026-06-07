@@ -48,7 +48,11 @@
                         </div>
                     </label>
                     <input type="file" id="input-foto" name="foto_produk" accept="image/*" class="hidden"
-                        onchange="previewFoto(this)">
+                        onchange="if(this.files && this.files[0]) { 
+                            document.getElementById('preview-img').src = window.URL.createObjectURL(this.files[0]); 
+                            document.getElementById('preview-img').classList.remove('hidden'); 
+                            document.getElementById('placeholder').classList.add('hidden'); 
+                        }">
                 </div>
 
                 <div class="flex flex-col gap-1.5">

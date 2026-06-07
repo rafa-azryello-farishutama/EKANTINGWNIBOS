@@ -127,6 +127,21 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     }
 }
 
+// Tambah Ruang Otomatis
+if (isset($_POST['tambah_ruang_auto'])) {
+    $qMax = $db_ekantin->query("SELECT MAX(nomor_ruang) as max_ruang FROM ruang_kantin");
+    $max = 0;
+    if ($qMax && $qMax->num_rows > 0) {
+        $rowMax = $qMax->fetch_assoc();
+        $max = $rowMax['max_ruang'] ? $rowMax['max_ruang'] : 0;
+    }
+    $next_ruang = $max + 1;
+    if ($db_ekantin->query("INSERT INTO ruang_kantin (nomor_ruang) VALUES ('$next_ruang')")) {
+        header("Location: kelolaToko.php?sukses=tambah_ruang");
+        exit;
+    }
+}
+
 // ── Statistik ──────────────────────────────────────────────
 $sql    = "SELECT COUNT(*) as total FROM toko t
            JOIN users u ON t.id_users = u.id_users
@@ -198,17 +213,25 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
                 <h2 class="font-extrabold text-3xl md:text-4xl tracking-tight text-primary">Kelola Toko</h2>
                 <p class="text-text-3 font-body mt-2">Silahkan masukkan ID user untuk mengelola toko</p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                <form method="POST" class="inline" onsubmit="return confirm('Tambahkan ruang kantin baru secara otomatis?');">
+                    <button type="submit" name="tambah_ruang_auto" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap" title="Tambah Ruang Baru">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Tambah Ruang
+                    </button>
+                </form>
                 <button onclick="toggleModalNonaktif(true)"
-                    class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     </svg>
                     Kelola Status Toko
                 </button>
                 <button onclick="toggleModal(true)"
-                    class="bg-primary hover:bg-submit text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    class="bg-primary hover:bg-submit text-white px-6 py-3 rounded-[15px] font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
                     Tambah Toko
@@ -228,6 +251,8 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
                 if($_GET['sukses'] == 'aktif')    echo 'Toko berhasil diaktifkan.';
                 if($_GET['sukses'] == 'nonaktif') echo 'Toko berhasil dinonaktifkan. Ruang kantin otomatis dikosongkan.';
                 if($_GET['sukses'] == 'tambah')   echo 'Toko baru berhasil ditambahkan.';
+                if($_GET['sukses'] == 'tambah_ruang') echo 'Ruang kantin baru berhasil ditambahkan otomatis.';
+                if($_GET['sukses'] == 'edit')     echo 'Status user berhasil diperbarui.';
             ?>
             <button onclick="document.getElementById('toast-sukses').remove()"
                 class="ml-auto font-bold text-lg leading-none opacity-60 hover:opacity-100">&times;</button>
@@ -403,16 +428,16 @@ $ada_ruang_kosong = count($ruang_tersedia) > 0;
             </div>
 
             <div class="flex flex-col gap-1">
-                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Email</label>
-                <input type="email" name="email"
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">Email <span class="normal-case font-normal text-red-500">(wajib diakhiri .com)</span></label>
+                <input type="email" name="email" pattern=".*\.com$" title="Harap masukkan email yang valid dengan akhiran .com"
                     value="<?= isset($_POST['email']) && $error_toko != '' ? htmlspecialchars($_POST['email']) : '' ?>"
                     placeholder="contoh@mail.com"
                     class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>
             </div>
 
             <div class="flex flex-col gap-1">
-                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">No. Telepon</label>
-                <input type="tel" name="telepon"
+                <label class="text-[11px] font-bold uppercase tracking-widest text-text-3">No. Telepon <span class="normal-case font-normal text-red-500">(hanya angka)</span></label>
+                <input type="tel" name="telepon" pattern="[0-9]+" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                     value="<?= isset($_POST['telepon']) && $error_toko != '' ? htmlspecialchars($_POST['telepon']) : '' ?>"
                     placeholder="0812xxxx"
                     class="w-full bg-input border-none rounded-[12px] p-3 text-sm focus:ring-2 focus:ring-primary/20" <?= !$ada_ruang_kosong ? 'disabled' : '' ?> required>

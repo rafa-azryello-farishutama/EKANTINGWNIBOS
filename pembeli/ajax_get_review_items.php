@@ -17,8 +17,8 @@ if ($id_pesanan <= 0) {
     exit;
 }
 
-// Cek apakah pesanan milik user ini dan berstatus selesai
-$cek = $db_ekantin->prepare("SELECT id_pesanan FROM pesanan WHERE id_pesanan = ? AND id_users = ? AND status_pesanan = 'selesai'");
+// Cek apakah pesanan milik user ini dan berstatus selesai atau diambil
+$cek = $db_ekantin->prepare("SELECT id_pesanan FROM pesanan WHERE id_pesanan = ? AND id_users = ? AND status_pesanan IN ('selesai', 'diambil')");
 $cek->bind_param("ii", $id_pesanan, $id_users);
 $cek->execute();
 if ($cek->get_result()->num_rows === 0) {

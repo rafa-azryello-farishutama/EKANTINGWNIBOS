@@ -19,11 +19,25 @@ if (empty($cart) || !$id_toko) {
     exit;
 }
 
-$qStore = $db_ekantin->prepare("SELECT nama_toko FROM toko WHERE id_toko = ?");
+$qStore = $db_ekantin->prepare("SELECT nama_toko, qris_image, info_bank, info_ewallet FROM toko WHERE id_toko = ?");
 $qStore->bind_param("i", $id_toko);
 $qStore->execute();
 $store = $qStore->get_result()->fetch_assoc();
-$nama_toko = $store ? $store['nama_toko'] : 'Kantin';
+$nama_toko      = $store ? $store['nama_toko'] : 'Kantin';
+$ada_bank       = !empty($store['info_bank']);
+$ada_qris       = !empty($store['qris_image']);
+
+$ewallet_parsed = json_decode($store['info_ewallet'] ?? '', true);
+$ada_dana = false;
+$ada_ovo = false;
+$ada_gopay = false;
+if (json_last_error() === JSON_ERROR_NONE && is_array($ewallet_parsed)) {
+    $ada_dana = !empty($ewallet_parsed['DANA']);
+    $ada_ovo = !empty($ewallet_parsed['OVO']);
+    $ada_gopay = !empty($ewallet_parsed['GOPAY']);
+} else if (!empty($store['info_ewallet'])) {
+    $ada_dana = $ada_ovo = $ada_gopay = true;
+}
 
 $id_users = $_SESSION['id_users'];
 $qUser = $db_ekantin->prepare("SELECT poin FROM users WHERE id_users = ?");
@@ -167,62 +181,104 @@ $poin_user = $userData ? (int)$userData['poin'] : 0;
             </div>
 
             <!-- Pilihan Metode Pembayaran -->
-            <div class="mb-6">
+            <div id="metode-pembayaran-section" class="mb-6">
                 <label class="block text-sm font-semibold text-text-1 mb-2.5">Metode Pembayaran</label>
                 <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+
+                    <?php
+                    // Helper: render payment option card
+                    // $available = bool, $value, $label, $sublabel, $emoji, $checkedDefault
+                    $cls_available   = 'relative flex flex-col p-4 border-2 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none border-gray-100';
+                    $cls_unavailable = 'relative flex flex-col p-4 border-2 rounded-xl cursor-not-allowed select-none border-red-100 bg-red-50/60 opacity-70';
+                    ?>
+
                     <!-- Option 1: Transfer Bank -->
-                    <label class="relative flex flex-col p-4 border-2 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none border-primary/20 bg-primary/5" id="label-transfer">
-                        <input type="radio" name="metode_pembayaran" value="transfer" checked class="sr-only" onchange="togglePaymentMethod('transfer')">
+                    <label class="<?= $ada_bank ? $cls_available : $cls_unavailable ?>" id="label-transfer">
+                        <input type="radio" name="metode_pembayaran" value="transfer"
+                            <?= (!$ada_bank) ? 'disabled' : '' ?>
+                            <?= ($ada_bank) ? 'checked onchange="togglePaymentMethod(\'transfer\')"' : 'onchange="togglePaymentMethod(\'transfer\')"' ?>
+                            class="sr-only">
                         <span class="text-xs text-text-3 font-semibold">Metode</span>
-                        <span class="text-sm font-bold text-primary mt-1 flex items-center gap-1.5">
+                        <span class="text-sm font-bold mt-1 flex items-center gap-1.5 <?= $ada_bank ? 'text-primary' : 'text-red-400' ?>">
                             🏦 Transfer Bank
                         </span>
+                        <?php if (!$ada_bank): ?>
+                        <span class="mt-1 text-[10px] font-bold text-red-500 flex items-center gap-1">⛔ Belum tersedia</span>
+                        <?php endif; ?>
                     </label>
 
                     <!-- Option 2: QRIS / QR Code -->
-                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-qr">
-                        <input type="radio" name="metode_pembayaran" value="qr" class="sr-only" onchange="togglePaymentMethod('qr')">
+                    <label class="<?= $ada_qris ? $cls_available : $cls_unavailable ?>" id="label-qr">
+                        <input type="radio" name="metode_pembayaran" value="qr"
+                            <?= (!$ada_qris) ? 'disabled' : '' ?>
+                            <?= ($ada_qris && !$ada_bank) ? 'checked onchange="togglePaymentMethod(\'qr\')"' : 'onchange="togglePaymentMethod(\'qr\')"' ?>
+                            class="sr-only">
                         <span class="text-xs text-text-3 font-semibold">Metode</span>
-                        <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
+                        <span class="text-sm font-bold mt-1 flex items-center gap-1.5 <?= $ada_qris ? 'text-text-1' : 'text-red-400' ?>">
                             📱 QRIS / QR Code
                         </span>
+                        <?php if (!$ada_qris): ?>
+                        <span class="mt-1 text-[10px] font-bold text-red-500 flex items-center gap-1">⛔ Belum tersedia</span>
+                        <?php endif; ?>
                     </label>
 
                     <!-- Option 3: GoPay -->
-                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-gopay">
-                        <input type="radio" name="metode_pembayaran" value="gopay" class="sr-only" onchange="togglePaymentMethod('gopay')">
+                    <label class="<?= $ada_gopay ? $cls_available : $cls_unavailable ?>" id="label-gopay">
+                        <input type="radio" name="metode_pembayaran" value="gopay"
+                            <?= (!$ada_gopay) ? 'disabled' : '' ?>
+                            onchange="togglePaymentMethod('gopay')"
+                            class="sr-only">
                         <span class="text-xs text-text-3 font-semibold">E-Wallet</span>
-                        <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
+                        <span class="text-sm font-bold mt-1 flex items-center gap-1.5 <?= $ada_gopay ? 'text-text-1' : 'text-red-400' ?>">
                             🟢 GoPay
                         </span>
+                        <?php if (!$ada_gopay): ?>
+                        <span class="mt-1 text-[10px] font-bold text-red-500 flex items-center gap-1">⛔ Belum tersedia</span>
+                        <?php endif; ?>
                     </label>
 
                     <!-- Option 4: OVO -->
-                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-ovo">
-                        <input type="radio" name="metode_pembayaran" value="ovo" class="sr-only" onchange="togglePaymentMethod('ovo')">
+                    <label class="<?= $ada_ovo ? $cls_available : $cls_unavailable ?>" id="label-ovo">
+                        <input type="radio" name="metode_pembayaran" value="ovo"
+                            <?= (!$ada_ovo) ? 'disabled' : '' ?>
+                            onchange="togglePaymentMethod('ovo')"
+                            class="sr-only">
                         <span class="text-xs text-text-3 font-semibold">E-Wallet</span>
-                        <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
+                        <span class="text-sm font-bold mt-1 flex items-center gap-1.5 <?= $ada_ovo ? 'text-text-1' : 'text-red-400' ?>">
                             🟣 OVO
                         </span>
+                        <?php if (!$ada_ovo): ?>
+                        <span class="mt-1 text-[10px] font-bold text-red-500 flex items-center gap-1">⛔ Belum tersedia</span>
+                        <?php endif; ?>
                     </label>
 
                     <!-- Option 5: DANA -->
-                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-dana">
-                        <input type="radio" name="metode_pembayaran" value="dana" class="sr-only" onchange="togglePaymentMethod('dana')">
+                    <label class="<?= $ada_dana ? $cls_available : $cls_unavailable ?>" id="label-dana">
+                        <input type="radio" name="metode_pembayaran" value="dana"
+                            <?= (!$ada_dana) ? 'disabled' : '' ?>
+                            onchange="togglePaymentMethod('dana')"
+                            class="sr-only">
                         <span class="text-xs text-text-3 font-semibold">E-Wallet</span>
-                        <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
+                        <span class="text-sm font-bold mt-1 flex items-center gap-1.5 <?= $ada_dana ? 'text-text-1' : 'text-red-400' ?>">
                             🔵 DANA
                         </span>
+                        <?php if (!$ada_dana): ?>
+                        <span class="mt-1 text-[10px] font-bold text-red-500 flex items-center gap-1">⛔ Belum tersedia</span>
+                        <?php endif; ?>
                     </label>
 
-                    <!-- Option 6: Uang Tunai -->
-                    <label class="relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none" id="label-cash">
-                        <input type="radio" name="metode_pembayaran" value="cash" class="sr-only" onchange="togglePaymentMethod('cash')">
+                    <!-- Option 6: Uang Tunai (always available) -->
+                    <label class="<?= $cls_available ?>" id="label-cash">
+                        <input type="radio" name="metode_pembayaran" value="cash"
+                            <?= (!$ada_bank && !$ada_qris && !$ada_ewallet) ? 'checked' : '' ?>
+                            onchange="togglePaymentMethod('cash')"
+                            class="sr-only">
                         <span class="text-xs text-text-3 font-semibold">Langsung</span>
                         <span class="text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5">
                             💵 Uang Tunai
                         </span>
                     </label>
+
                 </div>
 
                 <!-- Info Box: Payment Details -->
@@ -231,6 +287,16 @@ $poin_user = $userData ? (int)$userData['poin'] : 0;
                     <p class="text-sm font-semibold text-text-1">Instruksi transfer, nominal pasti (termasuk kode unik), dan informasi rekening/QRIS Kantin akan ditampilkan di halaman selanjutnya setelah pesanan dibuat.</p>
                 </div>
 
+            </div>
+            
+            <!-- Pesan jika total Rp 0 -->
+            <div id="lunas-message" class="hidden mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex-col gap-2 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl leading-none">🎉</span>
+                    <p class="text-sm font-bold text-green-700">Pesanan Anda Sepenuhnya Gratis!</p>
+                </div>
+                <p class="text-xs text-green-600 mt-1 font-medium">Seluruh total pesanan Anda telah ditutupi oleh poin. Anda tidak perlu memilih metode pembayaran atau melakukan transfer.</p>
+                <input type="hidden" name="metode_pembayaran" id="metode_hidden_0" value="cash" disabled>
             </div>
             
             <button type="submit" class="w-full bg-primary text-white font-bold py-3.5 rounded-xl hover:bg-submit active:scale-95 transition-all shadow-md flex justify-center items-center gap-2">
@@ -250,25 +316,36 @@ $poin_user = $userData ? (int)$userData['poin'] : 0;
     function togglePaymentMethod(method) {
         paymentMethods.forEach(m => {
             const label = document.getElementById('label-' + m);
-            if(label) {
-                if(m === method) {
-                    label.className = "relative flex flex-col p-4 border-2 border-primary/20 bg-primary/5 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none";
-                    label.querySelector('.text-sm').className = "text-sm font-bold text-primary mt-1 flex items-center gap-1.5";
-                } else {
-                    label.className = "relative flex flex-col p-4 border-2 border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none";
-                    label.querySelector('.text-sm').className = "text-sm font-bold text-text-1 mt-1 flex items-center gap-1.5";
-                }
+            if (!label) return;
+            const radio = label.querySelector('input[type=radio]');
+            // Skip disabled options
+            if (radio && radio.disabled) return;
+            if (m === method) {
+                label.classList.add('border-primary/20', 'bg-primary/5');
+                label.classList.remove('border-gray-100');
+                const span = label.querySelector('.text-sm');
+                if (span) { span.classList.add('text-primary'); span.classList.remove('text-text-1'); }
+            } else {
+                label.classList.remove('border-primary/20', 'bg-primary/5');
+                label.classList.add('border-gray-100');
+                const span = label.querySelector('.text-sm');
+                if (span) { span.classList.remove('text-primary'); span.classList.add('text-text-1'); }
             }
         });
         
-        const infoBox  = document.getElementById('info-payment');
-        
+        const infoBox = document.getElementById('info-payment');
         if (method === 'cash') {
             infoBox.classList.add('hidden');
         } else {
             infoBox.classList.remove('hidden');
         }
     }
+
+    // Auto-highlight the checked option on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const checked = document.querySelector('input[name="metode_pembayaran"]:checked');
+        if (checked) togglePaymentMethod(checked.value);
+    });
 
         const originalTotal = <?= $total_harga ?>;
         const poinUser = <?= $poin_user ?>;
@@ -280,6 +357,9 @@ $poin_user = $userData ? (int)$userData['poin'] : 0;
             const infoPotongan = document.getElementById('info_potongan');
             const displayPotongan = document.getElementById('display_potongan');
             const displayTotal = document.getElementById('display_total');
+            const paymentSection = document.getElementById('metode-pembayaran-section');
+            const lunasMessage = document.getElementById('lunas-message');
+            const hiddenMethod = document.getElementById('metode_hidden_0');
 
             if (cbPoin && cbPoin.checked) {
                 // Potong sebanyak poin yang dimiliki (max sebesar total_harga)
@@ -294,6 +374,23 @@ $poin_user = $userData ? (int)$userData['poin'] : 0;
 
             if (displayTotal) {
                 displayTotal.textContent = 'Rp ' + finalTotal.toLocaleString('id-ID');
+            }
+            
+            // Toggle payment section if total is 0
+            if (finalTotal <= 0) {
+                if (paymentSection) paymentSection.classList.add('hidden');
+                if (lunasMessage) {
+                    lunasMessage.classList.remove('hidden');
+                    lunasMessage.classList.add('flex');
+                }
+                if (hiddenMethod) hiddenMethod.disabled = false;
+            } else {
+                if (paymentSection) paymentSection.classList.remove('hidden');
+                if (lunasMessage) {
+                    lunasMessage.classList.add('hidden');
+                    lunasMessage.classList.remove('flex');
+                }
+                if (hiddenMethod) hiddenMethod.disabled = true;
             }
         }
 

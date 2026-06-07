@@ -1,14 +1,7 @@
 <?php
-// Cek notifikasi pesanan aktif pembeli
-$q_hash = $db_ekantin->query("SELECT GROUP_CONCAT(CONCAT(id_pesanan, '-', status_pesanan)) as hash FROM pesanan WHERE id_users='{$_SESSION['id_users']}'");
-$current_hash = $q_hash ? md5($q_hash->fetch_assoc()['hash'] ?? '') : '';
-
-$has_notif_pembeli = false;
-if ($current_hash != '') { // Only notify if there are actual orders
-    if (!isset($_SESSION['last_seen_orders_hash']) || $_SESSION['last_seen_orders_hash'] !== $current_hash) {
-        $has_notif_pembeli = true;
-    }
-}
+// Cek notifikasi pesanan aktif & riwayat pembeli
+$q_notif = $db_ekantin->query("SELECT COUNT(*) as j FROM pesanan WHERE id_users='{$_SESSION['id_users']}' AND dilihat_pembeli = 0");
+$has_notif_pembeli = ($q_notif && $q_notif->fetch_assoc()['j'] > 0);
 ?>
 <!-- Overlay -->
 <div id="overlay" onclick="tutupSidebar()" class="hidden fixed inset-0 bg-black/50 z-40 lg:hidden"></div>

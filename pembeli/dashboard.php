@@ -161,7 +161,21 @@ function isStoreOpen($toko) {
 
                 <div class="grid grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                     <?php
-                    $qKantin = $db_ekantin->query("SELECT t.*, COUNT(pk.id_produk) as total_menu, rk.nomor_ruang FROM toko t JOIN users u ON t.id_users = u.id_users LEFT JOIN produk_kantin pk ON t.id_toko = pk.id_toko AND pk.status_menu = 'aktif' LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko WHERE u.status = 'aktif' GROUP BY t.id_toko LIMIT 6");
+                    $qKantin = $db_ekantin->query("
+                        SELECT t.*, COUNT(DISTINCT pk.id_produk) as total_menu, rk.nomor_ruang,
+                               ROUND(AVG(r.rating), 1) as avg_rating,
+                               COUNT(r.id_review) as total_review
+                        FROM toko t
+                        JOIN users u ON t.id_users = u.id_users
+                        LEFT JOIN produk_kantin pk ON t.id_toko = pk.id_toko AND pk.status_menu = 'aktif'
+                        LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko
+                        LEFT JOIN pesanan p ON p.id_toko = t.id_toko
+                        LEFT JOIN review r ON r.id_pesanan = p.id_pesanan
+                        WHERE u.status = 'aktif'
+                        GROUP BY t.id_toko
+                        ORDER BY avg_rating DESC, total_review DESC
+                        LIMIT 6
+                    ");
                     $i = 0;
                     if ($qKantin && $qKantin->num_rows > 0):
                         while ($kantin = $qKantin->fetch_assoc()):
@@ -213,6 +227,22 @@ function isStoreOpen($toko) {
                                 </svg>
                                 <?= htmlspecialchars($kantin['jam_buka'] ?? '--:--') ?> - <?= htmlspecialchars($kantin['jam_tutup'] ?? '--:--') ?> WIB
                             </p>
+                            <?php
+                                $avg   = (float)($kantin['avg_rating'] ?? 0);
+                                $total = (int)($kantin['total_review'] ?? 0);
+                            ?>
+                            <div class="flex items-center gap-1 mt-2">
+                                <?php for($s=1;$s<=5;$s++): ?>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 flex-shrink-0" viewBox="0 0 20 20"
+                                         fill="<?= $s <= round($avg) ? '#f59e0b' : '#e5e7eb' ?>">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                <?php endfor; ?>
+                                <span class="text-[10px] text-text-3 font-semibold ml-0.5">
+                                    <?= $avg > 0 ? number_format($avg,1) : '-' ?>
+                                    <?= $total > 0 ? "($total)" : '' ?>
+                                </span>
+                            </div>
                         </div>
                     </a>
                     <?php endwhile; else: ?>
@@ -250,7 +280,7 @@ function isStoreOpen($toko) {
                         WHERE p.stok > 0
                         GROUP BY p.id_produk
                         ORDER BY total_terjual DESC, p.id_produk DESC
-                        LIMIT 3
+                        LIMIT 6
                     ");
                     if ($qTrending && $qTrending->num_rows > 0):
                         while ($menu = $qTrending->fetch_assoc()):
@@ -282,7 +312,15 @@ function isStoreOpen($toko) {
                 </div>
             </div>
 
+            <!-- Pesanan Terakhir -->
             <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0" style="animation-delay: 0.25s;">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="font-bold text-text-1 text-base">Pesanan Terakhir</h3>
+                        <p class="text-xs text-text-3">3 pesanan terbaru kamu</p>
+                    </div>
+                    <a href="history.php" class="text-xs font-bold text-primary hover:underline underline-offset-4">Lihat Semua</a>
+                </div>
                 <div class="bg-white rounded-t-[15px] rounded-b-[15px] shadow-sm border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -319,7 +357,7 @@ function isStoreOpen($toko) {
                                         } elseif ($status == 'diproses') {
                                             $badge = '<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold text-[10px]">Diproses</span>';
                                         } elseif ($status == 'selesai') {
-                                            $badge = '<span class="bg-[#dcfce7] text-[#166534] px-3 py-1 rounded-full font-bold text-[10px]">Selesai</span>';
+                                            $badge = '<span class="bg-[#dcfce7] text-[#166534] px-3 py-1 rounded-full font-bold text-[10px]">Siap Diambil</span>';
                                         } else {
                                             $badge = '<span class="bg-[#fee2e2] text-[#991b1b] px-3 py-1 rounded-full font-bold text-[10px]">Batal</span>';
                                         }

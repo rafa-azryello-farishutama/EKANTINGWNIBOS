@@ -51,7 +51,7 @@ $id_toko_selected = isset($_GET['id_toko']) ? (int)$_GET['id_toko'] : null;
 $store_details    = null;
 
 if ($id_toko_selected) {
-    $qStore = $db_ekantin->prepare("SELECT t.*, rk.nomor_ruang, u.foto_profil, u.no_telepon FROM toko t LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko JOIN users u ON t.id_users = u.id_users WHERE t.id_toko = ?");
+    $qStore = $db_ekantin->prepare("SELECT t.*, rk.nomor_ruang, u.foto_profil, u.no_telepon FROM toko t LEFT JOIN ruang_kantin rk ON rk.id_toko = t.id_toko JOIN users u ON t.id_users = u.id_users WHERE t.id_toko = ? AND u.status != 'nonaktif'");
     $qStore->bind_param("i", $id_toko_selected);
     $qStore->execute();
     $resStore = $qStore->get_result();
@@ -91,6 +91,15 @@ if ($id_toko_selected) {
             .custom-hero-slider { height: 230px; }
             .custom-store-banner-default { height: 210px; }
             .custom-store-banner-image { height: 240px; }
+        }
+        /* Hide arrows for number input */
+        .hide-arrow::-webkit-outer-spin-button,
+        .hide-arrow::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .hide-arrow[type=number] {
+            -moz-appearance: textfield;
         }
     </style>
 </head>
@@ -224,7 +233,7 @@ if ($id_toko_selected) {
                 'url'   => 'pesan.php'
             ];
 
-            $qSlides = $db_ekantin->query("SELECT * FROM toko ORDER BY RAND() LIMIT 5");
+            $qSlides = $db_ekantin->query("SELECT t.* FROM toko t JOIN users u ON t.id_users = u.id_users WHERE u.status != 'nonaktif' ORDER BY RAND() LIMIT 5");
             if ($qSlides && $qSlides->num_rows > 0) {
                 while ($tSlide = $qSlides->fetch_assoc()) {
                     $banner    = $tSlide['banner_toko'] ?? null;
@@ -244,12 +253,12 @@ if ($id_toko_selected) {
             }
             ?>
             <div class="opacity-0 animate-fadeInUp" style="animation-delay: 0.2s;">
-                <div class="relative w-full overflow-hidden rounded-2xl shadow-md select-none group custom-hero-slider" id="hero-slider">
+                <div class="relative w-full overflow-hidden rounded-2xl select-none group custom-hero-slider shadow-sm border border-gray-200" id="hero-slider">
                     <div class="flex transition-transform duration-500 ease-out h-full w-full" id="slider-track">
                         <?php foreach ($slides as $idx => $slide): ?>
                             <div class="min-w-full h-full relative flex-shrink-0">
                                 <img src="<?= $slide['image'] ?>" class="absolute inset-0 w-full h-full object-cover object-center" alt="Banner">
-                                <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent"></div>
+                                <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);"></div>
                                 <div class="absolute inset-0 flex items-center px-6 sm:px-12">
                                     <div class="relative z-10 text-white max-w-[85%]">
                                         <span class="inline-block text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full mb-2 bg-black/40 backdrop-blur-md border border-white/10 text-white drop-shadow-md">
@@ -342,10 +351,10 @@ if ($id_toko_selected) {
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-4 mt-2">
                 <?php
                 $sqlKantin = "SELECT t.*, 
-                    (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko AND status_menu = 'aktif') as total_menu
-                    FROM toko t";
+                    (SELECT COUNT(id_produk) FROM produk_kantin WHERE id_toko = t.id_toko AND status_menu = 'aktif' AND status_konfirmasi = 'disetujui') as total_menu
+                    FROM toko t JOIN users u ON t.id_users = u.id_users WHERE u.status != 'nonaktif'";
                 if ($keyword !== '') {
-                    $sqlKantin .= " WHERE t.nama_toko LIKE '%$keyword%' OR t.lokasi LIKE '%$keyword%'";
+                    $sqlKantin .= " AND (t.nama_toko LIKE '%$keyword%' OR t.lokasi LIKE '%$keyword%')";
                 }
                 $qKantin = $db_ekantin->query($sqlKantin);
                 $i = 0;
@@ -420,10 +429,10 @@ if ($id_toko_selected) {
                 $banner_detail_src  = $banner_toko_detail ? "../assets/img_banner/" . htmlspecialchars($banner_toko_detail) : null;
                 $banner_height_class = $banner_detail_src ? 'custom-store-banner-image' : 'custom-store-banner-default';
                 ?>
-                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full <?= $banner_height_class ?> transition-all duration-300">
+                <div class="relative rounded-xl sm:rounded-2xl overflow-hidden select-none banner-store-wrap w-full <?= $banner_height_class ?> transition-all duration-300 shadow-sm border border-gray-200">
                     <?php if ($banner_detail_src): ?>
                         <img src="<?= $banner_detail_src ?>" alt="Banner <?= htmlspecialchars($store_details['nama_toko']) ?>" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+                        <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 40%);"></div>
                         <div class="absolute inset-0 flex items-center px-4 sm:px-7 overflow-hidden">
                             <div class="relative z-10 max-w-[70%] sm:max-w-none">
                                 <span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-1" style="background:rgba(255,255,255,0.25);color:#fff;">✨ Menu Spesial</span>
@@ -468,14 +477,14 @@ if ($id_toko_selected) {
                                 COUNT(r.id_review) as total_review
                                 FROM produk_kantin pk
                                 LEFT JOIN review r ON pk.id_produk = r.id_produk
-                                WHERE pk.id_toko = ? AND pk.status_menu = 'aktif'";
+                                WHERE pk.id_toko = ? AND pk.status_konfirmasi = 'disetujui' AND pk.status_menu = 'aktif'";
                     if ($filter_tipe !== '') {
                         $sqlMenu .= " AND pk.tipe_produk = ?";
                     }
                     if ($keyword !== '') {
                         $sqlMenu .= " AND pk.nama_menu LIKE ?";
                     }
-                    $sqlMenu .= " GROUP BY pk.id_produk";
+                    $sqlMenu .= " GROUP BY pk.id_produk ORDER BY (pk.stok > 0) DESC, pk.nama_menu ASC";
 
                     $qMenu = $db_ekantin->prepare($sqlMenu);
 
@@ -501,17 +510,37 @@ if ($id_toko_selected) {
                             $foto_produk   = $menu['file_foto'] ?? null;
                             $foto_menu_src = $foto_produk ? "../assets/img_produk/$foto_produk" : null;
                     ?>
-                        <div class="opacity-0 bg-white rounded-xl border border-gray-100 overflow-hidden
-                                    hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col h-full"
-                             style="animation:fadeInUp 0.4s ease-out <?= $j * 0.05 ?>s forwards;">
+                    <?php
+                        $is_habis = ($menu['stok'] <= 0);
+                        if ($is_habis) {
+                            $card_classes = "opacity-0 rounded-xl overflow-hidden flex flex-col h-full transition-all duration-200 pointer-events-none";
+                            $card_style_attr = "background-color: #fef2f2; border: 1px solid #ef4444; animation:fadeInUp 0.4s ease-out " . ($j * 0.05) . "s forwards;";
+                        } else {
+                            $card_classes = "opacity-0 bg-white rounded-xl border border-gray-100 overflow-hidden flex flex-col h-full transition-all duration-200 hover:border-primary/30 hover:shadow-sm";
+                            $card_style_attr = "animation:fadeInUp 0.4s ease-out " . ($j * 0.05) . "s forwards;";
+                        }
+                    ?>
+                        <div class="<?= $card_classes ?>"
+                             style="<?= $card_style_attr ?>">
                             <div class="menu-img w-full h-28 sm:h-32 flex-shrink-0 bg-input flex items-center justify-center overflow-hidden relative">
+                                <div class='absolute rounded-full bg-white flex items-center justify-center shadow-md z-10 border border-green-500' title='Halal' style='top: 8px; right: 8px; width: 36px; height: 36px;'>
+                                    <span style='font-size: 10px; font-weight: 800; color: #16a34a; line-height: 1;'>HALAL</span>
+                                </div>
                                 <?php if ($foto_menu_src): ?>
-                                    <img src="<?= htmlspecialchars($foto_menu_src) ?>" alt="Menu" class="w-full h-full object-cover">
+                                    <img src="<?= htmlspecialchars($foto_menu_src) ?>" alt="Menu" class="w-full h-full object-cover" <?= $is_habis ? 'style="filter: blur(3px);"' : '' ?>>
                                 <?php else: ?>
-                                    <span class="text-3xl">🍽️</span>
+                                    <span class="text-3xl" <?= $is_habis ? 'style="filter: blur(3px);"' : '' ?>>🍽️</span>
+                                <?php endif; ?>
+                                
+                                <?php if ($is_habis): ?>
+                                <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <span class="bg-red-600/90 backdrop-blur-sm border border-red-500/50 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg transform -rotate-12">
+                                        Sold Out
+                                    </span>
+                                </div>
                                 <?php endif; ?>
                             </div>
-                            <div class="p-2 sm:p-3 flex flex-col flex-grow">
+                            <div class="p-2 sm:p-3 flex flex-col flex-grow relative">
                                 <p class="menu-name font-semibold text-text-1 leading-snug"><?= htmlspecialchars($menu['nama_menu']) ?></p>
                                 <?php if ($menu['total_review'] > 0): ?>
                                 <div class="flex items-center gap-1 mt-0.5">
@@ -527,10 +556,10 @@ if ($id_toko_selected) {
                                 </p>
                                 <div class="flex items-center justify-between mt-2">
                                     <span class="menu-price text-primary font-bold">Rp <?= number_format($menu['harga'], 0, ',', '.') ?></span>
-                                    <?php
-                                        $btn_add = '<button onclick="addToCart('.$menu['id_produk'].', \''.addslashes($menu['nama_menu']).'\', '.$menu['harga'].')" class="w-7 h-7 rounded-full bg-primary text-white font-light flex items-center justify-center hover:bg-submit active:scale-95 transition-all duration-150 shadow-sm">+</button>';
-                                    ?>
-                                    <?php if ($is_open): ?>
+                                    <?php if ($is_open && !$is_habis): ?>
+                                        <?php
+                                            $btn_add = '<button onclick="addToCart('.$menu['id_produk'].', \''.addslashes($menu['nama_menu']).'\', '.$menu['harga'].')" class="w-7 h-7 rounded-full bg-primary text-white font-light flex items-center justify-center hover:bg-submit active:scale-95 transition-all duration-150 shadow-sm">+</button>';
+                                        ?>
                                         <div class="flex items-center gap-1.5 min-h-[28px]"
                                              id="btn-group-<?= $menu['id_produk'] ?>"
                                              data-stok="<?= $menu['stok'] ?>"
@@ -654,6 +683,24 @@ if ($id_toko_selected) {
         updateCartUI();
     }
 
+    function setCartQty(id, name, price, qty) {
+        let btnGroup   = document.getElementById("btn-group-" + id);
+        let stok       = parseInt(btnGroup.getAttribute("data-stok"));
+        qty = parseInt(qty);
+        
+        if (isNaN(qty) || qty <= 0) {
+            delete cart[id];
+        } else {
+            if (qty > stok) {
+                showToast("Stok " + name + " hanya tersedia " + stok + " ⚠️");
+                qty = stok;
+            }
+            if (!cart[id]) { cart[id] = { id: id, name: name, price: price, qty: qty }; }
+            else           { cart[id].qty = qty; }
+        }
+        updateCartUI();
+    }
+
     function updateCartUI() {
         let totalItems = 0, totalPrice = 0;
 
@@ -664,12 +711,12 @@ if ($id_toko_selected) {
 
             let btnGroup = document.getElementById("btn-group-" + id);
             if (btnGroup) {
+                let stok = parseInt(btnGroup.getAttribute("data-stok"));
                 btnGroup.innerHTML = `
                     <button onclick="removeFromCart(${id})" class="w-7 h-7 rounded-full bg-input text-primary font-bold flex items-center justify-center hover:bg-gray-200 transition-colors">-</button>
-                    <span class="text-sm font-bold w-5 text-center text-text-1">${item.qty}</span>
+                    <input type="number" min="1" max="${stok}" value="${item.qty}" oninput="if(parseInt(this.value) > ${stok}) this.value = ${stok};" onchange="setCartQty(${id}, '${item.name.replace(/'/g,"\\'")}', ${item.price}, this.value)" class="w-10 h-7 text-center text-sm font-bold bg-white border border-gray-300 rounded focus:ring-1 focus:ring-primary focus:border-primary p-0 hide-arrow text-text-1 mx-1">
                     <button onclick="addToCart(${id}, '${item.name.replace(/'/g,"\\'")}', ${item.price})" class="w-7 h-7 rounded-full bg-primary text-white font-bold flex items-center justify-center hover:bg-submit transition-colors shadow-sm">+</button>
                 `;
-                let stok    = parseInt(btnGroup.getAttribute("data-stok"));
                 let btnPlus = btnGroup.querySelector("button:last-child");
                 if (item.qty >= stok) { btnPlus.disabled = true; btnPlus.classList.add("opacity-40", "cursor-not-allowed"); }
                 let card = btnGroup.closest('.bg-white');

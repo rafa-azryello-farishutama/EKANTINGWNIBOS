@@ -84,7 +84,7 @@ function badgeStatus($status)
     return match ($status) {
         'pending' => ['text-yellow-600', 'bg-yellow-100', 'Pending'],
         'diproses' => ['text-blue-600', 'bg-blue-100', 'Diproses'],
-        'selesai' => ['text-green-600', 'bg-green-100', 'Selesai'],
+        'selesai' => ['text-green-600', 'bg-green-100', 'Siap Diambil'],
         'dibatalkan' => ['text-red-600', 'bg-red-100', 'Dibatalkan'],
         default => ['text-gray-600', 'bg-gray-100', ucfirst($status)],
     };
@@ -132,30 +132,30 @@ function badgeStatus($status)
                         
                         <?php if ($status_toko == 'buka'): ?>
                             <span class="text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">Buka (Manual)</span>
-                            <button type="submit" name="set_status" value="tutup" class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                            <button type="submit" name="set_status" value="tutup" class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm" onclick="return confirm('Apakah Anda yakin ingin menutup toko secara manual?');">
                                 Tutup Toko
                             </button>
-                            <button type="submit" name="set_status" value="aktif" class="text-xs font-bold bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                            <button type="submit" name="set_status" value="aktif" class="text-xs font-bold bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm" onclick="return confirm('Apakah Anda yakin ingin kembali mengikuti jadwal operasional?');">
                                 Ikuti Jadwal
                             </button>
                         <?php elseif ($status_toko == 'tutup'): ?>
                             <span class="text-xs font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-full">Tutup (Manual)</span>
-                            <button type="submit" name="set_status" value="buka" class="text-xs font-bold bg-primary hover:bg-submit text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                            <button type="submit" name="set_status" value="buka" class="text-xs font-bold bg-primary hover:bg-submit text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm" onclick="return confirm('Apakah Anda yakin ingin membuka toko secara manual?');">
                                 Buka Toko
                             </button>
-                            <button type="submit" name="set_status" value="aktif" class="text-xs font-bold bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                            <button type="submit" name="set_status" value="aktif" class="text-xs font-bold bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm" onclick="return confirm('Apakah Anda yakin ingin kembali mengikuti jadwal operasional?');">
                                 Ikuti Jadwal
                             </button>
                         <?php else: ?>
                             <!-- Status Aktif / Auto -->
                             <?php if ($is_open): ?>
                                 <span class="text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">Buka (Jadwal)</span>
-                                <button type="submit" name="set_status" value="tutup" class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                <button type="submit" name="set_status" value="tutup" class="text-xs font-bold bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm" onclick="return confirm('Apakah Anda yakin ingin menutup toko secara manual?');">
                                     Tutup Toko
                                 </button>
                             <?php else: ?>
                                 <span class="text-xs font-semibold text-red-600 bg-red-100 px-3 py-1 rounded-full">Tutup (Jadwal)</span>
-                                <button type="submit" name="set_status" value="buka" class="text-xs font-bold bg-primary hover:bg-submit text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                <button type="submit" name="set_status" value="buka" class="text-xs font-bold bg-primary hover:bg-submit text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm" onclick="return confirm('Apakah Anda yakin ingin membuka toko secara manual?');">
                                     Buka Toko
                                 </button>
                             <?php endif; ?>

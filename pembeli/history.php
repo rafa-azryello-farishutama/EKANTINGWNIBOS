@@ -27,11 +27,8 @@ if (isset($_POST['konfirmasi_refund'])) {
     exit;
 }
 
-// Update notifikasi pesanan terakhir dilihat
-$q_hash = $db_ekantin->query("SELECT GROUP_CONCAT(CONCAT(id_pesanan, '-', status_pesanan)) as hash FROM pesanan WHERE id_users='$id_users'");
-if ($q_hash) {
-    $_SESSION['last_seen_orders_hash'] = md5($q_hash->fetch_assoc()['hash'] ?? '');
-}
+// Update notifikasi pesanan (tandai sudah dilihat)
+$db_ekantin->query("UPDATE pesanan SET dilihat_pembeli = 1 WHERE id_users = '$id_users' AND status_pesanan IN ('selesai', 'diambil', 'tidak_diambil', 'dibatalkan')");
 // Proses pembatalan pesanan jika ada
 if (isset($_POST['batalkan_pesanan'])) {
     $id_batal = (int) $_POST['id_pesanan'];
@@ -55,7 +52,7 @@ if (isset($_POST['batalkan_pesanan'])) {
                 $qDetail->execute();
                 $resDetail = $qDetail->get_result();
                 
-                $qKembaliStok = $db_ekantin->prepare("UPDATE produk_kantin SET stok = stok + ? WHERE id_produk = ?");
+                $qKembaliStok = $db_ekantin->prepare("UPDATE produk_kantin SET stok = stok + ?, status_menu = 'aktif', diset_nol_oleh_penjual = 0 WHERE id_produk = ?");
                 while ($det = $resDetail->fetch_assoc()) {
                     $qKembaliStok->bind_param("ii", $det['jumlah'], $det['id_produk']);
                     $qKembaliStok->execute();
@@ -71,23 +68,31 @@ if (isset($_POST['batalkan_pesanan'])) {
     exit;
 }
 
-// Ambil filter (jika ada)
+// Filter status
 $filter = $_GET['filter'] ?? 'semua';
+$allowed_filters = ['semua', 'pending', 'diproses', 'selesai', 'diambil', 'tidak_diambil', 'dibatalkan'];
+if (!in_array($filter, $allowed_filters)) $filter = 'semua';
+
 $where_status = "";
 if ($filter !== 'semua') {
-    // Validasi filter agar tidak disusupi SQL injection
-    $allowed_filters = ['pending', 'diproses', 'selesai', 'diambil', 'tidak_diambil', 'dibatalkan'];
-    if (in_array($filter, $allowed_filters)) {
-        if ($filter === 'selesai') {
-            // Tampilkan semua status yang dianggap 'selesai'
-            $where_status = " AND p.status_pesanan IN ('selesai','diambil','tidak_diambil')";
-        } else {
-            $where_status = " AND p.status_pesanan = '$filter'";
-        }
+    if ($filter === 'selesai') {
+        $where_status = " AND p.status_pesanan IN ('selesai','diambil','tidak_diambil')";
     } else {
-        $filter = 'semua';
+        $where_status = " AND p.status_pesanan = '$filter'";
     }
 }
+
+// Filter tanggal
+$filter_tgl = $_GET['filter_tgl'] ?? 'semua_waktu';
+$allowed_tgl = ['hari_ini', 'minggu_ini', 'bulan_ini', 'semua_waktu'];
+if (!in_array($filter_tgl, $allowed_tgl)) $filter_tgl = 'semua_waktu';
+
+$where_tanggal = match($filter_tgl) {
+    'hari_ini'   => " AND DATE(p.tanggal_pesan) = CURDATE()",
+    'minggu_ini' => " AND YEARWEEK(p.tanggal_pesan, 1) = YEARWEEK(CURDATE(), 1)",
+    'bulan_ini'  => " AND MONTH(p.tanggal_pesan) = MONTH(CURDATE()) AND YEAR(p.tanggal_pesan) = YEAR(CURDATE())",
+    default      => "",
+};
 
 // Ambil data pesanan
 $sql_pesanan = "SELECT p.*, p.refund_confirmed, t.nama_toko, pay.metode_bayar as metode_pembayaran, pay.bukti_bayar as bukti_pembayaran, pay.status_bayar,
@@ -95,7 +100,7 @@ $sql_pesanan = "SELECT p.*, p.refund_confirmed, t.nama_toko, pay.metode_bayar as
                 FROM pesanan p 
                 JOIN toko t ON p.id_toko = t.id_toko 
                 LEFT JOIN pembayaran pay ON p.id_pesanan = pay.id_pesanan
-                WHERE p.id_users = ? $where_status
+                WHERE p.id_users = ? $where_status $where_tanggal
                 ORDER BY p.tanggal_pesan DESC";
 
 $stmt_pesanan = $db_ekantin->prepare($sql_pesanan);
@@ -163,21 +168,32 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                     </div>
                 <?php endif; ?>
 
-                <!-- Filter Tab -->
+                <!-- Filter Bar -->
                 <div class="animate-[fadeInUp_0.5s_ease-out_forwards] opacity-0 flex items-center gap-2 flex-wrap"
                     style="animation-delay: 0.15s;">
+
                     <?php 
-                    $tabs = ['semua' => 'Semua', 'pending' => 'Pending', 'diproses' => 'Diproses', 'selesai' => 'Selesai', 'dibatalkan' => 'Dibatalkan'];
+                    $tabs = ['semua' => 'Semua', 'pending' => 'Pending', 'diproses' => 'Diproses', 'selesai' => 'Siap Diambil', 'dibatalkan' => 'Dibatalkan'];
                     foreach($tabs as $key => $label): 
                         $isActive = ($filter === $key);
                         $classActive = "bg-primary text-white shadow-sm";
                         $classInactive = "bg-white border border-gray-100 text-text-2 hover:border-primary/30 hover:text-primary";
                     ?>
-                        <a href="history.php?filter=<?= $key ?>"
+                        <a href="history.php?filter=<?= $key ?>&filter_tgl=<?= $filter_tgl ?>"
                            class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 <?= $isActive ? $classActive : $classInactive ?>">
                             <?= $label ?>
                         </a>
                     <?php endforeach; ?>
+
+                    <!-- Dropdown tanggal -->
+                    <select onchange="window.location.href='history.php?filter=<?= $filter ?>&filter_tgl='+this.value"
+                            class="ml-auto px-4 py-2 rounded-xl text-sm font-semibold border border-gray-100 bg-white text-text-2 hover:border-primary/30 focus:outline-none focus:ring-0 cursor-pointer transition-all">
+                        <option value="semua_waktu"  <?= $filter_tgl === 'semua_waktu'  ? 'selected' : '' ?>>📅 Semua Waktu</option>
+                        <option value="hari_ini"     <?= $filter_tgl === 'hari_ini'     ? 'selected' : '' ?>>🌅 Hari Ini</option>
+                        <option value="minggu_ini"   <?= $filter_tgl === 'minggu_ini'   ? 'selected' : '' ?>>📆 Minggu Ini</option>
+                        <option value="bulan_ini"    <?= $filter_tgl === 'bulan_ini'    ? 'selected' : '' ?>>🗓️ Bulan Ini</option>
+                    </select>
+
                 </div>
 
                 <!-- Daftar Riwayat -->
@@ -217,7 +233,7 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                     $labelStatus = 'Tidak Diambil';
                                 } else {
                                     $iconColor = "text-green-600"; $iconBg = "bg-green-50"; $badgeClass = "bg-green-100 text-green-700";
-                                    $labelStatus = 'Selesai';
+                                    $labelStatus = 'Siap Diambil';
                                 }
                             } elseif ($status == 'diproses') {
                                 $icon = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />';
@@ -301,24 +317,7 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                         </div>
                                         <?php endif; ?>
 
-                                        <?php 
-                                            $sudah_tf = in_array($pesanan['status_bayar'] ?? '', ['sudah_bayar', 'lunas']);
-                                            $refund_done = (int)($pesanan['refund_confirmed'] ?? 0) === 1;
-                                        ?>
-                                        <?php if ($sudah_tf && !$refund_done): ?>
-                                        <div class="bg-orange-50 border border-orange-300 rounded-xl p-3 flex items-start gap-2">
-                                            <span class="text-lg leading-none">⚠️</span>
-                                            <div>
-                                                <p class="text-xs font-bold text-orange-700">Dana Anda belum dikembalikan!</p>
-                                                <p class="text-xs text-orange-600 mt-0.5">Silakan datang langsung ke kantin untuk melakukan <b>pengembalian dana secara tunai (refund offline)</b> bersama penjual.</p>
-                                            </div>
-                                        </div>
-                                        <?php elseif ($sudah_tf && $refund_done): ?>
-                                        <div class="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
-                                            <span>✅</span>
-                                            <p class="text-xs font-semibold text-green-700">Refund tunai telah selesai diproses.</p>
-                                        </div>
-                                        <?php endif; ?>
+
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -361,20 +360,7 @@ $hasil_pesanan = $stmt_pesanan->get_result()->fetch_all(MYSQLI_ASSOC);
                                     </form>
                                     <?php endif; ?>
 
-                                    <?php
-                                        $sudah_tf_footer = in_array($pesanan['status_bayar'] ?? '', ['sudah_bayar', 'lunas']);
-                                        $refund_done_footer = (int)($pesanan['refund_confirmed'] ?? 0) === 1;
-                                    ?>
-                                    <?php if ($status === 'dibatalkan' && $sudah_tf_footer && !$refund_done_footer): ?>
-                                    <!-- Tombol konfirmasi refund offline -->
-                                    <form method="POST" onsubmit="return confirm('Pastikan Anda sudah menerima pengembalian uang tunai dari penjual. Lanjutkan?');">
-                                        <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
-                                        <button type="submit" name="konfirmasi_refund"
-                                            class="text-xs font-bold text-green-700 bg-green-100 hover:bg-green-200 border border-green-300 px-3 py-1.5 rounded-lg transition-colors">
-                                            ✅ Uang Saya Sudah Kembali
-                                        </button>
-                                    </form>
-                                    <?php endif; ?>
+
                                     
                                     <span class="font-extrabold text-base <?= ($status === 'dibatalkan') ? 'text-text-3 line-through' : 'text-primary' ?>">
                                         Rp <?= number_format($pesanan['total_harga'], 0, ',', '.') ?>

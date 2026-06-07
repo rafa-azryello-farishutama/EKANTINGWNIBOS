@@ -31,8 +31,8 @@ if (!$id_pesanan || empty($reviews)) {
     exit;
 }
 
-// Validasi: pesanan milik user & status selesai
-$qCek = $db_ekantin->prepare("SELECT id_pesanan FROM pesanan WHERE id_pesanan = ? AND id_users = ? AND status_pesanan = 'selesai'");
+// Validasi: pesanan milik user & status selesai atau diambil
+$qCek = $db_ekantin->prepare("SELECT id_pesanan FROM pesanan WHERE id_pesanan = ? AND id_users = ? AND status_pesanan IN ('selesai', 'diambil')");
 $qCek->bind_param("ii", $id_pesanan, $id_users);
 $qCek->execute();
 $resCek = $qCek->get_result();
